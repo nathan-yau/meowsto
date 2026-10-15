@@ -12,7 +12,6 @@ const AUTH_PATHS=new Set(['params','register','login','refresh','logout','passwo
 const DEFAULT_CENTER=[49.2827,-123.1207], DEFAULT_ZOOM=13;
 /* Public Mapbox token — Search Box only (basemap stays Leaflet/MapLibre/OSM) */
 const MAPBOX_TOKEN='pk.eyJ1IjoibmF0aGFueWF1IiwiYSI6ImNtdjl1eW53YjA4ZWQyd3EwMzJ3ZHQ5d3QifQ.wfFv9UcvOOqXlUX__A0Lrg';
-let mapboxSessionToken=null;
 const artIndex={ramen:0,cafe:1,burger:2,dessert:3,sushi:4,pasta:5,matcha:6,shop:7,cat:8,taco:7};
 function art(kind='shop'){let n=artIndex[kind]??7;return `<span class="illustration" style="--x:${n%3*50}%;--y:${Math.floor(n/3)*50}%" aria-hidden="true"></span>`}
 function icon(type){const paths={map:'<path d="M3 5 9 2l6 3 6-3v17l-6 3-6-3-6 3Z"/><path d="M9 2v17M15 5v17"/>',calendar:'<rect x="3" y="5" width="18" height="17" rx="3"/><path d="M7 2v6M17 2v6M3 11h18"/>',heart:'<path d="M12 21S2 15 2 8a5 5 0 0 1 10-2A5 5 0 0 1 22 8c0 7-10 13-10 13Z"/>',bookmark:'<path d="M6 3h12a1 1 0 0 1 1 1v18l-7-5-7 5V4a1 1 0 0 1 1-1Z"/>',search:'<circle cx="10" cy="10" r="7"/><path d="m15 15 7 7"/>'};return `<svg class="ui-icon" viewBox="0 0 24 24" aria-hidden="true">${paths[type]||paths.bookmark}</svg>`}
@@ -277,52 +276,34 @@ let activeSearch=null, searchGeneration=0, autocompleteTimer=null, lastSearchAt=
 function destroyPlacePreview(){if(placePreviewMap){placePreviewMap.remove();placePreviewMap=null}}
 function cancelSearch(){clearTimeout(autocompleteTimer);searchGeneration++;activeSearch?.abort();activeSearch=null;searchBusy=false}
 function validPlace(f){
-  if(f?.properties?._provider==='mapbox'&&f.properties.mapbox_id)return true;
   const c=f?.geometry?.coordinates;return f?.geometry?.type==='Point'&&f.properties&&Array.isArray(c)&&Number.isFinite(c[0])&&Math.abs(c[0])<=180&&Number.isFinite(c[1])&&Math.abs(c[1])<=90
 }
-function newMapboxSession(){try{return crypto.randomUUID()}catch{return 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g,c=>{const r=Math.random()*16|0;return(c==='x'?r:(r&0x3|0x8)).toString(16)})}}
 function placeSearchURL(query,center,nearMap=true){
   const params=new URLSearchParams({q:query,limit:'5',lat:String(center[0]),lon:String(center[1]),zoom:'13',location_bias_scale:'0.1'});
   for(const type of ['amenity:restaurant','amenity:cafe','amenity:fast_food','amenity:food_court','amenity:bar','amenity:pub','amenity:ice_cream','shop:bakery'])params.append('osm_tag',type);
   if(nearMap)params.set('bbox',[Math.max(-180,center[1]-.45),Math.max(-90,center[0]-.27),Math.min(180,center[1]+.45),Math.min(90,center[0]+.27)].join(','));
   return 'https://photon.komoot.io/api/?'+params.toString();
 }
-function mapboxSuggestURL(query,center,nearMap,sessionToken){
-  const params=new URLSearchParams({q:query,access_token:MAPBOX_TOKEN,session_token:sessionToken,language:'en',limit:'8',types:'poi'});
+function mapboxForwardURL(query,center,nearMap){
+  const params=new URLSearchParams({q:query,access_token:MAPBOX_TOKEN,language:'en',limit:'8',types:'poi'});
   if(nearMap&&Array.isArray(center)&&center.length>=2){
     params.set('proximity',`${center[1]},${center[0]}`);
     params.set('bbox',[Math.max(-180,center[1]-.45),Math.max(-90,center[0]-.27),Math.min(180,center[1]+.45),Math.min(90,center[0]+.27)].join(','));
   }
-  return 'https://api.mapbox.com/search/searchbox/v1/suggest?'+params.toString();
+  return 'https://api.mapbox.com/search/searchbox/v1/forward?'+params.toString();
 }
-function mapboxSuggestionFeatures(suggestions,sessionToken){
-  return (suggestions||[]).filter(s=>s&&s.mapbox_id&&s.name).map(s=>{
-    const ctx=s.context||{};
-    return {type:'Feature',geometry:{type:'Point',coordinates:[0,0]},properties:{
-      _provider:'mapbox',_session:sessionToken,mapbox_id:s.mapbox_id,
-      name:s.name_preferred||s.name,full_address:s.full_address||'',address:s.address||'',place_formatted:s.place_formatted||'',
+function mapboxForwardFeatures(features){
+  return (features||[]).filter(f=>validPlace(f)).map(f=>{
+    const p=f.properties||{},ctx=p.context||{};
+    return {type:'Feature',geometry:f.geometry,properties:{
+      _provider:'mapbox',mapbox_id:p.mapbox_id||null,
+      name:p.name_preferred||p.name,full_address:p.full_address||'',address:p.address||'',place_formatted:p.place_formatted||'',
       housenumber:ctx.address?.address_number,street:ctx.address?.street_name||ctx.street?.name,
       district:ctx.neighborhood?.name,city:ctx.place?.name,state:ctx.region?.name,country:ctx.country?.name,
-      poi_category:s.poi_category||[],osm_value:(s.poi_category_ids||[])[0]||''
+      poi_category:p.poi_category||[],osm_value:(p.poi_category_ids||[])[0]||'',
+      sourceId:p.mapbox_id?`mapbox:${p.mapbox_id}`:null
     }};
   });
-}
-async function mapboxRetrieve(mapboxId,sessionToken,signal){
-  const params=new URLSearchParams({access_token:MAPBOX_TOKEN,session_token:sessionToken,language:'en'});
-  const res=await fetch(`https://api.mapbox.com/search/searchbox/v1/retrieve/${encodeURIComponent(mapboxId)}?`+params,{signal});
-  if(!res.ok)throw Error('retrieve '+res.status);
-  const data=await res.json();
-  const f=data.features?.[0];
-  const gc=f?.geometry?.coordinates;if(!f||f.geometry?.type!=='Point'||!Array.isArray(gc)||!Number.isFinite(gc[0])||!Number.isFinite(gc[1]))throw Error('bad retrieve');
-  const p=f.properties||{},ctx=p.context||{};
-  return {type:'Feature',geometry:f.geometry,properties:{
-    _provider:'mapbox',mapbox_id:p.mapbox_id||mapboxId,
-    name:p.name_preferred||p.name,full_address:p.full_address||'',address:p.address||'',place_formatted:p.place_formatted||'',
-    housenumber:ctx.address?.address_number,street:ctx.address?.street_name||ctx.street?.name,
-    district:ctx.neighborhood?.name,city:ctx.place?.name,state:ctx.region?.name,country:ctx.country?.name,
-    poi_category:p.poi_category||[],osm_value:(p.poi_category_ids||[])[0]||'',
-    sourceId:p.mapbox_id?`mapbox:${p.mapbox_id}`:null,_retrieved:true
-  }};
 }
 function manualFallback(){return `<details class="manual-fallback"><summary>Still can’t find the restaurant?</summary><p>Try a broader search. Or enter details manually.</p><button type="button" class="manual-last-resort" data-action="manual">Enter details manually</button></details>`}
 function suggestion(f,i){const p=f.properties,category=placeCategory(p);return `<button type="button" id="place-option-${i}" class="place-suggestion" role="option" aria-selected="false" data-result="${i}"><span class="suggestion-icon">${art(category.kind)}</span><span><b>${esc(p.name||p.street||'Place')}</b><small>${esc(placeAddress(p))}</small></span><span class="suggestion-arrow">↗</span></button>`}
@@ -338,26 +319,24 @@ function renderSearchPage(output,saved){
   output.innerHTML=html;
 }
 function showSearch(context={}){
-  cancelSearch();searchContext=context;searchResultPage=0;mapboxSessionToken=newMapboxSession();
+  cancelSearch();searchContext=context;searchResultPage=0;
   openPanel(context.wish?'A little food daydream':'Find your next favorite',`
     <form class="search-form place-search-form" id="search-form"><div class="place-search-input">${icon('search')}<input id="search-query" placeholder="Restaurant, café, or neighborhood" aria-label="Restaurant name and city" role="combobox" aria-autocomplete="list" aria-controls="search-results" aria-expanded="false" autocomplete="off" required minlength="2" maxlength="200"><button type="button" class="clear-search" id="clear-search" aria-label="Clear search" hidden>×</button></div><button class="search-submit" aria-label="Search restaurants">→</button></form>
     <div class="search-area"><span>◎ <span id="search-scope-label">${context.fromPin?'Near selected map point':'Near your map'}</span></span><button type="button" id="search-scope">Search worldwide</button></div>
-    <div id="search-results" class="search-results place-results" role="listbox" aria-label="Restaurant suggestions"><div class="search-idle"><span>✧</span><h3>Where are we eating?</h3><p>Start typing a restaurant name.</p></div></div>
+    <div id="search-results" class="search-results place-results" role="listbox" aria-label="Restaurant suggestions"><div class="search-idle"><span>✧</span><h3>Where are we eating?</h3><p>Type a name, then tap search.</p></div></div>
     <footer class="place-search-footer"><a id="google-search-link" target="_blank" rel="noopener" hidden>Search on Google Maps ↗</a><small>Place search by Mapbox · Photon fallback · © OpenStreetMap</small></footer>`,{full:true,cls:'place-panel search-panel'});
   const input=$('#search-query'),form=$('#search-form'),output=$('#search-results');let activeChoice=-1,nearMap=true;
-  const searchKey=q=>{const center=context.center||userLocation||mapCenter;return 'food-search-v3-mb:'+q.toLowerCase()+':'+nearMap+':'+center.map(n=>n.toFixed(2)).join(',')};
+  const searchKey=q=>{const center=context.center||userLocation||mapCenter;return 'food-search-v4-fwd:'+q.toLowerCase()+':'+nearMap+':'+center.map(n=>n.toFixed(2)).join(',')};
   const memCache=window.__placeCache||(window.__placeCache=new Map());
-  const cachedSearch=q=>{const k=searchKey(q);if(memCache.has(k))return memCache.get(k);try{const v=JSON.parse(sessionStorage.getItem(k));if(v&&v._provider!=='mapbox'){memCache.set(k,v);return v}}catch{}return null};
+  const cachedSearch=q=>{const k=searchKey(q);if(memCache.has(k))return memCache.get(k);try{const v=JSON.parse(sessionStorage.getItem(k));if(v){memCache.set(k,v);return v}}catch{}return null};
+  // Typing only updates UI chrome — no network search until submit
   input.oninput=()=>{
-    cancelSearch();form.querySelector('.search-submit').disabled=false;form.querySelector('.search-submit').textContent='→';activeChoice=-1;
+    clearTimeout(autocompleteTimer);activeChoice=-1;
+    form.querySelector('.search-submit').disabled=false;form.querySelector('.search-submit').textContent='→';
     const q=input.value.trim();$('#clear-search').hidden=!q;
     const link=$('#google-search-link');link.hidden=!q;link.href='https://www.google.com/maps/search/?api=1&query='+encodeURIComponent(q);
-    if(q.length<3){output.innerHTML='<div class="search-idle"><span>✧</span><p>Type at least 3 letters.</p></div>';return}
-    output.innerHTML='<p class="search-message" role="status">Looking…</p>';
-    if(cachedSearch(q)){form.requestSubmit();return}
-    autocompleteTimer=setTimeout(()=>{if(form.isConnected)form.requestSubmit()},Math.max(450,600-(Date.now()-lastSearchAt)));
   };
-  $('#search-scope').onclick=()=>{nearMap=!nearMap;$('#search-scope-label').textContent=nearMap?(context.fromPin?'Near selected map point':'Near your map'):'Worldwide';$('#search-scope').textContent=nearMap?'Search worldwide':'Search near map';input.oninput()};
+  $('#search-scope').onclick=()=>{nearMap=!nearMap;$('#search-scope-label').textContent=nearMap?(context.fromPin?'Near selected map point':'Near your map'):'Worldwide';$('#search-scope').textContent=nearMap?'Search worldwide':'Search near map'};
   $('#clear-search').onclick=()=>{input.value='';input.dispatchEvent(new Event('input'));input.focus()};
   form.onsubmit=async e=>{
     e.preventDefault();clearTimeout(autocompleteTimer);if(searchBusy){activeSearch?.abort();searchGeneration++;searchBusy=false}
@@ -374,12 +353,13 @@ function showSearch(context={}){
       let data=cachedSearch(q);
       if(!data){
         try{
-          const res=await fetch(mapboxSuggestURL(q,center,nearMap,mapboxSessionToken),{signal:controller.signal});
+          const res=await fetch(mapboxForwardURL(q,center,nearMap),{signal:controller.signal});
           if(!res.ok)throw Error('mapbox '+res.status);
           const json=await res.json();
-          if(!Array.isArray(json.suggestions))throw Error('mapbox invalid');
-          data={features:mapboxSuggestionFeatures(json.suggestions,mapboxSessionToken),_provider:'mapbox'};
+          if(!Array.isArray(json.features))throw Error('mapbox invalid');
+          data={features:mapboxForwardFeatures(json.features),_provider:'mapbox'};
           memCache.set(cacheKey,data);
+          try{sessionStorage.setItem(cacheKey,JSON.stringify(data))}catch{}
         }catch(mbErr){
           if(mbErr?.name==='AbortError')throw mbErr;
           const res=await fetch(placeSearchURL(q,center,nearMap),{signal:controller.signal});
@@ -466,25 +446,6 @@ document.addEventListener('click',e=>{
   if(d.note){const r=rest(d.note);openPanel('My note',`<form id="note-form"><textarea aria-label="My note" maxlength="2000">${esc(r.note)}</textarea><div class="form-actions"><button class="primary">Save note</button></div></form>`,{full:true});$('#note-form').onsubmit=e=>{e.preventDefault();if(!commit(()=>{rest(d.note).note=e.target.querySelector('textarea').value;rest(d.note).u=Date.now()}))return;closePanel();render();toast('Note saved')};return}
   if(d.result!==undefined){
     const f=searchResults[Number(d.result)];if(!f)return;
-    const p=f.properties;
-    if(p._provider==='mapbox'&&p.mapbox_id&&!p._retrieved){
-      const btn=d.result;const session=p._session||newMapboxSession();
-      (async()=>{
-        try{
-          toast('Loading place…');
-          const controller=new AbortController();activeSearch=controller;
-          const full=await mapboxRetrieve(p.mapbox_id,session,controller.signal);
-          activeSearch=null;mapboxSessionToken=newMapboxSession();
-          searchResults[Number(btn)]=full;
-          openFromSearchFeature(full);
-        }catch(err){
-          activeSearch=null;
-          if(err?.name==='AbortError')return;
-          toast('Could not load that place. Try again.');
-        }
-      })();
-      return;
-    }
     return openFromSearchFeature(f);
   }
   switch(d.action){
