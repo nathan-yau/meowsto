@@ -185,7 +185,7 @@ function renderTimeline(){
 }
 
 function renderMap(){
-  $('#main').innerHTML=`<div class="map-wrap"><div class="map-toolbar"><button type="button" data-action="locate" class="chip-near" aria-label="Go to my location">${icon('pin')}<span>Near me</span>${icon('chev')}</button><button type="button" data-action="explore" class="explore-toggle${exploreOn?' active':''}" aria-pressed="${exploreOn}" aria-label="${exploreOn?'Exit explore mode':'Explore nearby restaurants'}">${exploreOn?'✕ <span>Exit</span>':icon('sparkle')+'<span>Explore</span>'+icon('chev')}</button></div><form class="map-search-bar" id="map-search-form" role="search"><span class="map-search-ico" aria-hidden="true">${icon('search')}</span><input id="map-search-query" type="search" enterkeyhint="search" placeholder="Search nearby restaurants" aria-label="Search nearby restaurants" autocomplete="off" maxlength="200"><button type="submit" class="map-search-go" aria-label="Search">${icon('arrow')}</button></form><div id="map" aria-label="Restaurant map"></div>${exploreOn?'<div class="explore-banner">Explore mode · nearby restaurants from OpenStreetMap (not your pins)</div>':''}<div id="map-status" class="map-status" role="status" hidden></div></div><div id="sheet"></div>`;
+  $('#main').innerHTML=`<div class="map-wrap"><div class="map-toolbar"><button type="button" data-action="locate" class="chip-near" aria-label="Go to my location">${icon('pin')}<span>Near me</span>${icon('chev')}</button><button type="button" data-action="explore" class="explore-toggle${exploreOn?' active':''}" aria-pressed="${exploreOn}" aria-label="${exploreOn?'Exit explore mode':'Explore nearby restaurants'}">${exploreOn?'✕ <span>Exit</span>':icon('sparkle')+'<span>Explore</span>'+icon('chev')}</button><label class="hide-visited-toggle map-hide-visited"><input type="checkbox" data-hide-visited ${hideVisited?'checked':''}><span>Hide visited</span></label></div><form class="map-search-bar" id="map-search-form" role="search"><span class="map-search-ico" aria-hidden="true">${icon('search')}</span><input id="map-search-query" type="search" enterkeyhint="search" placeholder="Search nearby restaurants" aria-label="Search nearby restaurants" autocomplete="off" maxlength="200"><button type="submit" class="map-search-go" aria-label="Search">${icon('arrow')}</button></form><div id="map" aria-label="Restaurant map"></div>${exploreOn?'<div class="explore-banner">Explore mode · nearby restaurants from OpenStreetMap (not your pins)</div>':''}<div id="map-status" class="map-status" role="status" hidden></div></div><div id="sheet"></div>`;
   if(typeof L==='undefined'||typeof window.L==='undefined'&&typeof leaflet==='undefined'){/* leaflet global is L which conflicts — use window check */}
   if(typeof window.L==='undefined'){$('#map').innerHTML='<div class="failure">The map could not load. Check your connection.<br><button data-action="reload-map">Try again</button></div>';wireMapSearch()}
   else{
@@ -281,6 +281,7 @@ function searchHitNameMatchesQuery(f){
   return name.includes(q);
 }
 function searchHitHidden(f){
+  return false; // search results never filtered by visited
   if(!hideVisited)return false;
   if(!searchHitLastVisit(f))return false;
   if(searchHitNameMatchesQuery(f))return false;
@@ -310,7 +311,7 @@ function drawSearchMarkers(){
     searchMarkers[i]=m;
   });
 }
-function drawMarkers(){if(!map)return;markers.forEach(m=>m.remove());markers=[];if(exploreOn){clearSearchMarkers();loadExplore();bindMapEvents();return}state.restaurants.filter(r=>Number.isFinite(r.lat)&&Number.isFinite(r.lng)).forEach(r=>{const m=window.L.marker([r.lat,r.lng],{icon:markerIcon(r),title:r.name,riseOnHover:true,bubblingMouseEvents:false}).addTo(map).on('click',e=>{window.L.DomEvent.stopPropagation(e);selectPin(r.id)});m._r=r;markers.push(m)});drawSearchMarkers();bindMapEvents()}
+function drawMarkers(){if(!map)return;markers.forEach(m=>m.remove());markers=[];if(exploreOn){clearSearchMarkers();loadExplore();bindMapEvents();return}state.restaurants.filter(r=>Number.isFinite(r.lat)&&Number.isFinite(r.lng)&&!(hideVisited&&visits(r.id).length)).forEach(r=>{const m=window.L.marker([r.lat,r.lng],{icon:markerIcon(r),title:r.name,riseOnHover:true,bubblingMouseEvents:false}).addTo(map).on('click',e=>{window.L.DomEvent.stopPropagation(e);selectPin(r.id)});m._r=r;markers.push(m)});drawSearchMarkers();bindMapEvents()}
 function bindMapEvents(){if(!map._meowZoom){map._meowZoom=1;let last=pinTier(),lastS=searchPinTier();map.on('zoomend',()=>{mapZoom=map.getZoom();const t=pinTier(),s=searchPinTier();if(t!==last||s!==lastS){last=t;lastS=s;updateMarkerIcons()}});map.on('moveend',()=>{const c=map.getCenter();mapCenter=[c.lat,c.lng];if(exploreOn)loadExplore()});map.on('click',()=>{if(selected){selected=null;updateMarkerIcons();renderSheet();enhanceIcons()}})}}
 function distance(r){if(!userLocation||!Number.isFinite(r.lat))return '';const rad=x=>x*Math.PI/180,dlat=rad(r.lat-userLocation[0]),dlng=rad(r.lng-userLocation[1]),a=Math.sin(dlat/2)**2+Math.cos(rad(r.lat))*Math.cos(rad(userLocation[0]))*Math.sin(dlng/2)**2;let km=6371*2*Math.atan2(Math.sqrt(a),Math.sqrt(1-a));return `${km<1?Math.round(km*1000)+' m':km.toFixed(1)+' km'} · `}
 function renderSheet(){
@@ -626,7 +627,7 @@ async function fetchPlaceFeaturesLive(q,center,signal){
   }
 }
 function showSearchSheetResults(sheet,features,opts={}){
-  sheet.innerHTML=`<section class="search-sheet"><div class="handle" aria-hidden="true"></div><div class="search-sheet-head"><h2>Nearby matches</h2><div class="search-sheet-tools"><label class="hide-visited-toggle"><input type="checkbox" data-hide-visited ${hideVisited?'checked':''}><span>Hide visited</span></label><button type="button" class="text-button" data-action="clear-search-sheet">Clear</button></div></div><div id="search-results" class="search-results place-results"></div></section>`;
+  sheet.innerHTML=`<section class="search-sheet"><div class="handle" aria-hidden="true"></div><div class="search-sheet-head"><h2>Nearby matches</h2><div class="search-sheet-tools"><button type="button" class="text-button" data-action="clear-search-sheet">Clear</button></div></div><div id="search-results" class="search-results place-results"></div></section>`;
   renderPlaceHits($('#search-results'),features,opts);
   bindSheetDismiss(sheet.querySelector('.search-sheet'),dismissSearchSheet);
 }
@@ -763,8 +764,8 @@ document.addEventListener('change',e=>{
   if(t&&t.matches&&t.matches('[data-hide-visited]')){
     hideVisited=!!t.checked;
     try{localStorage.setItem(HIDE_VISITED_KEY,hideVisited?'1':'0')}catch{}
-    const out=$('#search-results');
-    if(out&&searchResults.length)renderPlaceHits(out,searchResults);
+    if(hideVisited&&selected&&visits(selected).length){selected=null;renderSheet();enhanceIcons()}
+    drawMarkers();
   }
 });
 document.addEventListener('click',e=>{
