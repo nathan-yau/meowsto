@@ -8,7 +8,7 @@ body:not(.locked) #app { display: flex; }
   position: fixed; inset: 0; z-index: 9000;
   display: none; align-items: center; justify-content: center;
   background-color: #e3eedf !important;
-  background-image: url("assets/auth-bg.svg?v=ui20261015at") !important;
+  background-image: url("assets/auth-bg.svg?v=ui20261015au") !important;
   background-size: cover !important;
   background-position: center !important;
   background-repeat: no-repeat !important;
@@ -254,17 +254,19 @@ body.reg-mode #uf .signup-fields {
   font-size: inherit; line-height: inherit; font-weight: inherit;
 }
 
-/* Sage checkbox */
+/* Sage checkbox — mark centered in box (H+V) */
 .remember input[type=checkbox],
 .ack input[type=checkbox] {
   appearance: none;
   -webkit-appearance: none;
+  position: relative;
+  box-sizing: border-box;
   width: 18px; height: 18px; min-width: 18px; min-height: 18px;
-  margin: 0; flex: none; align-self: center;
+  max-width: 18px; max-height: 18px;
+  margin: 0; padding: 0; flex: none; align-self: center;
   border: 1.75px solid #7f9a78;
   border-radius: 5px;
   background: #fffef9;
-  display: grid; place-items: center;
   cursor: pointer;
   transition: background .15s ease, border-color .15s ease;
 }
@@ -276,10 +278,17 @@ body.reg-mode #uf .signup-fields {
 .remember input[type=checkbox]:checked::after,
 .ack input[type=checkbox]:checked::after {
   content: "";
-  width: 5px; height: 9px;
+  position: absolute;
+  left: 50%;
+  top: 50%;
+  width: 4px;
+  height: 8px;
+  margin: 0;
   border: solid #fff;
-  border-width: 0 2.2px 2.2px 0;
-  transform: rotate(45deg) translate(-1px, -1px);
+  border-width: 0 2px 2px 0;
+  box-sizing: border-box;
+  transform: translate(-50%, -58%) rotate(45deg);
+  transform-origin: center center;
 }
 .ack input[type=checkbox] { align-self: flex-start; margin-top: 2px; }
 .ack {

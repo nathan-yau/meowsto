@@ -1,13 +1,13 @@
 <svg xmlns="http://www.w3.org/2000/svg" width="940" height="1670" viewBox="0 0 940 1670" fill="none">
   <rect width="940" height="1670" fill="#E3EEDF"/>
-  <!-- soft organic blobs -->
-  <ellipse cx="80" cy="220" rx="220" ry="180" fill="#C2D8BC" opacity=".85"/>
-  <ellipse cx="880" cy="180" rx="200" ry="160" fill="#C6DCBF" opacity=".8"/>
-  <ellipse cx="120" cy="1480" rx="260" ry="200" fill="#BFD4B8" opacity=".85"/>
-  <ellipse cx="820" cy="1520" rx="240" ry="180" fill="#C4D9BD" opacity=".8"/>
-  <ellipse cx="470" cy="80" rx="180" ry="90" fill="#C9DEC3" opacity=".65"/>
+  <!-- soft organic blobs — very subtle on solid sage -->
+  <ellipse cx="80" cy="220" rx="220" ry="180" fill="#C2D8BC" opacity=".18"/>
+  <ellipse cx="880" cy="180" rx="200" ry="160" fill="#C6DCBF" opacity=".16"/>
+  <ellipse cx="120" cy="1480" rx="260" ry="200" fill="#BFD4B8" opacity=".18"/>
+  <ellipse cx="820" cy="1520" rx="240" ry="180" fill="#C4D9BD" opacity=".16"/>
+  <ellipse cx="470" cy="80" rx="180" ry="90" fill="#C9DEC3" opacity=".12"/>
   <!-- leaf sprigs -->
-  <g fill="#8FAE86" opacity="1">
+  <g fill="#8FAE86" opacity=".14">
     <!-- top-right sprig -->
     <path d="M820 90c20 40 18 78-6 110 42-8 72-38 82-78-28 6-54-2-76-32z"/>
     <path d="M790 130c28 28 52 32 78 18-10-30-34-48-70-52 4 12 2 24-8 34z"/>
@@ -23,7 +23,7 @@
     <path d="M55 680c-16 18-34 18-50 6 8-20 26-30 50-30-2 8 0 16 0 24z"/>
   </g>
   <!-- paw prints -->
-  <g fill="#A3B99C" opacity=".85">
+  <g fill="#A3B99C" opacity=".12">
     <!-- upper left paw -->
     <ellipse cx="150" cy="380" rx="14" ry="18" transform="rotate(-20 150 380)"/>
     <circle cx="132" cy="352" r="7"/>
