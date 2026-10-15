@@ -239,7 +239,7 @@ function drawSearchMarkers(){
     const c=f.geometry?.coordinates;if(!c||!Number.isFinite(c[0])||!Number.isFinite(c[1]))return;
     const name=f.properties?.name||'Result';
     const m=window.L.marker([c[1],c[0]],{icon:searchResultIcon(),title:name,riseOnHover:true,zIndexOffset:600}).addTo(map);
-    m.on('click',e=>{window.L.DomEvent.stopPropagation(e);const el=document.querySelector(`.place-hit[data-hit="${i}"]`);el?.scrollIntoView({block:'nearest',behavior:'smooth'});$$('.place-hit').forEach(x=>x.classList.remove('hit-focus'));el?.classList.add('hit-focus')});
+    m.on('click',e=>{window.L.DomEvent.stopPropagation(e);focusSearchHit(i)});
     searchMarkers.push(m);
   });
 }
@@ -364,9 +364,29 @@ function mapboxForwardFeatures(features){
   });
 }
 function manualFallback(){return `<details class="manual-fallback"><summary>Can’t find it?</summary><p>Enter details manually.</p><button type="button" class="manual-last-resort" data-action="manual">Enter manually</button></details>`}
+function hitDistanceLabel(f){
+  if(!userLocation)return '';
+  const c=f?.geometry?.coordinates;
+  if(!Array.isArray(c)||!Number.isFinite(c[0])||!Number.isFinite(c[1]))return '';
+  const rad=x=>x*Math.PI/180,dlat=rad(c[1]-userLocation[0]),dlng=rad(c[0]-userLocation[1]);
+  const a=Math.sin(dlat/2)**2+Math.cos(rad(c[1]))*Math.cos(rad(userLocation[0]))*Math.sin(dlng/2)**2;
+  const km=6371*2*Math.atan2(Math.sqrt(a),Math.sqrt(1-a));
+  return km<1?Math.round(km*1000)+' m':km.toFixed(1)+' km';
+}
+function focusSearchHit(i){
+  const f=searchResults[Number(i)];if(!f||!map)return;
+  const c=f.geometry?.coordinates;if(!c)return;
+  map.setView([c[1],c[0]],Math.max(map.getZoom(),16),{animate:true});
+  $$('.place-hit').forEach(x=>x.classList.remove('hit-focus'));
+  const el=document.querySelector(`.place-hit[data-hit="${i}"]`);
+  el?.classList.add('hit-focus');
+  el?.scrollIntoView({block:'nearest',behavior:'smooth'});
+  const m=searchMarkers[Number(i)];
+  if(m?.getElement){const node=m.getElement();if(node){node.classList.add('search-pin-pulse');setTimeout(()=>node.classList.remove('search-pin-pulse'),900)}}
+}
 function placeHitHtml(f,i){
-  const p=f.properties;
-  return `<article class="place-hit" data-hit="${i}"><div class="place-hit-info"><b>${esc(p.name||p.street||'Place')}</b><small>${esc(placeAddress(p))}</small></div><div class="place-hit-actions"><button type="button" data-result-wish="${i}">♡ Wishlist</button><button type="button" class="primary" data-result-add="${i}">⊕ Add</button></div></article>`;
+  const p=f.properties,dist=hitDistanceLabel(f),addr=placeAddress(p);
+  return `<article class="place-hit" data-hit="${i}" data-hit-focus="${i}" role="button" tabindex="0"><div class="place-hit-info"><b>${esc(p.name||p.street||'Place')}</b><small>${dist?`<span class="hit-dist">${esc(dist)}</span>${addr?' · ':''}`:''}${esc(addr)}</small></div><div class="place-hit-actions"><button type="button" class="hit-icon" data-result-wish="${i}" aria-label="Save to wishlist" title="Wishlist">♡</button><button type="button" class="hit-icon primary" data-result-add="${i}" aria-label="Add restaurant" title="Add">⊕</button></div></article>`;
 }
 function renderPlaceHits(output,features){
   searchResults=(features||[]).filter(validPlace);
@@ -512,7 +532,7 @@ function confirmAction(title,message,fn){openPanel(title,`<p>${message}</p><div 
 function locate(){if(!navigator.geolocation)return toast('Location unavailable.');toast('Finding your location…');navigator.geolocation.getCurrentPosition(p=>{userLocation=[p.coords.latitude,p.coords.longitude];mapCenter=userLocation;mapZoom=15;if(map)map.setView(mapCenter,mapZoom);if(tab!=='map')tab='map';render();toast('Map centered')},()=>toast('Location unavailable or denied.'),{enableHighAccuracy:true,timeout:10000})}
 
 document.addEventListener('click',e=>{
-  const b=e.target.closest('button,[data-detail],[data-visit-toggle]');if(!b)return;const d=b.dataset;
+  const b=e.target.closest('button,[data-detail],[data-visit-toggle],[data-hit-focus]');if(!b)return;const d=b.dataset;
   if(d.page==='prev'){listPage=Math.max(0,listPage-1);if(tab==='wishlist'){renderWishlist();enhanceIcons()}return}
   if(d.page==='next'){listPage++;if(tab==='wishlist'){renderWishlist();enhanceIcons()}return}
   if(d.spage==='prev'){searchResultPage=Math.max(0,searchResultPage-1);renderSearchPage($('#search-results'),'');return}
@@ -531,6 +551,7 @@ document.addEventListener('click',e=>{
   if(d.explore!=null){const x=exploreResults[+d.explore];if(x){map?.closePopup();restaurantForm(null,{name:x.name,address:x.address,lat:x.lat,lng:x.lng,wish:true,kind:x.amenity==='cafe'?'cafe':'shop'})}return}
   if(d.save){if(!commit(()=>{const x=rest(d.save);x.wish=!x.wish;x.u=Date.now()}))return;if(!$('#panel').hidden)restaurantDetail(d.save);render();toast(rest(d.save).wish?'Saved to wishlist':'Removed from wishlist');return}
   if(d.note){const r=rest(d.note);openPanel('My note',`<form id="note-form"><textarea aria-label="My note" maxlength="2000">${esc(r.note)}</textarea><div class="form-actions"><button class="primary">Save note</button></div></form>`,{full:true});$('#note-form').onsubmit=e=>{e.preventDefault();if(!commit(()=>{rest(d.note).note=e.target.querySelector('textarea').value;rest(d.note).u=Date.now()}))return;closePanel();render();toast('Note saved')};return}
+  if(d.hitFocus!==undefined){focusSearchHit(d.hitFocus);return}
   if(d.resultWish!==undefined){const f=searchResults[Number(d.resultWish)];if(!f)return;return openFromSearchFeature(f,'wish')}
   if(d.resultAdd!==undefined){const f=searchResults[Number(d.resultAdd)];if(!f)return;return openFromSearchFeature(f,'add')}
   if(d.result!==undefined){const f=searchResults[Number(d.result)];if(!f)return;return openFromSearchFeature(f)}
