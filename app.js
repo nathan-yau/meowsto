@@ -387,7 +387,7 @@ function focusSearchHit(i){
 function placeHitHtml(f,i){
   const p=f.properties,dist=hitDistanceLabel(f),addr=placeAddress(p);
   const meta=`${dist?`<span class="hit-dist">${esc(dist)}</span>${addr?' · ':''}`:''}${esc(addr)}`;
-  return `<article class="place-hit" data-hit="${i}" data-hit-focus="${i}" role="button" tabindex="0"><div class="place-hit-info"><div class="place-hit-title"><b>${esc(p.name||p.street||'Place')}</b><div class="place-hit-actions"><button type="button" class="hit-icon" data-result-wish="${i}" aria-label="Save to wishlist" title="Wishlist"><img src="assets/icon-wish-meow.png?v=ui20261015ak" alt="" width="26" height="26" decoding="async"></button><button type="button" class="hit-icon" data-result-add="${i}" aria-label="Add restaurant" title="Add"><img src="assets/icon-add-meow.png?v=ui20261015ak" alt="" width="26" height="26" decoding="async"></button></div></div><small>${meta}</small></div></article>`;
+  return `<article class="place-hit" data-hit="${i}" data-hit-focus="${i}" role="button" tabindex="0"><div class="place-hit-info"><div class="place-hit-title"><b>${esc(p.name||p.street||'Place')}</b><div class="place-hit-actions"><button type="button" class="hit-icon" data-result-wish="${i}" aria-label="Save to wishlist" title="Wishlist"><img src="assets/icon-wish-meow.png?v=ui20261015al" alt="" width="26" height="26" decoding="async"></button><button type="button" class="hit-icon" data-result-add="${i}" aria-label="Add restaurant" title="Add"><img src="assets/icon-add-meow.png?v=ui20261015al" alt="" width="26" height="26" decoding="async"></button></div></div><small>${meta}</small></div></article>`;
 }
 function renderPlaceHits(output,features){
   searchResults=(features||[]).filter(validPlace);
@@ -397,7 +397,31 @@ function renderPlaceHits(output,features){
   drawSearchMarkers();
 }
 function searchCenter(){return searchContext.center||userLocation||mapCenter}
+function demoPlaceFeatures(){
+  const [lat0,lng0]=DEFAULT_CENTER;
+  const places=[
+    {name:'Demo Noodle House',addr:'88 West Cordova St, Vancouver, BC',dlat:0.0018,dlng:-0.0024,cat:['restaurant'],val:'restaurant'},
+    {name:'Harbour Cat Cafe',addr:'375 Water St, Vancouver, BC',dlat:0.0032,dlng:-0.0008,cat:['cafe','coffee'],val:'cafe'},
+    {name:'Gastown Dumpling Co.',addr:'12 Powell St, Vancouver, BC',dlat:0.0024,dlng:0.0016,cat:['restaurant'],val:'restaurant'},
+    {name:'Meowsto Ramen Lab',addr:'450 Granville St, Vancouver, BC',dlat:-0.0012,dlng:-0.0015,cat:['restaurant'],val:'ramen'},
+    {name:'False Creek Sushi Bar',addr:'1011 Beach Ave, Vancouver, BC',dlat:-0.0045,dlng:-0.0032,cat:['restaurant'],val:'sushi'},
+    {name:'Stanley Park Bakehouse',addr:'2099 Beach Ave, Vancouver, BC',dlat:0.0060,dlng:-0.0080,cat:['bakery','cafe'],val:'bakery'},
+    {name:'Yaletown Burger Club',addr:'1144 Homer St, Vancouver, BC',dlat:-0.0038,dlng:0.0006,cat:['restaurant'],val:'fast_food'},
+    {name:'Kitsilano Soft Serve',addr:'2200 West 4th Ave, Vancouver, BC',dlat:-0.0085,dlng:-0.0140,cat:['ice_cream'],val:'ice_cream'}
+  ];
+  return places.map((p,i)=>({
+    type:'Feature',
+    geometry:{type:'Point',coordinates:[lng0+p.dlng,lat0+p.dlat]},
+    properties:{
+      _provider:'demo',sourceId:'demo:'+(i+1),
+      name:p.name,full_address:p.addr,address:p.addr,place_formatted:'Vancouver, British Columbia',
+      city:'Vancouver',state:'British Columbia',country:'Canada',
+      poi_category:p.cat,osm_value:p.val
+    }
+  }));
+}
 async function fetchPlaceFeatures(q,signal){
+  if(String(q||'').trim().toLowerCase()==='demo')return demoPlaceFeatures();
   const center=searchCenter();
   try{
     const res=await fetch(mapboxForwardURL(q,center,true),{signal});
