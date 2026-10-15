@@ -1,4 +1,4 @@
-/* Timeline page restyle to match timeline-mock (ui20261015bl). Loaded last. */
+/* Timeline page restyle to match timeline-mock (ui20261015bm). Loaded last. */
 .tl-page{--tl-ink:#38271f;--tl-muted:#6d655c;--tl-line:#e8e0d0;--tl-cream:#fffaf1;--tl-sage:#5b8a63;--tl-coral:#f26d63;--tl-coral-soft:#fde3dc;--tl-tag:#f3eee4;padding:4px 14px 24px!important}
 .tl-page button,.tl-page select,.tl-page .tl-card,.tl-page .tl-latest{box-shadow:none!important;transform:none!important}
 /* Date slider */
@@ -53,7 +53,7 @@
 .tl-bg-sushi,.tl-bg-dessert,.tl-bg-boba{background:#fde0da}.tl-bg-matcha,.tl-bg-tea,.tl-bg-korean{background:#dfe9d6}.tl-bg-cafe,.tl-bg-bakery{background:#f3e4cf}
 @media (max-width:380px){.tl-dot{width:42px;height:42px;font-size:16px}.tl-dates:before{top:21px}.tl-latest .tl-tags{max-width:42%}.tl-row{grid-template-columns:40px 12px 1fr}.tl-row:before{left:50px}}
 
-/* ui20261015bl: latest card ink border + compact */
+/* ui20261015bm: latest card ink border + compact */
 .tl-latest{border:2px solid var(--tl-ink,#38271f)!important;padding:8px 26px 8px 10px!important;margin:0 0 14px!important;border-radius:16px!important}
 .tl-latest h2{font-size:17px!important;margin:0 0 2px!important}
 .tl-latest .tl-food.big{width:46px;height:46px}
@@ -89,7 +89,7 @@
 .vs-actions{display:flex;margin-top:8px}.vs-actions .primary{flex:1;padding:10px;font:700 17px Nunito,sans-serif}
 .vs-sheet button:hover{transform:none}
 
-/* ui20261015bl */
+/* ui20261015bm */
 .vs-chip{padding:3px 10px;font-size:12.5px;border-width:1.5px;border-style:dashed;background:#fffaf0;color:var(--ink);min-height:0;line-height:1.3}
 .vs-chip.on{border-style:solid;background:#ffe3e8;box-shadow:0 1.5px 0 var(--ink)}
 .vs-date input{font-size:12.5px}
@@ -104,3 +104,28 @@
 .vs-set{padding:2px 9px;border-radius:999px;font:12px Nunito,sans-serif;border:1.5px dashed var(--line);background:#fffaf0;text-transform:capitalize}
 .vs-set.on{border-style:solid;border-color:var(--ink);background:#eef4fb;font-weight:700}
 .vs-tags{border:1.5px dashed var(--line);border-radius:12px;padding:6px 10px;font:14px Nunito,sans-serif;background:#fffaf0}
+/* ui20261015bm: cuter chips, tag chips, no overflow */
+.vs-sheet,.vs-sheet>*{min-width:0;max-width:100%}
+.vs-chips{gap:5px}
+.vs-chip{padding:2px 9px;font-size:11.5px;border-radius:999px;line-height:1.35;border:1.2px dashed #e6cdb5;background:#fffaf0;color:#7a5c48}
+.vs-chip.on{border:1.2px solid var(--ink);background:#ffe3e8;color:var(--ink);font-weight:700;box-shadow:0 1px 0 var(--ink)}
+.vs-date input{font-size:11.5px;color:inherit;max-width:118px}
+.vs-tagbox{display:flex;flex-direction:column;gap:5px}
+.vs-tagchips{display:flex;flex-wrap:wrap;gap:5px}.vs-tagchips:empty{display:none}
+.vs-tagchip{display:inline-flex;align-items:center;gap:3px;padding:2px 4px 2px 9px;border-radius:999px;background:#eef4fb;border:1.2px solid var(--ink);font:700 11.5px Nunito,sans-serif;max-width:100%;overflow:hidden;text-overflow:ellipsis}
+.vs-tagchip button{border:0;background:none;padding:0 4px;font:700 13px/1 Nunito,sans-serif;color:var(--muted);min-height:0}
+.vs-tagadd{display:flex;gap:6px;min-width:0}
+.vs-tagadd .vs-tags{flex:1;min-width:0;font-size:14px;padding:5px 10px}
+.vs-tagbtn{flex:none;padding:3px 11px;border-radius:999px;border:1.5px solid var(--ink);background:#ffe3e8;font:700 12px Nunito,sans-serif;min-height:0}
+.vs-icon-head{flex-wrap:wrap;gap:6px;min-width:0}
+.vs-setbtn{max-width:60%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;flex:0 1 auto;text-transform:capitalize}
+.vs-icons{max-width:100%;width:100%;overscroll-behavior-x:contain}
+.vs-sets{max-width:100%}.vs-set{max-width:100%;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.vs-stepper{display:flex;align-items:center;gap:4px;max-width:100%}
+.vs-step{flex:none;width:26px;height:26px;min-height:0;padding:0;border-radius:50%;border:1.2px solid #e6cdb5;background:#fffaf0;font:700 14px/1 Nunito,sans-serif;color:#7a5c48}
+.vs-step:disabled{opacity:.35}
+.vs-curdate{position:relative;flex:1;min-width:0;text-align:center;padding:3px 10px;border-radius:999px;border:1.2px solid var(--ink);background:#ffe3e8;font:700 12.5px Nunito,sans-serif;box-shadow:0 1px 0 var(--ink);margin:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.vs-curdate input{position:absolute;inset:0;opacity:0;width:100%;height:100%;cursor:pointer}
+.vs-curdate{display:inline-flex;align-items:center;justify-content:center;gap:5px;height:26px;padding:0 10px;box-sizing:border-box}
+.vs-today{font-style:normal;font:800 9.5px/1 Nunito,sans-serif;letter-spacing:.03em;padding:3px 7px;border-radius:999px;background:#cfe6cf;color:#3f6b45;border:1px solid #9cc49e;flex:none}
+.vs-step:not(:disabled):active{background:#ffe3e8}

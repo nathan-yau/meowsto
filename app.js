@@ -201,9 +201,9 @@ function renderWishlist(){
 
 const FOOD_ICONS=['ramen','sushi','japanese','cafe','matcha','tea','boba','dessert','bakery','burger','pasta','pizza','steak','chinese','korean','thai','indian','hongkong','singaporean','mideast','shop'];
 function foodKey(r){if(typeof r?.kind==='string'&&r.kind.startsWith('icon/'))return r.kind;if(r?.kind&&!['shop','cafe'].includes(r.kind)&&FOOD_ICONS.includes(r.kind))return r.kind;const blob=((r?.kind||'')+' '+(r?.tags||[]).join(' ')+' '+(r?.name||'')).toLowerCase();const rules=[[/ramen|noodle|udon|soba/,'ramen'],[/sushi|sashimi|omakase/,'sushi'],[/matcha/,'matcha'],[/boba|bubble/,'boba'],[/\btea\b/,'tea'],[/cafe|café|coffee|espresso/,'cafe'],[/dessert|ice cream|sweet|gelato|cake/,'dessert'],[/bakery|bread|pastry|croissant/,'bakery'],[/burger/,'burger'],[/pizza/,'pizza'],[/pasta|italian/,'pasta'],[/steak|grill|bbq/,'steak'],[/hong ?kong|dim sum|cantonese|cha chaan/,'hongkong'],[/chinese|sichuan|szechuan|dumpling/,'chinese'],[/korean|bibimbap|kbbq/,'korean'],[/thai/,'thai'],[/indian|curry/,'indian'],[/singapore|malay|hainan/,'singaporean'],[/middle ?east|turkish|lebanese|kebab|falafel|mediterranean/,'mideast'],[/japanese|izakaya/,'japanese']];for(const[re,k]of rules)if(re.test(blob))return k;return FOOD_ICONS.includes(r?.kind)?r.kind:'shop'}
-const foodSrc=k=>k.startsWith('icon/')?`${k}.png`:`food/${k}.png?v=ui20261015bl`;const foodBg=k=>k.startsWith('icon/')?'set':k;
+const foodSrc=k=>k.startsWith('icon/')?`${k}.png`:`food/${k}.png?v=ui20261015bm`;const foodBg=k=>k.startsWith('icon/')?'set':k;
 function foodImg(r,cls='tl-food'){const k=foodKey(r);return `<span class="${cls} tl-bg-${foodBg(k)}"><img src="${foodSrc(k)}" alt="" loading="lazy"></span>`}
-let ICON_SETS=null;const iconSets=()=>ICON_SETS||(ICON_SETS=fetch('icon/index.json?v=ui20261015bl').then(r=>r.json()).catch(()=>({})));
+let ICON_SETS=null;const iconSets=()=>ICON_SETS||(ICON_SETS=fetch('icon/index.json?v=ui20261015bm').then(r=>r.json()).catch(()=>({})));
 const SET_FOR={chinese:'chinese',hongkong:'hong-kong',japanese:'japanese',sushi:'japanese',ramen:'japanese',matcha:'japanese',korean:'korean',thai:'thai',indian:'indian',singaporean:'singaporean',mideast:'middle-eastern',tea:'drinks',boba:'drinks',cafe:'drinks',burger:'western',pasta:'western',pizza:'western',steak:'western'};
 function vibeIcon(t){t=t.toLowerCase();if(/sweet|cute|sparkle|vibe/.test(t))return icon('sparkle');if(/friend|solo|date|group|people/.test(t))return icon('users');if(/comfort|cozy|love|heart/.test(t))return icon('heart');return `<svg class="ui-icon leaf-ico" viewBox="0 0 24 24" aria-hidden="true"><path d="M5 19C5 10 11 5 20 4c0 9-5 15-14 15Z"/><path d="M5 19 13 11"/></svg>`}
 function vibeTags(list,max=3){list=(list||[]).filter(t=>t&&t!=='demo').slice(0,max);return list.length?`<div class="tl-tags">${list.map(t=>`<span class="tl-tag">${vibeIcon(t)}${esc(t)}</span>`).join('')}</div>`:''}
@@ -427,21 +427,23 @@ function visitForm(restaurantId,visitId){
   const MEALS=['Breakfast','Brunch','Lunch','Dinner','Cafe','Dessert','Snack'];
   const dOff=n=>{const d=new Date();d.setDate(d.getDate()-n);return d.toISOString().slice(0,10)};
   const recent=[...new Set([...state.visits].sort((a,b)=>(b.date+b.time).localeCompare(a.date+a.time)).map(x=>x.restaurantId))].map(rest).filter(Boolean).slice(0,6);
-  openPanel(visitId?'Edit visit':'Log a visit',`<form id="visit-form" class="vs-sheet"><div class="vs-place" id="vs-place"></div><div class="vs-search"><div class="vs-search-row"><span class="vs-ico" aria-hidden="true">${icon('search')}</span><input id="vs-q" type="search" placeholder="Search a place nearby" aria-label="Search a place" autocomplete="off" maxlength="200" enterkeyhint="search"><button type="button" class="vs-go" id="vs-go" aria-label="Search">→</button></div><div id="vs-hits" class="vs-hits"></div>${recent.length?`<div class="vs-chips vs-recent">${recent.map(r=>`<button type="button" class="vs-chip" data-vs-rest="${r.id}">${esc(r.name)}</button>`).join('')}</div>`:''}</div><div class="vs-label">When</div><div class="vs-chips" id="vs-dates"></div><div class="vs-chips" id="vs-meals"></div><div class="vs-label">Tags</div><input id="vs-tags" class="vs-tags" placeholder="ramen, cozy, date night" aria-label="Restaurant tags" maxlength="200" autocomplete="off"><div class="vs-label">How was it?</div><div class="vs-stars" id="vs-stars" role="radiogroup" aria-label="Rating">${[1,2,3,4,5].map(n=>`<button type="button" role="radio" data-star="${n}" aria-label="${n} star${n>1?'s':''}">★</button>`).join('')}</div><div class="vs-label vs-icon-head">Icon <button type="button" class="vs-setbtn" id="vs-setbtn" aria-label="Switch icon set">⇄ <span id="vs-setname">Food</span></button></div><div class="vs-icons" id="vs-icons"></div><div class="vs-sets" id="vs-sets"></div><div class="vs-actions"><button type="submit" class="primary">${visitId?'Save':'Log it'}</button></div></form>`,{cls:'visit-sheet'});
+  openPanel(visitId?'Edit visit':'Log a visit',`<form id="visit-form" class="vs-sheet"><div class="vs-place" id="vs-place"></div><div class="vs-search"><div class="vs-search-row"><span class="vs-ico" aria-hidden="true">${icon('search')}</span><input id="vs-q" type="search" placeholder="Search a place nearby" aria-label="Search a place" autocomplete="off" maxlength="200" enterkeyhint="search"><button type="button" class="vs-go" id="vs-go" aria-label="Search">→</button></div><div id="vs-hits" class="vs-hits"></div>${recent.length?`<div class="vs-chips vs-recent">${recent.map(r=>`<button type="button" class="vs-chip" data-vs-rest="${r.id}">${esc(r.name)}</button>`).join('')}</div>`:''}</div><div class="vs-label">When</div><div class="vs-chips" id="vs-dates"></div><div class="vs-chips" id="vs-meals"></div><div class="vs-label">Tags</div><div class="vs-tagbox"><div class="vs-tagchips" id="vs-tagchips"></div><div class="vs-tagadd"><input id="vs-tags" class="vs-tags" placeholder="Add a tag" aria-label="Add a tag" maxlength="30" autocomplete="off" enterkeyhint="done"><button type="button" class="vs-tagbtn" id="vs-tagbtn">+ Add</button></div></div><div class="vs-label">How was it?</div><div class="vs-stars" id="vs-stars" role="radiogroup" aria-label="Rating">${[1,2,3,4,5].map(n=>`<button type="button" role="radio" data-star="${n}" aria-label="${n} star${n>1?'s':''}">★</button>`).join('')}</div><div class="vs-label vs-icon-head">Icon <button type="button" class="vs-setbtn" id="vs-setbtn" aria-label="Switch icon set">⇄ <span id="vs-setname">Food</span></button></div><div class="vs-icons" id="vs-icons"></div><div class="vs-sets" id="vs-sets"></div><div class="vs-actions"><button type="submit" class="primary">${visitId?'Save':'Log it'}</button></div></form>`,{cls:'visit-sheet'});
   const $f=$('#visit-form');
   const paint=()=>{
     const p=place||draft;
     $('#vs-place').innerHTML=p?`<div class="vs-picked">${foodImg({...p,kind:iconKey},'tl-food')}<div><b>${esc(p.name)}</b><small>${esc(p.address||'')}</small></div><button type="button" class="vs-change" id="vs-change">Change</button></div>`:'';
     $f.querySelector('.vs-search').hidden=!!p;
-    {const ti=$('#vs-tags'),pk=p?(p.id||p.name):'';if(ti.dataset.for!==pk){ti.dataset.for=pk;ti.value=(p?.tags||[]).join(', ')}}
+    {const ti=$('#vs-tags'),pk=p?(p.id||p.name):'';if(ti.dataset.for!==pk){ti.dataset.for=pk;tagList=[...new Set((p?.tags||[]).filter(t=>t&&t!=='demo'))].slice(0,12);ti.value=''}}paintTags();
     $('#vs-change')?.addEventListener('click',()=>{place=null;draft=null;paint();$('#vs-q').focus()});
-    const ds=[[dOff(0),'Today'],[dOff(1),'Yesterday']];
-    $('#vs-dates').innerHTML=ds.map(([d,l])=>`<button type="button" class="vs-chip${date===d?' on':''}" data-vs-date="${d}">${l}</button>`).join('')+`<label class="vs-chip vs-date${ds.some(x=>x[0]===date)?'':' on'}"><input type="date" id="vs-date" value="${date}" aria-label="Pick date"></label>`;
+    {const td=dOff(0),dl=new Date(date+'T12:00').toLocaleDateString(undefined,{weekday:'short',month:'short',day:'numeric'});const nb=(n,t,a)=>`<button type="button" class="vs-step" data-vs-step="${n}" aria-label="${a}"${n>0&&date>=td?' disabled':''}>${t}</button>`;
+    $('#vs-dates').innerHTML=`<div class="vs-stepper">${nb(-7,'«','Back a week')}${nb(-1,'‹','Previous day')}<label class="vs-curdate"><span>${esc(dl)}</span>${date===td?'<i class="vs-today">Today</i>':''}<input type="date" id="vs-date" value="${date}" max="${td}" aria-label="Pick date"></label>${nb(1,'›','Next day')}${nb(7,'»','Forward a week')}</div>`}
     $('#vs-meals').innerHTML=MEALS.map(m=>`<button type="button" class="vs-chip${meal===m?' on':''}" data-vs-meal="${m}">${m}</button>`).join('');
     $f.querySelectorAll('[data-star]').forEach(b=>{const n=+b.dataset.star;b.classList.toggle('on',n<=ratingVal);b.setAttribute('aria-checked',n===ratingVal)});
     paintIcons();
   };
-  let iconSet=null,setsData={},setsOpen=false;
+  let iconSet=null,setsData={},setsOpen=false,tagList=[];
+  const paintTags=()=>{$('#vs-tagchips').innerHTML=tagList.map((t,i)=>`<span class="vs-tagchip">${esc(t)}<button type="button" data-vs-untag="${i}" aria-label="Remove ${esc(t)}">×</button></span>`).join('')};
+  const addTag=()=>{const ti=$('#vs-tags'),t=ti.value.replace(/,/g,' ').trim();if(t&&tagList.length<12&&!tagList.some(x=>x.toLowerCase()===t.toLowerCase()))tagList.push(t);ti.value='';paintTags();ti.focus()};
   const setOf=k=>k.startsWith('icon/')?k.split('/')[1]:(SET_FOR[k]&&setsData[SET_FOR[k]]?SET_FOR[k]:'food');
   const paintIcons=()=>{const cur=iconSet||setOf(iconKey);const keys=cur==='food'?FOOD_ICONS:(setsData[cur]||[]).map(h=>`icon/${cur}/${h}`);
     const box=$('#vs-icons');const sig=cur+keys.length;if(box.dataset.sig!==sig){box.dataset.sig=sig;box.innerHTML=keys.map(k=>`<button type="button" class="vs-icon tl-bg-${foodBg(k)}" data-vs-icon="${k}" aria-label="icon"><img src="${foodSrc(k)}" alt="" loading="lazy"></button>`).join('')}
@@ -456,13 +458,16 @@ function visitForm(restaurantId,visitId){
   $('#vs-q').addEventListener('input',()=>{clearTimeout(timer);timer=setTimeout(run,450)});
   $('#vs-q').addEventListener('keydown',e=>{if(e.key==='Enter'){e.preventDefault();clearTimeout(timer);run()}});
   $('#vs-go').addEventListener('click',()=>{clearTimeout(timer);run()});
+  $('#vs-tags').addEventListener('keydown',e=>{if(e.key==='Enter'||e.key===','){e.preventDefault();addTag()}});
   $f.addEventListener('click',e=>{const b=e.target.closest('button');if(!b||!$f.contains(b))return;const d=b.dataset;
     if(d.vsHit!=null){e.stopPropagation();pickHit(hits[+d.vsHit])}
     else if(d.vsRest){e.stopPropagation();place={...rest(d.vsRest)};draft=null;autoIcon(place);paint()}
-    else if(d.vsDate){date=d.vsDate;paint()}
+    else if(d.vsStep){const x=new Date(date+'T12:00');x.setDate(x.getDate()+ +d.vsStep);const y=`${x.getFullYear()}-${String(x.getMonth()+1).padStart(2,'0')}-${String(x.getDate()).padStart(2,'0')}`;date=y>dOff(0)?dOff(0):y;paint()}
     else if(d.vsMeal){meal=d.vsMeal;paint()}
     else if(d.star){const n=+d.star;ratingVal=ratingVal===n?0:n;paint()}
     else if(d.vsIcon){iconKey=d.vsIcon;iconTouched=true;paint()}
+    else if(b.id==='vs-tagbtn')addTag()
+    else if(d.vsUntag!=null){tagList.splice(+d.vsUntag,1);paintTags()}
     else if(b.id==='vs-setbtn'){setsOpen=!setsOpen;paintIcons()}
     else if(d.vsSet){iconSet=d.vsSet;setsOpen=false;paintIcons()}
   });
@@ -471,7 +476,7 @@ function visitForm(restaurantId,visitId){
   $f.onsubmit=e=>{e.preventDefault();
     if(!place&&!draft)return toast('Pick a place first.');
     if(!ratingVal)return toast('Tap a star rating.');
-    const now=Date.now();let rid=place?.id;const vtags=[...new Set($('#vs-tags').value.split(',').map(t=>t.trim()).filter(Boolean))].slice(0,12);if(draft)draft.tags=vtags;
+    const now=Date.now();let rid=place?.id;if($('#vs-tags').value.trim())addTag();const vtags=tagList.slice(0,12);if(draft)draft.tags=vtags;
     const ok=commit(()=>{
       if(draft){rid=uid();state.restaurants.push({id:rid,name:draft.name,address:draft.address,kind:iconKey,tags:draft.tags||[],rating:null,lat:draft.lat,lng:draft.lng,sourceId:draft.sourceId,note:'',wish:false,added:today(),demo:false,u:now})}
       else{const r=rest(rid);if(r&&foodKey(r)!==iconKey){r.kind=iconKey;r.u=now}if(r&&(r.tags||[]).join('|')!==vtags.join('|')){r.tags=vtags;r.u=now}}
