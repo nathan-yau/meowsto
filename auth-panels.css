@@ -9,49 +9,64 @@ body:not(.locked) #app { display: flex; }
   background: linear-gradient(165deg, #e9eddf 0%, #faf7ee 55%, #fce9df 100%);
   padding: 16px; overflow: hidden;
 }
+/* Lock card: fixed to login-only natural height (~532px @ 390×844).
+   Sign up must NOT grow the card — shrink logo/title/spacing, then reveal fields. */
 .lockcard {
-  width: min(100%, 380px); max-height: calc(100dvh - 32px);
+  width: min(100%, 380px);
+  height: min(532px, calc(100dvh - 32px));
+  max-height: calc(100dvh - 32px);
   background: var(--cream, #faf7ee); border: 3px solid var(--ink, #38271f);
   border-radius: 28px; padding: 22px 20px 18px;
   box-shadow: 0 8px 0 #38271f18; display: flex; flex-direction: column; gap: 10px;
-  overflow-y: auto; -webkit-overflow-scrolling: touch;
+  overflow: hidden; justify-content: safe center;
+  transition: none !important;
 }
+.lockcard > * { flex: none; }
+
+/* Login sizes (compact). Grow-back is delayed so fields collapse first. */
 .lock-art {
   width: 88px; height: 88px; margin: 0 auto; flex: none;
   transition: width .32s ease, height .32s ease;
+  transition-delay: .16s;
 }
 .lockcard h1 {
   text-align: center; font-size: 36px; margin: 0;
   transition: font-size .32s ease;
+  transition-delay: .16s;
 }
 .lockcard .sub {
   text-align: center; color: var(--muted, #6d655c); font-size: 14px; line-height: 1.4;
   margin: 0 0 4px; font-family: var(--font-ui, Nunito, sans-serif);
   transition: font-size .32s ease, line-height .32s ease, margin .32s ease;
+  transition-delay: .16s;
 }
 .seg {
   display: flex; gap: 8px; background: #f0e9db; border-radius: 18px; padding: 4px;
   border: 2px solid #e1d8ca; flex: none;
   transition: padding .32s ease;
+  transition-delay: .16s;
 }
 .seg button {
   flex: 1; border: 0; background: transparent; border-radius: 14px;
   min-height: 44px; font-weight: 800;
   transition: min-height .32s ease, background .2s ease, color .2s ease;
+  transition-delay: .16s, 0s, 0s;
 }
 .seg button.on { background: var(--coral, #fa746b); color: #fff; border: 2px solid var(--ink, #38271f); }
 #uf {
   display: flex; flex-direction: column; gap: 0;
 }
-#uf > * + * { margin-top: 10px; transition: margin-top .32s ease; }
+#uf > * + * { margin-top: 10px; }
+#uf .signup-fields + .remember { margin-top: 10px; }
 #uf input[type=text], #uf input[type=password] {
   width: 100%; border: 2px solid #cfc5b4; border-radius: 16px; padding: 12px 14px;
   background: #fffdf8; font-family: var(--font-ui, Nunito, sans-serif); font-size: 16px;
   min-height: 0; height: auto;
   transition: padding .32s ease, border-radius .32s ease, font-size .32s ease;
+  transition-delay: .16s;
 }
-/* Collapsible signup-only fields: height + fade/slide */
-.signup-fields {
+/* Collapsible signup-only fields: reveal AFTER logo/title shrink */
+#uf .signup-fields {
   display: grid;
   grid-template-rows: 0fr;
   opacity: 0;
@@ -59,10 +74,10 @@ body:not(.locked) #app { display: flex; }
   transform: translateY(-8px);
   pointer-events: none;
   transition:
-    grid-template-rows .36s cubic-bezier(.4, 0, .2, 1),
-    opacity .28s ease,
-    transform .32s ease,
-    margin-top .32s ease;
+    grid-template-rows .34s cubic-bezier(.4, 0, .2, 1) 0s,
+    opacity .26s ease 0s,
+    transform .30s ease 0s,
+    margin-top .30s ease 0s;
 }
 .signup-fields-inner {
   overflow: hidden;
@@ -70,19 +85,28 @@ body:not(.locked) #app { display: flex; }
   display: flex;
   flex-direction: column;
   gap: 8px;
+  transition: gap .32s ease;
+  transition-delay: .16s;
 }
-body.reg-mode .signup-fields {
+body.reg-mode #uf .signup-fields {
   grid-template-rows: 1fr;
   opacity: 1;
-  margin-top: 10px !important;
+  margin-top: 6px !important;
   transform: translateY(0);
   pointer-events: auto;
+  /* Reveal after logo/title shrink starts */
+  transition:
+    grid-template-rows .34s cubic-bezier(.4, 0, .2, 1) .16s,
+    opacity .26s ease .18s,
+    transform .30s ease .16s,
+    margin-top .30s ease .16s;
 }
 .remember, .ack {
   display: flex; gap: 8px; align-items: flex-start; margin: 0;
   font-size: 13px; line-height: 1.25; font-weight: 600;
   font-family: var(--font-ui, Nunito, sans-serif); color: #5c554c;
-  transition: font-size .32s ease, gap .32s ease, padding .32s ease;
+  transition: font-size .32s ease, gap .32s ease, padding .32s ease, margin-top .32s ease;
+  transition-delay: .16s;
 }
 .remember {
   align-items: center;
@@ -104,28 +128,70 @@ body.reg-mode .signup-fields {
   background: var(--coral, #fa746b); color: #fff; border: 2px solid var(--ink, #38271f);
   border-radius: 18px; min-height: 52px; font-weight: 800; font-size: 18px;
   transition: min-height .32s ease, font-size .32s ease, border-radius .32s ease;
+  transition-delay: .16s;
 }
 .umsg {
   min-height: 1.2em; text-align: center; font-size: 14px;
   font-family: var(--font-ui, Nunito, sans-serif); color: #5c554c;
   transition: font-size .32s ease, min-height .32s ease;
+  transition-delay: .16s;
 }
 .umsg.bad { color: #b94a3a; font-weight: 700; }
 
-/* Fixed-size lock card: identical outer box in Login and Sign up.
-   Only the signup-fields block animates inside; card never resizes. */
-.lockcard { height: min(672px, calc(100dvh - 32px)); justify-content: safe center; transition: none !important; }
-.lockcard > * { flex: none; }
-@media (max-height: 720px) {
-  .lockcard { height: min(616px, calc(100dvh - 24px)); gap: 8px; }
+/* Sign up: shrink chrome immediately so invite+ack fit in the same 532px card */
+body.reg-mode .lockcard {
+  gap: 6px;
+  padding: 14px 18px 12px;
+}
+body.reg-mode .lock-art {
+  width: 40px; height: 40px;
+  transition-delay: 0s;
+}
+body.reg-mode .lockcard h1 {
+  font-size: 26px;
+  transition-delay: 0s;
+}
+body.reg-mode .lockcard .sub {
+  font-size: 12px; line-height: 1.25; margin: 0;
+  transition-delay: 0s;
+}
+body.reg-mode .seg { padding: 3px; transition-delay: 0s; }
+body.reg-mode .seg button { min-height: 38px; transition-delay: 0s, 0s, 0s; }
+body.reg-mode #uf > * + * { margin-top: 6px; }
+body.reg-mode .signup-fields-inner { gap: 6px; transition-delay: 0s; }
+body.reg-mode #uf input[type=text],
+body.reg-mode #uf input[type=password] {
+  padding: 9px 12px; border-radius: 14px;
+  transition-delay: 0s;
+}
+body.reg-mode .ack {
+  padding: 7px; font-size: 11.5px; line-height: 1.22; border-radius: 12px;
+  transition-delay: 0s;
+}
+body.reg-mode .remember { font-size: 12px; transition-delay: 0s; }
+body.reg-mode .btn.pri {
+  min-height: 46px; font-size: 16px; border-radius: 16px;
+  transition-delay: 0s;
+}
+body.reg-mode .umsg { font-size: 12.5px; transition-delay: 0s; }
+
+/* Short viewports: keep same card policy, further compact login chrome */
+@media (max-height: 600px) {
+  .lockcard { height: min(532px, calc(100dvh - 24px)); gap: 6px; padding: 12px 16px 10px; }
   .lock-art { width: 56px; height: 56px; }
-  .lockcard h1 { font-size: 30px; }
+  .lockcard h1 { font-size: 28px; }
+  .lockcard .sub { font-size: 12px; margin: 0; }
+  .seg button { min-height: 38px; }
+  .btn.pri { min-height: 44px; font-size: 16px; }
+  body.reg-mode .lock-art { width: 32px; height: 32px; }
+  body.reg-mode .lockcard h1 { font-size: 22px; }
 }
 @media (prefers-reduced-motion: reduce) {
   .lockcard, .lock-art, .lockcard h1, .lockcard .sub, .seg, .seg button,
   #uf > *, #uf input[type=text], #uf input[type=password],
-  .signup-fields, .remember, .ack, .btn.pri, .umsg {
+  .signup-fields, .signup-fields-inner, .remember, .ack, .btn.pri, .umsg {
     transition: none !important;
+    transition-delay: 0s !important;
   }
 }
 header .sync { font-size: 11px; color: var(--muted); font-family: var(--font-ui, Nunito, sans-serif); max-width: 72px; line-height: 1.2; text-align: right; }
