@@ -66,3 +66,8 @@ header .avatar .avatar-initial{font-size:22px}
 .detail-sheet.sheet-compact [data-detail]{background:var(--mm-coral)!important;border-color:var(--mm-coral)!important;color:#fff!important}
 .detail-sheet .restaurant-photo,.detail-sheet .food-tile{display:none!important}
 @media(max-width:380px){header h1.app-name{font-size:27px}.tabs button{font-size:16px!important;gap:5px}.detail-sheet.sheet-compact .sheet-actions button{font-size:14px!important}}
+
+/* never-visited chips: softer, dashed, no relative time */
+.map-chip.never-visited:not(.selected){background:#fffaf1e6!important;border-style:dashed!important;border-color:#8a7a6c!important;box-shadow:none!important;color:#5b524a}
+.map-chip.never-visited:not(.selected) small{font-style:italic;color:#8a7a6c!important;font-weight:600}
+.map-chip.never-visited:not(.selected):before{background:#8a7a6c!important}

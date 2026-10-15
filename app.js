@@ -227,7 +227,7 @@ let exploreOn=false,exploreLayer=null,exploreTimer,exploreAbort,exploreResults=[
 function loadExplore(){clearTimeout(exploreTimer);exploreTimer=setTimeout(async()=>{if(!map||!exploreOn)return;if(map.getZoom()<14){showExplore([]);toast('Zoom in to explore nearby places');return}const b=map.getBounds(),bb=[b.getSouth(),b.getWest(),b.getNorth(),b.getEast()].map(x=>x.toFixed(3)).join(',');if(exploreCache[bb])return showExplore(exploreCache[bb]);exploreAbort?.abort();exploreAbort=new AbortController();try{const q=`[out:json][timeout:15];nwr["amenity"~"^(restaurant|fast_food)$"]["name"](${bb});out center 80;`;let j;for(const ep of['https://overpass-api.de/api/interpreter','https://overpass.private.coffee/api/interpreter','https://overpass.kumi.systems/api/interpreter']){try{const res=await fetch(ep,{method:'POST',body:'data='+encodeURIComponent(q),headers:{'Content-Type':'application/x-www-form-urlencoded'},signal:exploreAbort.signal});if(!res.ok)continue;j=await res.json();break}catch(e){if(e.name==='AbortError')throw e}}if(!j)throw Error('overpass');const list=j.elements.map(e=>({name:e.tags.name,lat:e.lat??e.center?.lat,lng:e.lon??e.center?.lon,amenity:e.tags.amenity,cuisine:e.tags.cuisine||'',address:[e.tags['addr:housenumber'],e.tags['addr:street']].filter(Boolean).join(' ')})).filter(x=>Number.isFinite(x.lat));exploreCache[bb]=list;showExplore(list)}catch(err){if(err.name!=='AbortError')toast('Explore data unavailable right now')}},500)}
 function showExplore(list){if(exploreLayer)exploreLayer.remove();exploreLayer=window.L.layerGroup().addTo(map);exploreResults=list;list.forEach((x,i)=>{window.L.marker([x.lat,x.lng],{title:x.name,icon:window.L.divIcon({className:'restaurant-pin explore-pin',html:`<div class="map-chip explore-chip"><b>${esc(x.name)}</b></div>`,iconSize:null,iconAnchor:[0,0]})}).bindPopup(`<div class="explore-pop"><b>${esc(x.name)}</b><small>${esc(x.amenity.replace('_',' '))}${x.cuisine?' · '+esc(x.cuisine.replace(/;/g,', ')):''}</small><button data-explore="${i}">♡ Save to wishlist</button></div>`).addTo(exploreLayer)})}
 function pinTier(){const z=map?map.getZoom():mapZoom;return z>=14?'full':z>=12?'mini':'meow'}
-function markerIcon(r){const t=pinTier(),sel=r.id===selected?' selected':'';if(t==='meow'){const sz=r.id===selected?[30,41]:[22,30];return window.L.icon({iconUrl:'assets/meow-map-pin.png?v=ui20261015x',iconSize:sz,iconAnchor:[sz[0]/2,sz[1]],className:'meow-pin'+sel})}let meta='';if(t==='full'){const last=visits(r.id)[0];if(last)meta=relativeVisitLabel(last.date);else if(r.wish)meta='♡'}return window.L.divIcon({className:'restaurant-pin pin-'+t,html:`<div class="map-chip${sel}">${sel?'<i class="pin-burst" aria-hidden="true"></i>':''}<b>${esc(r.name)}</b>${meta?`<small>${esc(meta)}</small>`:''}</div>`,iconSize:null,iconAnchor:[0,0]})}
+function markerIcon(r){const t=pinTier(),sel=r.id===selected?' selected':'';if(t==='meow'){const sz=r.id===selected?[30,41]:[22,30];return window.L.icon({iconUrl:'assets/meow-map-pin.png?v=ui20261015x',iconSize:sz,iconAnchor:[sz[0]/2,sz[1]],className:'meow-pin'+sel})}const last=visits(r.id)[0],nv=!last?' never-visited':'';let meta='';if(t==='full'){if(last)meta=relativeVisitLabel(last.date);else meta=r.wish?'♡ never visited':'never visited'}return window.L.divIcon({className:'restaurant-pin pin-'+t,html:`<div class="map-chip${sel}${nv}">${sel?'<i class="pin-burst" aria-hidden="true"></i>':''}<b>${esc(r.name)}</b>${meta?`<small>${esc(meta)}</small>`:''}</div>`,iconSize:null,iconAnchor:[0,0]})}
 function updateMarkerIcons(){markers.forEach(m=>m.setIcon(markerIcon(m._r)))}
 function selectPin(id){
   selected=selected===id?null:id;
@@ -249,7 +249,7 @@ function drawSearchMarkers(){
     const c=f.geometry?.coordinates;if(!c||!Number.isFinite(c[0])||!Number.isFinite(c[1]))return;
     const name=f.properties?.name||'Result';
     const m=window.L.marker([c[1],c[0]],{icon:searchResultIcon(),title:name,riseOnHover:true,zIndexOffset:600,bubblingMouseEvents:false}).addTo(map);
-    m.on('click',e=>{window.L.DomEvent.stopPropagation(e);focusSearchHit(i)});
+    m.on('click',e=>{window.L.DomEvent.stopPropagation(e);openSearchHitFromPin(i)});
     searchMarkers[i]=m;
   });
 }
@@ -405,8 +405,12 @@ function centerMapAboveSheet(lat,lng,zoom){
   const target=map.unproject(map.project([lat,lng],z).subtract([0,dy]),z);
   map.setView(target,z,{animate:true});
 }
+function pinVisibleAboveSheet(lat,lng){
+  const pt=map.latLngToContainerPoint([lat,lng]),sz=map.getSize(),cover=sheetCoverPx()||0;
+  return pt.x>20&&pt.x<sz.x-20&&pt.y>90&&pt.y<sz.y-cover-10;
+}
 function dismissSearchSheet(){
-  searchResults=[];clearSearchMarkers();
+  // keep searchResults + blue pins; only Clear / new search / leaving map tab removes them
   const sheet=$('#sheet');if(sheet)renderSheet();
 }
 function bindSheetDismiss(root,onDismiss){
@@ -455,23 +459,35 @@ function bindSheetDismiss(root,onDismiss){
     g.addEventListener('pointerdown',onDown);
   });
 }
-function focusSearchHit(i){
+function openSearchHitFromPin(i){
+  const sheet=$('#sheet');if(!sheet||!searchResults[i])return;
+  if(selected){selected=null;updateMarkerIcons()}
+  if(!sheet.querySelector('.search-sheet .place-hits')){
+    const keep=searchResults.slice();
+    showSearchSheetResults(sheet,keep,{keepMarkers:true});
+  }
+  focusSearchHit(i,{fromPin:true});
+}
+function focusSearchHit(i,opts={}){
   const f=searchResults[Number(i)];if(!f||!map)return;
   const c=f.geometry?.coordinates;if(!c)return;
-  centerMapAboveSheet(c[1],c[0],Math.max(map.getZoom(),16));
+  if(opts.fromPin){
+    requestAnimationFrame(()=>{if(!pinVisibleAboveSheet(c[1],c[0]))centerMapAboveSheet(c[1],c[0],map.getZoom())});
+  }else centerMapAboveSheet(c[1],c[0],Math.max(map.getZoom(),16));
   $$('.place-hit').forEach(x=>x.classList.remove('hit-focus'));
   const el=document.querySelector(`.place-hit[data-hit="${i}"]`);
   el?.classList.add('hit-focus');
   el?.scrollIntoView({block:'nearest',behavior:'smooth'});
   const m=searchMarkers[Number(i)];
-  if(m?.getElement){const node=m.getElement();if(node){node.classList.add('search-pin-pulse');setTimeout(()=>node.classList.remove('search-pin-pulse'),900)}}
+  // highlight via filter-only class (never touches transform/scale/size, which Leaflet owns)
+  searchMarkers.forEach((mk,j)=>{const n=mk?.getElement?.();if(n)n.classList.toggle('search-pin-active',j===Number(i))});
 }
 function placeHitHtml(f,i){
   const p=f.properties,dist=hitDistanceLabel(f),addr=placeAddress(p);
   const meta=`${dist?`<span class="hit-dist">${esc(dist)}</span>${addr?' · ':''}`:''}${esc(addr)}`;
   return `<article class="place-hit" data-hit="${i}" data-hit-focus="${i}" role="button" tabindex="0"><div class="place-hit-info"><div class="place-hit-title"><b>${esc(p.name||p.street||'Place')}</b><div class="place-hit-actions"><button type="button" class="hit-icon" data-result-wish="${i}" aria-label="Save to wishlist" title="Wishlist"><img src="assets/icon-wish-meow.png?v=ui20261015ar" alt="" width="26" height="26" decoding="async"></button><button type="button" class="hit-icon" data-result-add="${i}" aria-label="Add restaurant" title="Add"><img src="assets/icon-add-meow.png?v=ui20261015ar" alt="" width="26" height="26" decoding="async"></button></div></div><small>${meta}</small></div></article>`;
 }
-function renderPlaceHits(output,features){
+function renderPlaceHits(output,features,opts={}){
   searchResults=(features||[]).filter(validPlace);
   if(!output)return;
   const head=document.querySelector('.search-sheet-head h2');
@@ -489,7 +505,7 @@ function renderPlaceHits(output,features){
     }
     output.classList.toggle('can-scroll',hits.scrollHeight>hits.clientHeight+4);
   });
-  drawSearchMarkers();
+  if(!(opts.keepMarkers&&searchMarkers.length===searchResults.length))drawSearchMarkers();
 }
 function searchCenter(){return searchContext.center||userLocation||mapCenter}
 function demoPlaceFeatures(){
@@ -544,9 +560,9 @@ async function fetchPlaceFeaturesLive(q,center,signal){
     return data.features.filter(validPlace);
   }
 }
-function showSearchSheetResults(sheet,features){
+function showSearchSheetResults(sheet,features,opts={}){
   sheet.innerHTML=`<section class="search-sheet"><div class="handle" aria-hidden="true"></div><div class="search-sheet-head"><h2>Nearby matches</h2><button type="button" class="text-button" data-action="clear-search-sheet">Clear</button></div><div id="search-results" class="search-results place-results"></div></section>`;
-  renderPlaceHits($('#search-results'),features);
+  renderPlaceHits($('#search-results'),features,opts);
   bindSheetDismiss(sheet.querySelector('.search-sheet'),dismissSearchSheet);
 }
 function wireMapSearch(){
@@ -681,7 +697,7 @@ document.addEventListener('click',e=>{
   if(d.page==='prev'){listPage=Math.max(0,listPage-1);if(tab==='wishlist'){renderWishlist();enhanceIcons()}return}
   if(d.page==='next'){listPage++;if(tab==='wishlist'){renderWishlist();enhanceIcons()}return}
 
-  if(d.tab){if(d.tab!=='timeline')expandedVisitId=null;tab=d.tab;closePanel();render();return}
+  if(d.tab){if(d.tab!=='timeline')expandedVisitId=null;if(d.tab!=='map'){searchResults=[];clearSearchMarkers()}tab=d.tab;closePanel();render();return}
   if(d.filter){filter=d.filter;listPage=0;render();return}
   if(d.detail)return restaurantDetail(d.detail);
   if(d.edit)return restaurantForm(d.edit);

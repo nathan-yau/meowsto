@@ -153,8 +153,8 @@ header .avatar img,.profile-avatar img{width:100%;height:100%;object-fit:cover;d
 .place-hit-actions .hit-icon:active{transform:scale(.92)}
 .place-hit.hit-focus{border-color:#38271f;background:#fff4e4}
 .meow-pin-search{filter:drop-shadow(0 1px 2px rgba(26,58,74,.35))}
-.meow-pin-search.search-pin-pulse{animation:searchPinPulse .85s ease}
-@keyframes searchPinPulse{0%,100%{scale:1}40%{scale:1.18}}
+.meow-pin-search{animation:none!important;scale:none!important;transition:filter .2s ease}
+.meow-pin-search.search-pin-active{filter:drop-shadow(0 0 0 #fff) drop-shadow(0 0 5px #2f7bf6) drop-shadow(0 0 2px #2f7bf6)}
 .meow-pin-search{transform-origin:50% 100%;cursor:pointer}
 .panel.compact-search .panel-body{padding-top:8px}
 .panel.compact-search .place-search-form{margin-top:4px}
