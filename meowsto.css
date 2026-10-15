@@ -129,7 +129,7 @@ header .avatar img,.profile-avatar img{width:100%;height:100%;object-fit:cover;d
   .map-search-bar input{font-size:13px}
 }
 /* Compact search results (max 3) */
-.search-sheet{padding:12px 14px calc(10px + env(safe-area-inset-bottom,0px));background:var(--cream);border-radius:22px 22px 0 0;border-top:2px solid var(--ink)}
+.search-sheet{padding:12px 14px calc(10px + env(safe-area-inset-bottom,0px));background:transparent;border-radius:22px 22px 0 0;border-top:0}
 .search-sheet .handle{width:40px;height:4px;margin:0 auto 10px;background:#c4bbb0;border-radius:4px}
 .search-sheet-head{display:flex;align-items:center;justify-content:space-between;gap:8px;margin-bottom:8px}
 .search-sheet-head h2{font-size:20px;margin:0}
@@ -166,24 +166,41 @@ header .avatar img,.profile-avatar img{width:100%;height:100%;object-fit:cover;d
 .map-search-bar{padding:2px 2px 2px 10px;border-radius:13px;gap:4px;align-items:center}
 .map-search-bar input{padding:4px 0;font-size:13px;height:28px;min-height:0;line-height:1.2;border:0}
 .map-search-go{width:32px;min-width:32px;height:28px;min-height:0;border-radius:10px;font-size:14px;line-height:1}
-/* v-an: redesigned sheets — light floating card */
+/* v-ap: frosted overlay sheets on map + scrollable matches */
 .search-sheet,.detail-sheet.sheet-compact{
   margin:0 8px calc(6px + env(safe-area-inset-bottom,0px))!important;padding:8px 12px 10px!important;
-  background:#fffaf1;border:1.5px solid #e6dccb!important;border-radius:18px!important;
-  box-shadow:0 6px 22px #38271f1f;font-family:Nunito,sans-serif
+  background:rgba(255,250,241,.78)!important;border:1.5px solid rgba(230,220,203,.85)!important;border-radius:18px!important;
+  box-shadow:0 6px 22px #38271f1f;font-family:Nunito,sans-serif;
+  backdrop-filter:blur(12px);-webkit-backdrop-filter:blur(12px)
 }
 .search-sheet .handle,.detail-sheet.sheet-compact .handle{width:32px;height:3px;margin:0 auto 6px;background:#dcd2c4;border-radius:3px}
 .search-sheet-head{margin-bottom:6px}
 .search-sheet-head h2{font:800 13px Nunito,sans-serif;letter-spacing:.04em;text-transform:uppercase;color:#8a7f72}
 .search-sheet-head .text-button{font:700 12px Nunito,sans-serif;color:#c06a55;text-decoration:none;padding:2px 6px}
-.search-sheet .place-hits{gap:0}
+.search-sheet .search-results{position:relative;max-height:40vh;overflow:hidden}
+.search-sheet .place-hits{
+  display:flex;flex-direction:column;gap:0;
+  max-height:40vh;overflow-y:auto;overflow-x:hidden;
+  -webkit-overflow-scrolling:touch;overscroll-behavior:contain;scrollbar-width:thin
+}
 .search-sheet .place-hit{border:0;border-bottom:1px dashed #e6dccb;border-radius:0;background:none;padding:7px 2px}
 .search-sheet .place-hit:last-child{border-bottom:0}
-.search-sheet .place-hit.hit-focus{background:#fff1e6;border-radius:10px}
+.search-sheet .place-hit.hit-focus{background:rgba(255,241,230,.72);border-radius:10px}
 .search-sheet .search-message{font-size:13px;color:#8a7f72;margin:2px 0}
+.search-sheet .search-results.can-scroll::after{
+  content:"";position:absolute;left:0;right:0;bottom:0;height:22px;pointer-events:none;
+  background:linear-gradient(to bottom,rgba(255,250,241,0),rgba(255,250,241,.82))
+}
 .detail-sheet.sheet-compact .sheet-head h2{font-family:Gaegu,cursive;font-size:22px}
 .detail-sheet.sheet-compact .sheet-sub{font-size:12px;margin-top:2px}
 .detail-sheet.sheet-compact .sheet-stats{font-size:12px;margin-top:4px}
 .detail-sheet.sheet-compact .sheet-actions{gap:6px;margin-top:8px}
 .detail-sheet.sheet-compact .sheet-actions button{min-height:32px;padding:5px 6px;font:700 13px Nunito,sans-serif;border-radius:999px;border-width:1.5px;box-shadow:none}
 .detail-sheet.sheet-compact .save{font-size:22px;padding:2px}
+/* map overlay: sheet floats over map, does not reserve opaque stack space */
+.view-map{position:relative}
+.view-map #sheet{
+  position:absolute;left:0;right:0;bottom:0;z-index:560;
+  max-height:none!important;overflow:visible!important;pointer-events:none
+}
+.view-map #sheet > *{pointer-events:auto}

@@ -387,13 +387,20 @@ function focusSearchHit(i){
 function placeHitHtml(f,i){
   const p=f.properties,dist=hitDistanceLabel(f),addr=placeAddress(p);
   const meta=`${dist?`<span class="hit-dist">${esc(dist)}</span>${addr?' · ':''}`:''}${esc(addr)}`;
-  return `<article class="place-hit" data-hit="${i}" data-hit-focus="${i}" role="button" tabindex="0"><div class="place-hit-info"><div class="place-hit-title"><b>${esc(p.name||p.street||'Place')}</b><div class="place-hit-actions"><button type="button" class="hit-icon" data-result-wish="${i}" aria-label="Save to wishlist" title="Wishlist"><img src="assets/icon-wish-meow.png?v=ui20261015an" alt="" width="26" height="26" decoding="async"></button><button type="button" class="hit-icon" data-result-add="${i}" aria-label="Add restaurant" title="Add"><img src="assets/icon-add-meow.png?v=ui20261015an" alt="" width="26" height="26" decoding="async"></button></div></div><small>${meta}</small></div></article>`;
+  return `<article class="place-hit" data-hit="${i}" data-hit-focus="${i}" role="button" tabindex="0"><div class="place-hit-info"><div class="place-hit-title"><b>${esc(p.name||p.street||'Place')}</b><div class="place-hit-actions"><button type="button" class="hit-icon" data-result-wish="${i}" aria-label="Save to wishlist" title="Wishlist"><img src="assets/icon-wish-meow.png?v=ui20261015ap" alt="" width="26" height="26" decoding="async"></button><button type="button" class="hit-icon" data-result-add="${i}" aria-label="Add restaurant" title="Add"><img src="assets/icon-add-meow.png?v=ui20261015ap" alt="" width="26" height="26" decoding="async"></button></div></div><small>${meta}</small></div></article>`;
 }
 function renderPlaceHits(output,features){
   searchResults=(features||[]).filter(validPlace);
   if(!output)return;
-  if(!searchResults.length){clearSearchMarkers();output.innerHTML='<div class="search-idle"><p>No nearby matches. Try another name.</p></div>'+manualFallback();return}
+  const head=document.querySelector('.search-sheet-head h2');
+  if(head)head.textContent=searchResults.length?`Nearby matches · ${searchResults.length}`:'Nearby matches';
+  if(!searchResults.length){clearSearchMarkers();output.classList.remove('can-scroll');output.innerHTML='<div class="search-idle"><p>No nearby matches. Try another name.</p></div>'+manualFallback();return}
   output.innerHTML=`<div class="place-hits">${searchResults.map(placeHitHtml).join('')}</div>`+manualFallback();
+  const hits=output.querySelector('.place-hits');
+  requestAnimationFrame(()=>{
+    if(!hits||!output.isConnected)return;
+    output.classList.toggle('can-scroll',hits.scrollHeight>hits.clientHeight+4);
+  });
   drawSearchMarkers();
 }
 function searchCenter(){return searchContext.center||userLocation||mapCenter}
@@ -483,7 +490,7 @@ function showSearch(context={}){
   if(context.editId){
     openPanel('Find a place',`
       <form class="search-form place-search-form compact" id="search-form"><div class="place-search-input"><input id="search-query" placeholder="Restaurant nearby" aria-label="Search restaurants" autocomplete="off" required minlength="2" maxlength="200"></div><button class="search-submit" aria-label="Search">→</button></form>
-      <div id="search-results" class="search-results place-results"><div class="search-idle"><p>Type a name, then tap search. Top 3 nearby.</p></div></div>
+      <div id="search-results" class="search-results place-results"><div class="search-idle"><p>Type a name, then tap search. Nearby matches will list here.</p></div></div>
       <footer class="place-search-footer"><small>Mapbox · Photon fallback</small></footer>`,{cls:'search-panel compact-search'});
     const form=$('#search-form'),input=$('#search-query'),output=$('#search-results');
     form.onsubmit=async e=>{
@@ -571,8 +578,7 @@ document.addEventListener('click',e=>{
   const b=e.target.closest('button,[data-detail],[data-visit-toggle],[data-hit-focus]');if(!b)return;const d=b.dataset;
   if(d.page==='prev'){listPage=Math.max(0,listPage-1);if(tab==='wishlist'){renderWishlist();enhanceIcons()}return}
   if(d.page==='next'){listPage++;if(tab==='wishlist'){renderWishlist();enhanceIcons()}return}
-  if(d.spage==='prev'){searchResultPage=Math.max(0,searchResultPage-1);renderSearchPage($('#search-results'),'');return}
-  if(d.spage==='next'){searchResultPage++;renderSearchPage($('#search-results'),'');return}
+
   if(d.tab){if(d.tab!=='timeline')expandedVisitId=null;tab=d.tab;closePanel();render();return}
   if(d.filter){filter=d.filter;listPage=0;render();return}
   if(d.detail)return restaurantDetail(d.detail);

@@ -17,7 +17,7 @@ header, .tabs { flex: none; }
 #main { flex: 1; min-height: 0; overflow: hidden; display: flex; flex-direction: column; }
 .view-map .map-wrap { flex: 1 1 0; min-height: 100px; overflow: hidden; }
 .view-map #map { position: absolute; inset: 0; width: 100%; height: 100%; }
-.view-map #sheet { flex: 0 1 auto; min-height: 0; max-height: 52%; overflow: auto; overscroll-behavior: contain; scrollbar-width: thin; }
+.view-map #sheet { flex: 0 0 0; min-height: 0; max-height: none; overflow: visible; }
 .detail-sheet { margin-top: 0; }
 .onboarding { margin: 0; padding: 14px 16px 16px; border-radius: 26px 26px 0 0; border-bottom: 0; }
 .onboarding-art { width: 58px; height: 58px; margin-bottom: 4px; }
@@ -58,7 +58,7 @@ dialog { max-height: calc(100dvh - 24px - env(safe-area-inset-top, 0px) - env(sa
   .onboarding-art { display: none; }
   .onboarding h2 { font-size: 25px; }
   .view-timeline .milestones { display: none; }
-  .view-map #sheet { max-height: 55%; }
+  .view-map #sheet { max-height: none; }
 }
 /* Vector geography is styled directly; labels, pins and controls stay sharp. */
 .leaflet-container { background: #f3ecde; }
@@ -80,8 +80,11 @@ dialog { max-height: calc(100dvh - 24px - env(safe-area-inset-top, 0px) - env(sa
   .view-timeline .latest { display: none; }
 }
 
-/* Wishlist still paginates; timeline scrolls all visits */
-.restaurant-list, .view-map #sheet { overflow: hidden !important; }
+/* Wishlist still paginates; timeline scrolls all visits.
+   Map sheet overlays the map — do NOT force overflow:hidden on #sheet
+   (that killed nearby-matches scrolling). Inner .place-hits scrolls. */
+.restaurant-list { overflow: hidden !important; }
+.view-map #sheet { overflow: visible !important; }
 .timeline-list { overflow-y: auto !important; overflow-x: hidden !important; }
 .view-timeline > .content { min-height: 0; }
 .view-timeline .timeline-list { flex: 1 1 0; min-height: 0; max-height: none; }
