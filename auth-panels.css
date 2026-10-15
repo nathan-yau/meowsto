@@ -48,6 +48,7 @@ body:not(.locked) #app { display: flex; }
 #uf input[type=text], #uf input[type=password] {
   width: 100%; border: 2px solid #cfc5b4; border-radius: 16px; padding: 12px 14px;
   background: #fffdf8; font-family: var(--font-ui, Nunito, sans-serif); font-size: 16px;
+  min-height: 0; height: auto;
   transition: padding .32s ease, border-radius .32s ease, font-size .32s ease;
 }
 /* Collapsible signup-only fields: height + fade/slide */
@@ -79,10 +80,24 @@ body.reg-mode .signup-fields {
   pointer-events: auto;
 }
 .remember, .ack {
-  display: flex; gap: 10px; align-items: flex-start; font-size: 13px; line-height: 1.4;
+  display: flex; gap: 8px; align-items: flex-start; margin: 0;
+  font-size: 13px; line-height: 1.25; font-weight: 600;
   font-family: var(--font-ui, Nunito, sans-serif); color: #5c554c;
   transition: font-size .32s ease, gap .32s ease, padding .32s ease;
 }
+.remember {
+  align-items: center;
+  min-height: 0;
+}
+.remember span, .ack span {
+  font-size: inherit; line-height: inherit; font-weight: inherit;
+}
+.remember input[type=checkbox],
+.ack input[type=checkbox] {
+  width: 16px; height: 16px; min-width: 16px; min-height: 16px;
+  margin: 0; flex: none; align-self: center;
+}
+.ack input[type=checkbox] { align-self: flex-start; margin-top: 1px; }
 .ack {
   background: #fff1df; border: 2px dashed #cf7860; border-radius: 14px; padding: 10px;
 }
@@ -98,43 +113,48 @@ body.reg-mode .signup-fields {
 }
 .umsg.bad { color: #b94a3a; font-weight: 700; }
 
-/* Sign-up: denser lock-card so invite + confirm fit on ~390×844 */
+/* Sign-up: denser + smaller logo so card height matches Login despite extra fields */
 body.reg-mode .lockcard {
   padding: 12px 16px 12px;
-  gap: 6px;
+  gap: 5px;
   border-radius: 24px;
 }
-body.reg-mode .lock-art { width: 56px; height: 56px; }
-body.reg-mode .lockcard h1 { font-size: 28px; }
+body.reg-mode .lock-art { width: 50px; height: 50px; }
+body.reg-mode .lockcard h1 { font-size: 25px; }
 body.reg-mode .lockcard .sub {
-  font-size: 11.5px; line-height: 1.3; margin: 0;
+  font-size: 11.5px; line-height: 1.28; margin: 0;
 }
-body.reg-mode .seg { padding: 3px; border-radius: 16px; }
-body.reg-mode .seg button { min-height: 36px; border-radius: 12px; font-size: 15px; }
-body.reg-mode #uf > * + * { margin-top: 7px; }
-body.reg-mode .signup-fields { margin-top: 7px !important; }
-body.reg-mode .signup-fields-inner { gap: 7px; }
+body.reg-mode .seg { padding: 3px; border-radius: 15px; }
+body.reg-mode .seg button { min-height: 34px; border-radius: 12px; font-size: 14.5px; }
+body.reg-mode #uf > * + * { margin-top: 5px; }
+body.reg-mode .signup-fields { margin-top: 5px !important; }
+body.reg-mode .signup-fields-inner { gap: 5px; }
 body.reg-mode #uf input[type=text],
 body.reg-mode #uf input[type=password] {
-  padding: 9px 12px; border-radius: 14px; font-size: 15px;
+  padding: 7px 11px; border-radius: 13px; font-size: 14.5px; min-height: 0;
 }
 body.reg-mode .remember, body.reg-mode .ack {
-  font-size: 11.5px; line-height: 1.35; gap: 8px;
+  font-size: 12px; line-height: 1.25; gap: 7px; margin: 0;
 }
-body.reg-mode .ack { padding: 7px 8px; border-radius: 12px; }
+body.reg-mode .remember input[type=checkbox],
+body.reg-mode .ack input[type=checkbox] {
+  width: 15px; height: 15px; min-width: 15px; min-height: 15px;
+}
+body.reg-mode .ack { padding: 6px 8px; border-radius: 12px; }
 body.reg-mode .btn.pri {
-  min-height: 44px; font-size: 16px; border-radius: 16px;
+  min-height: 42px !important; font-size: 15px !important; border-radius: 15px;
+  padding: 7px 14px !important;
 }
-body.reg-mode .umsg { font-size: 12.5px; min-height: 1em; }
+body.reg-mode .umsg { font-size: 12px; min-height: 1em; }
 
 @media (max-height: 760px) {
-  body.reg-mode .lock-art { width: 48px; height: 48px; }
-  body.reg-mode .lockcard h1 { font-size: 24px; }
+  body.reg-mode .lock-art { width: 42px; height: 42px; }
+  body.reg-mode .lockcard h1 { font-size: 23px; }
   body.reg-mode .lockcard .sub { font-size: 11px; }
-  body.reg-mode .seg button { min-height: 34px; }
+  body.reg-mode .seg button { min-height: 32px; }
   body.reg-mode #uf input[type=text],
-  body.reg-mode #uf input[type=password] { padding: 8px 11px; }
-  body.reg-mode .btn.pri { min-height: 42px; }
+  body.reg-mode #uf input[type=password] { padding: 6px 10px; }
+  body.reg-mode .btn.pri { min-height: 40px !important; }
 }
 
 @media (prefers-reduced-motion: reduce) {
