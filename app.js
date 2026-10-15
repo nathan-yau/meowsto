@@ -138,13 +138,17 @@ function relativeVisitLabel(dateStr){
   if(diffDays<=0)return 'today';
   if(diffDays===1)return 'yesterday';
   if(diffDays<7)return 'this week';
-  if(diffDays<14)return 'last week';
+  if(diffDays<14)return 'this week';
   if(now.getFullYear()===visit.getFullYear()&&now.getMonth()===visit.getMonth())return 'this month';
   const months=(now.getFullYear()-visit.getFullYear())*12+(now.getMonth()-visit.getMonth());
-  if(months===1)return 'last month';
+  if(months===1)return 'a month ago';
   if(months<12)return months+' months ago';
-  if(months<24)return 'last year';
+  if(months<24)return 'a year ago';
   return Math.floor(months/12)+' years ago';
+}
+function mapChipRelativeLabel(dateStr){
+  const s=relativeVisitLabel(dateStr);
+  return s.replace(/^last\s+/i,'');
 }
 function tags(r){return `<div class="tags">${(r.tags||[]).map(t=>`<span class="tag">${esc(t)}</span>`).join('')}</div>`}
 function personalRating(r){const rated=visits(r.id).filter(v=>v.rating);return rated.length?Math.round(rated.reduce((sum,v)=>sum+v.rating,0)/rated.length*10)/10:r.rating}
@@ -197,7 +201,7 @@ function renderWishlist(){
 
 const FOOD_ICONS=['ramen','sushi','japanese','cafe','matcha','tea','boba','dessert','bakery','burger','pasta','pizza','steak','chinese','korean','thai','indian','hongkong','singaporean','mideast','shop'];
 function foodKey(r){if(r?.kind&&!['shop','cafe'].includes(r.kind)&&FOOD_ICONS.includes(r.kind))return r.kind;const blob=((r?.kind||'')+' '+(r?.tags||[]).join(' ')+' '+(r?.name||'')).toLowerCase();const rules=[[/ramen|noodle|udon|soba/,'ramen'],[/sushi|sashimi|omakase/,'sushi'],[/matcha/,'matcha'],[/boba|bubble/,'boba'],[/\btea\b/,'tea'],[/cafe|café|coffee|espresso/,'cafe'],[/dessert|ice cream|sweet|gelato|cake/,'dessert'],[/bakery|bread|pastry|croissant/,'bakery'],[/burger/,'burger'],[/pizza/,'pizza'],[/pasta|italian/,'pasta'],[/steak|grill|bbq/,'steak'],[/hong ?kong|dim sum|cantonese|cha chaan/,'hongkong'],[/chinese|sichuan|szechuan|dumpling/,'chinese'],[/korean|bibimbap|kbbq/,'korean'],[/thai/,'thai'],[/indian|curry/,'indian'],[/singapore|malay|hainan/,'singaporean'],[/middle ?east|turkish|lebanese|kebab|falafel|mediterranean/,'mideast'],[/japanese|izakaya/,'japanese']];for(const[re,k]of rules)if(re.test(blob))return k;return FOOD_ICONS.includes(r?.kind)?r.kind:'shop'}
-function foodImg(r,cls='tl-food'){return `<span class="${cls} tl-bg-${foodKey(r)}"><img src="food/${foodKey(r)}.png?v=ui20261015bh" alt="" loading="lazy"></span>`}
+function foodImg(r,cls='tl-food'){return `<span class="${cls} tl-bg-${foodKey(r)}"><img src="food/${foodKey(r)}.png?v=ui20261015bi" alt="" loading="lazy"></span>`}
 function vibeIcon(t){t=t.toLowerCase();if(/sweet|cute|sparkle|vibe/.test(t))return icon('sparkle');if(/friend|solo|date|group|people/.test(t))return icon('users');if(/comfort|cozy|love|heart/.test(t))return icon('heart');return `<svg class="ui-icon leaf-ico" viewBox="0 0 24 24" aria-hidden="true"><path d="M5 19C5 10 11 5 20 4c0 9-5 15-14 15Z"/><path d="M5 19 13 11"/></svg>`}
 function vibeTags(list,max=3){list=(list||[]).filter(t=>t&&t!=='demo').slice(0,max);return list.length?`<div class="tl-tags">${list.map(t=>`<span class="tl-tag">${vibeIcon(t)}${esc(t)}</span>`).join('')}</div>`:''}
 function tlCat(r){return (r?.tags||[]).find(t=>t!=='demo')||(r?.kind&&r.kind!=='shop'?r.kind[0].toUpperCase()+r.kind.slice(1):'Restaurant')}
@@ -260,7 +264,7 @@ function loadExplore(){clearTimeout(exploreTimer);exploreTimer=setTimeout(async(
 function showExplore(list){if(exploreLayer)exploreLayer.remove();exploreLayer=window.L.layerGroup().addTo(map);exploreResults=list;list.forEach((x,i)=>{window.L.marker([x.lat,x.lng],{title:x.name,icon:window.L.divIcon({className:'restaurant-pin explore-pin',html:`<div class="map-chip explore-chip"><b>${esc(x.name)}</b></div>`,iconSize:null,iconAnchor:[0,0]})}).bindPopup(`<div class="explore-pop"><b>${esc(x.name)}</b><small>${esc(x.amenity.replace('_',' '))}${x.cuisine?' · '+esc(x.cuisine.replace(/;/g,', ')):''}</small><button data-explore="${i}">♡ Save to wishlist</button></div>`).addTo(exploreLayer)})}
 function pinTier(){const z=map?map.getZoom():mapZoom;return z>=14?'full':z>=12?'mini':'meow'}
 function searchPinTier(){const z=map?map.getZoom():mapZoom;return z>=16?'full':'meow'}
-function markerIcon(r){const t=pinTier(),sel=r.id===selected?' selected':'';if(t==='meow'){const sz=r.id===selected?[30,41]:[22,30];return window.L.icon({iconUrl:'assets/meow-map-pin.png?v=ui20261015x',iconSize:sz,iconAnchor:[sz[0]/2,sz[1]],className:'meow-pin'+sel})}const last=visits(r.id)[0],nv=!last?' never-visited':'';let meta='';if(t==='full'){if(last)meta=relativeVisitLabel(last.date);else meta=r.wish?'♡ never visited':'never visited'}return window.L.divIcon({className:'restaurant-pin pin-'+t,html:`<div class="map-chip${sel}${nv}">${sel?'<i class="pin-burst" aria-hidden="true"></i>':''}<b>${esc(r.name)}</b>${meta?`<small>${esc(meta)}</small>`:''}</div>`,iconSize:null,iconAnchor:[0,0]})}
+function markerIcon(r){const t=pinTier(),sel=r.id===selected?' selected':'';if(t==='meow'){const sz=r.id===selected?[30,41]:[22,30];return window.L.icon({iconUrl:'assets/meow-map-pin.png?v=ui20261015x',iconSize:sz,iconAnchor:[sz[0]/2,sz[1]],className:'meow-pin'+sel})}const last=visits(r.id)[0],nv=!last?' never-visited':'';let meta='';if(t==='full'){if(last)meta=mapChipRelativeLabel(last.date);else meta=r.wish?'♡ never visited':'never visited'}return window.L.divIcon({className:'restaurant-pin pin-'+t,html:`<div class="map-chip${sel}${nv}">${sel?'<i class="pin-burst" aria-hidden="true"></i>':''}<b>${esc(r.name)}</b>${meta?`<small>${esc(meta)}</small>`:''}</div>`,iconSize:null,iconAnchor:[0,0]})}
 function updateMarkerIcons(){markers.forEach(m=>m.setIcon(markerIcon(m._r)));searchMarkers.forEach((m,i)=>{if(m&&searchResults[i])m.setIcon(searchResultIcon(searchResults[i],i))})}
 function selectPin(id){
   selected=selected===id?null:id;
@@ -326,7 +330,7 @@ function searchResultIcon(f,i){
   const last=searchHitLastVisit(f);
   const nv=!last?' never-visited':'';
   let meta='never visited';
-  if(last)meta=relativeVisitLabel(last.date)||'visited';
+  if(last)meta=mapChipRelativeLabel(last.date)||'visited';
   return window.L.divIcon({className:'restaurant-pin pin-'+t,html:`<div class="map-chip${nv}${sel?' selected':''}">${sel?'<i class="pin-burst" aria-hidden="true"></i>':''}<b>${esc(name)}</b>${meta?`<small>${esc(meta)}</small>`:''}</div>`,iconSize:null,iconAnchor:[0,0]});
 }
 function drawSearchMarkers(){
