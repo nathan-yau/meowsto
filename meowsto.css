@@ -50,7 +50,33 @@ header .avatar img,.profile-avatar img{width:100%;height:100%;object-fit:cover;d
 /* Text-only list cards (no food-tile / art) */
 .restaurant.no-tile{align-items:flex-start}
 .restaurant.no-tile .info{padding-right:8px}
-.latest.no-art{display:block}
-.visit-card.no-art{align-items:flex-start}
-.visit-card.no-art .visit-time{display:block;margin-bottom:4px}
 .milestones .circle:empty{background:var(--cream)}
+/* Compact map detail: no food icon */
+.detail-sheet.sheet-compact .detail-top.no-tile{gap:10px;align-items:flex-start}
+.detail-sheet.sheet-compact{padding:14px 14px 10px;margin:0}
+.detail-sheet.sheet-compact .handle{margin:-6px auto 10px}
+.detail-sheet.sheet-compact .detail-top h2{font-size:26px;line-height:1.15}
+.detail-sheet.sheet-compact .visit-note{margin:10px 0}
+.detail-sheet.sheet-compact .actions button{padding:8px 10px;font-size:16px}
+/* Tighter timeline cards */
+.latest.no-art{display:block;padding:10px 12px;border-radius:18px;gap:0}
+.latest.no-art h2{font-size:24px;line-height:1.15;margin:0 0 4px}
+.latest.no-art .badge,.latest.no-art .latest-rating{font-size:13px;padding:2px 9px}
+.latest.no-art p{display:none}
+.visit-row{gap:12px;margin-bottom:6px;align-items:stretch}
+.visit-date{width:46px;font-size:18px;padding-top:8px;line-height:1.1}
+.visit-date small{font-size:12px}
+.visit-date:before{width:12px;height:12px;right:-17px;top:18px}
+.visit-card.no-art{align-items:center;padding:8px 12px;gap:8px;border-radius:14px;min-height:0}
+.visit-card.no-art .visit-card-body{flex:1;min-width:0}
+.visit-card.no-art .visit-time{display:inline;margin:0 8px 0 0;font-size:13px}
+.visit-card.no-art .meal{display:inline-block;font-size:13px;padding:1px 8px;margin:0 0 2px}
+.visit-card.no-art h3{font-size:20px;line-height:1.15;margin:2px 0 0}
+.visit-card.no-art .chevron{font-size:22px;opacity:.55}
+@media(max-width:600px){
+  .latest.no-art{padding:8px 10px;border-radius:16px}
+  .latest.no-art h2{font-size:22px}
+  .visit-card.no-art{padding:7px 10px}
+  .visit-card.no-art h3{font-size:18px}
+  .visit-date{width:42px;font-size:16px}
+}

@@ -22,9 +22,11 @@ header .round, header .avatar { width: 44px !important; height: 44px !important;
 .btn.pri { min-height: 44px !important; font-size: 16px !important; }
 .filters button { min-height: 36px !important; padding: 6px 13px !important; }
 .map-toolbar button { min-height: 34px !important; padding: 6px 8px !important; }
-/* 7. comfortable bottom margin, safe-area aware */
-main, .content { padding-bottom: calc(28px + env(safe-area-inset-bottom, 0px)) !important; }
-.panel-body, .form-scroll, .search-results, .page-list { padding-bottom: calc(16px + env(safe-area-inset-bottom, 0px)); }
-.panel-inner { padding-bottom: calc(12px + env(safe-area-inset-bottom, 0px)) !important; }
-.detail-sheet { padding-bottom: calc(24px + env(safe-area-inset-bottom, 0px)) !important; }
+/* 7. tight bottom spacing, safe-area aware */
+main, .content { padding-bottom: calc(8px + env(safe-area-inset-bottom, 0px)) !important; }
+.view-map main, .view-map .content { padding-bottom: 0 !important; }
+.panel-body, .form-scroll, .search-results, .page-list { padding-bottom: calc(10px + env(safe-area-inset-bottom, 0px)); }
+.panel-inner { padding-bottom: calc(8px + env(safe-area-inset-bottom, 0px)) !important; }
+.detail-sheet { padding-bottom: calc(10px + env(safe-area-inset-bottom, 0px)) !important; }
+.detail-sheet.sheet-compact { padding-bottom: calc(8px + env(safe-area-inset-bottom, 0px)) !important; margin-bottom: 0 !important; }
 #toast { bottom: calc(22px + env(safe-area-inset-bottom, 0px)) !important; }

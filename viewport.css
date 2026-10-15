@@ -27,14 +27,14 @@ header, .tabs { flex: none; }
 .onboarding .actions > * { flex: 1 1 0; font-size: 14px; padding: 10px 8px; }
 .view-wishlist > .content, .view-timeline > .content { flex: 1; min-height: 0; display: flex; flex-direction: column; overflow: hidden; padding-bottom: 0; }
 .hero, .filters, .milestones, .latest, .section-title, .timeline-add { flex-shrink: 0; }
-.restaurant-list, .timeline-list { flex: 1; min-height: 0; overflow-y: auto; overflow-x: hidden; overscroll-behavior: contain; scrollbar-width: thin; padding-bottom: 16px; }
+.restaurant-list, .timeline-list { flex: 1; min-height: 0; overflow-y: auto; overflow-x: hidden; overscroll-behavior: contain; scrollbar-width: thin; padding-bottom: 8px; }
 .timeline-list { padding-right: 2px; }
 .restaurant-list .empty { padding: 20px 12px; }
 .view-timeline .milestones { padding-top: 12px; padding-bottom: 10px; }
 .view-timeline .milestones:before { top: 42px; }
-.view-timeline .latest { padding: 14px; }
+.view-timeline .latest { padding: 10px 12px; }
 .view-timeline .section-title { margin: 12px 0 8px; }
-.view-timeline .timeline-add { margin-bottom: 12px; }
+.view-timeline .timeline-add { margin-bottom: 8px; }
 dialog { max-height: calc(100dvh - 24px - env(safe-area-inset-top, 0px) - env(safe-area-inset-bottom, 0px)); overflow-y: auto; overscroll-behavior: contain; }
 .modal-head { position: sticky; top: -16px; z-index: 2; background: var(--cream); padding: 8px 0; }
 .storage-warning { flex-shrink: 0; max-height: 45%; overflow: auto; }
@@ -80,6 +80,7 @@ dialog { max-height: calc(100dvh - 24px - env(safe-area-inset-top, 0px) - env(sa
   .view-timeline .latest { display: none; }
 }
 
-/* Pagination replaces list scrolling */
-.restaurant-list, .timeline-list, .view-map #sheet { overflow: hidden !important; }
+/* Wishlist still paginates; timeline scrolls all visits */
+.restaurant-list, .view-map #sheet { overflow: hidden !important; }
+.timeline-list { overflow-y: auto !important; overflow-x: hidden !important; }
 .filters { overflow: hidden !important; flex-wrap: wrap; }
