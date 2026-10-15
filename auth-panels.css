@@ -15,7 +15,6 @@ body:not(.locked) #app { display: flex; }
   border-radius: 28px; padding: 22px 20px 18px;
   box-shadow: 0 8px 0 #38271f18; display: flex; flex-direction: column; gap: 10px;
   overflow-y: auto; -webkit-overflow-scrolling: touch;
-  transition: padding .32s ease, gap .32s ease, border-radius .32s ease;
 }
 .lock-art {
   width: 88px; height: 88px; margin: 0 auto; flex: none;
@@ -113,50 +112,15 @@ body.reg-mode .signup-fields {
 }
 .umsg.bad { color: #b94a3a; font-weight: 700; }
 
-/* Sign-up: denser + smaller logo so card height matches Login despite extra fields */
-body.reg-mode .lockcard {
-  padding: 12px 16px 12px;
-  gap: 5px;
-  border-radius: 24px;
+/* Fixed-size lock card: identical outer box in Login and Sign up.
+   Only the signup-fields block animates inside; card never resizes. */
+.lockcard { height: min(672px, calc(100dvh - 32px)); justify-content: safe center; transition: none !important; }
+.lockcard > * { flex: none; }
+@media (max-height: 720px) {
+  .lockcard { height: min(616px, calc(100dvh - 24px)); gap: 8px; }
+  .lock-art { width: 56px; height: 56px; }
+  .lockcard h1 { font-size: 30px; }
 }
-body.reg-mode .lock-art { width: 50px; height: 50px; }
-body.reg-mode .lockcard h1 { font-size: 25px; }
-body.reg-mode .lockcard .sub {
-  font-size: 11.5px; line-height: 1.28; margin: 0;
-}
-body.reg-mode .seg { padding: 3px; border-radius: 15px; }
-body.reg-mode .seg button { min-height: 34px; border-radius: 12px; font-size: 14.5px; }
-body.reg-mode #uf > * + * { margin-top: 5px; }
-body.reg-mode .signup-fields { margin-top: 5px !important; }
-body.reg-mode .signup-fields-inner { gap: 5px; }
-body.reg-mode #uf input[type=text],
-body.reg-mode #uf input[type=password] {
-  padding: 7px 11px; border-radius: 13px; font-size: 14.5px; min-height: 0;
-}
-body.reg-mode .remember, body.reg-mode .ack {
-  font-size: 12px; line-height: 1.25; gap: 7px; margin: 0;
-}
-body.reg-mode .remember input[type=checkbox],
-body.reg-mode .ack input[type=checkbox] {
-  width: 15px; height: 15px; min-width: 15px; min-height: 15px;
-}
-body.reg-mode .ack { padding: 6px 8px; border-radius: 12px; }
-body.reg-mode .btn.pri {
-  min-height: 42px !important; font-size: 15px !important; border-radius: 15px;
-  padding: 7px 14px !important;
-}
-body.reg-mode .umsg { font-size: 12px; min-height: 1em; }
-
-@media (max-height: 760px) {
-  body.reg-mode .lock-art { width: 42px; height: 42px; }
-  body.reg-mode .lockcard h1 { font-size: 23px; }
-  body.reg-mode .lockcard .sub { font-size: 11px; }
-  body.reg-mode .seg button { min-height: 32px; }
-  body.reg-mode #uf input[type=text],
-  body.reg-mode #uf input[type=password] { padding: 6px 10px; }
-  body.reg-mode .btn.pri { min-height: 40px !important; }
-}
-
 @media (prefers-reduced-motion: reduce) {
   .lockcard, .lock-art, .lockcard h1, .lockcard .sub, .seg, .seg button,
   #uf > *, #uf input[type=text], #uf input[type=password],

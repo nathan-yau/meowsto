@@ -430,7 +430,6 @@ $('#uf').onsubmit=async e=>{
   e.preventDefault();const u=$('#un').value,p=$('#pw').value;$('#go').disabled=true;lockMsg(MODE==='reg'?'Signing up…':'Logging in…');
   try{
     if(MODE==='reg'){
-      if(p!==$('#pw2').value)throw new Error('Passwords don’t match');
       if(p.length<8)throw new Error('Password must be at least 8 characters');
       if(!$('#ack').checked)throw new Error('Please confirm you understand the password can’t be reset');
       await doRegister(u,p,$('#code').value.trim());
