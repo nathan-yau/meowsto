@@ -1,0 +1,109 @@
+/* Restaurant discovery and saving share the journal's illustrated language. */
+.place-dialog {
+  width: min(100%, 600px);
+  height: min(90dvh, 820px);
+  max-height: calc(100dvh - env(safe-area-inset-top, 0px) - 8px);
+  inset: auto 0 0;
+  margin: auto auto 0;
+  border: 2px solid var(--ink);
+  border-bottom: 0;
+  border-radius: 30px 30px 0 0;
+  overflow: hidden;
+  background: #fcf8ed;
+}
+.place-dialog::backdrop { background: #38271f55; backdrop-filter: blur(3px); }
+.place-dialog #modal { height: 100%; display: flex; flex-direction: column; min-height: 0; overflow: hidden; padding: 18px 20px 0; }
+.place-dialog .modal-head { position: static; flex: none; margin: 0 0 12px; padding: 0; align-items: center; background: transparent; }
+.place-dialog .modal-head h2 { font-size: 34px; }
+.place-dialog .close { border: 1px solid #ded5c5; background: #f2ecdf; }
+.place-dialog .close:hover { background: #e9e1d0; }
+.search-welcome { display: flex; align-items: center; gap: 14px; padding: 12px 16px; border: 2px solid #e6d8b9; border-radius: 20px; background: #fff0d0; flex: none; }
+.search-welcome > div { width: 64px; height: 68px; flex: none; }
+.search-welcome p { font-family: var(--font-display); font-size: 23px; line-height: 1.2; color: #78664d; }
+.search-welcome b { color: var(--ink); font-weight: 700; }
+.place-search-form { flex: none; flex-direction: row; gap: 8px; margin-top: 16px; }
+.place-search-input { display: flex; align-items: center; min-width: 0; flex: 1; background: #fffdf7; border: 2px solid #c9bca5; border-radius: 18px; padding-left: 14px; box-shadow: 0 3px 0 #eae2d2; }
+.place-search-input:focus-within { border-color: #588967; box-shadow: 0 0 0 3px #dbe8d6; }
+.place-search-input > .ui-icon { width: 22px; height: 22px; color: #588967; }
+.place-search-input input { width: 0; flex: 1; border: 0; border-radius: 16px; background: transparent; padding: 13px 9px; min-height: 52px; outline: none; }
+.place-search-input input:focus { outline: none; box-shadow: none; }
+.place-search-input input::placeholder { color: #81796b; font-size: 14px; }
+.place-search-input .clear-search { padding: 0; background: transparent; border: 0; border-radius: 12px; width: 44px; height: 44px; min-width: 44px; font-size: 25px; color: #7c7163; }
+.place-search-form .search-submit { width: 52px; min-width: 52px; height: 56px; padding: 0; border: 2px solid #d68c74; background: #ffb19b; border-radius: 18px; font-size: 29px; box-shadow: 0 3px 0 #edddc9; }
+.search-area { display: flex; align-items: center; justify-content: space-between; gap: 6px; flex: none; font-size: 12px; line-height: 1.4; padding: 3px; color: #716b60; }
+.search-area button { font-size: 12px; min-height: 44px; border: 0; background: transparent; color: #416c50; padding: 8px 4px; text-decoration: underline; }
+.place-results { flex: 1; min-height: 0; overflow-y: auto; overflow-x: hidden; overscroll-behavior: contain; padding: 0 1px 8px; scrollbar-width: thin; }
+.search-results .place-suggestion { display: flex; align-items: center; gap: 12px; width: 100%; min-height: 82px; margin: 0 0 8px; padding: 10px 12px; border: 2px solid #e2d9c9; border-radius: 20px; background: #fffdf6; text-align: left; }
+.place-suggestion > span:nth-child(2) { flex: 1; min-width: 0; }
+.place-suggestion .suggestion-icon { display: block; width: 48px; height: 50px; flex: none; padding: 2px; border-radius: 14px; background: #f4ead4; }
+.place-suggestion b { display: block; font-family: var(--font-display); font-size: 28px; line-height: 1.1; color: var(--ink); overflow-wrap: anywhere; }
+.place-suggestion small { font-family: var(--font-ui); font-size: 13px; font-weight: 600; line-height: 1.4; color: #766d61; margin-top: 5px; overflow-wrap: anywhere; }
+.place-suggestion .suggestion-arrow { color: #76654c; font-size: 24px; }
+.search-results .place-suggestion:hover, .search-results .suggestion-active { border-color: #89a383; background: #f0f4e4; transform: none; }
+.search-idle { padding: 24px 14px; text-align: center; color: #7b7264; }
+.search-idle > span { display: block; font-size: 39px; color: #e9b14c; }
+.search-idle h3 { font-size: 30px; color: var(--ink); }
+.search-idle p { font-size: 14px; line-height: 1.6; margin-top: 8px; }
+.search-message { padding: 20px 12px; color: #7e735f; font-size: 14px; }
+.place-search-footer { display: flex; flex-direction: column; gap: 6px; flex: none; border-top: 1px dashed #d9cbb5; padding: 10px 0 max(12px, env(safe-area-inset-bottom, 0px)); }
+.manual-fallback { margin: 16px 2px 4px; border-top: 1px dashed #dfd5c3; color: #7d7364; }
+.manual-fallback summary { min-height: 44px; padding: 12px 6px; cursor: pointer; font-size: 13px; }
+.manual-fallback p { margin: 0 6px 10px; font-size: 13px; line-height: 1.5; }
+.manual-fallback .manual-last-resort { width: 100%; min-height: 44px; font-size: 13px; border: 1px solid #dfd5c3; background: transparent; color: #776c5d; }
+.place-search-footer > a { display: flex; align-items: center; justify-content: center; min-height: 44px; color: #416c50; font-size: 14px; }
+.place-search-footer > small { text-align: center; color: #817565; font-size: 11px; }
+.place-dialog [hidden] { display: none !important; }
+.place-editor { flex: 1; display: flex; flex-direction: column; min-height: 0; }
+.place-editor-scroll { flex: 1; min-height: 0; overflow-y: auto; overscroll-behavior: contain; scrollbar-width: thin; padding: 0 2px 12px; }
+.chosen-place { display: flex; align-items: center; gap: 14px; background: #fff0d0; border: 2px solid #e8d8b6; border-radius: 22px; padding: 12px; }
+.chosen-art { width: 68px; height: 74px; flex: none; }
+.chosen-place > div:last-child { min-width: 0; }
+.chosen-place h3 { font-size: 32px; margin: 3px 0; overflow-wrap: anywhere; }
+.chosen-place p { font-size: 13px; line-height: 1.5; color: #786d5b; overflow-wrap: anywhere; }
+.eyebrow { font-size: 10px; font-weight: 900; letter-spacing: 1.5px; color: #8f7751; }
+.change-place { display: flex; align-items: center; gap: 9px; width: 100%; margin: 10px 0; padding: 11px 13px; font-size: 14px; background: #e5edda; border-color: #c4d1b7; border-radius: 16px; }
+.change-place > span { margin-left: auto; font-size: 24px; line-height: 1; }
+.change-place .ui-icon { width: 20px; height: 20px; }
+.place-preview-map { height: 144px; width: 100%; overflow: hidden; border: 2px solid #d5cbb8; border-radius: 18px; margin: 0 0 14px; background: #e7eddd; }
+.place-preview-map .leaflet-control-attribution { font-size: 9px; }
+.place-editor label { font-family: var(--font-display); font-size: 24px; line-height: 1.2; margin: 14px 0 6px; }
+.place-editor label small { font-family: var(--font-ui); font-size: 11px; color: #817364; margin-left: 4px; }
+.place-editor input, .place-editor textarea, .place-editor select { border-color: #dfd4c1; border-radius: 15px; background: #fffdf6; min-height: 48px; font-size: 16px; padding: 11px 12px; }
+.place-editor textarea { min-height: 100px; }
+.place-editor input:focus, .place-editor textarea:focus, .place-editor select:focus { border-color: #799b78; box-shadow: 0 0 0 2px #e3eddb; }
+.place-editor .form-grid label { font-family: var(--font-display); font-size: 22px; min-height: 42px; flex-wrap: wrap; align-content: end; }
+.field-tip { font-size: 12px; color: #7e7364; line-height: 1.5; margin: 5px 0; }
+.place-editor .wish-toggle { display: flex; align-items: center; gap: 12px; background: #f6e8dd; border: 1px solid #e5d3c0; border-radius: 18px; padding: 12px; margin: 16px 0; font-size: 22px; }
+.wish-toggle small { display: block; font-size: 12px; font-family: var(--font-ui); margin: 4px 0 0; color: #796e60; }
+.pin-settings { border-top: 1px dashed #d4c8b5; padding-top: 10px; margin: 8px 0; }
+.pin-settings summary { cursor: pointer; min-height: 44px; display: list-item; padding: 10px 5px; font-size: 14px; color: #5d7555; font-weight: 800; }
+.place-save-bar { flex: none; flex-wrap: nowrap; border-top: 1px solid #e3d7c2; background: #fcf8ed; padding: 12px 0 max(14px, env(safe-area-inset-bottom, 0px)); margin: 0; }
+.place-save-bar button { flex: 1 1 0; min-height: 52px; font-size: 16px; border-radius: 18px; padding: 12px 8px; }
+.place-save-bar button.primary { flex: 2 1 0; background: #fc9983; border: 2px solid #e9856d; box-shadow: 0 3px 0 #ead8c0; font-family: var(--font-display); font-size: 26px; line-height: 1; color: var(--ink); }
+@media (max-width: 600px) {
+  .place-dialog { height: 92dvh; }
+  .place-dialog #modal { padding: 16px 16px 0; }
+  .place-dialog .modal-head h2 { font-size: 31px; }
+  .search-welcome { padding: 10px; gap: 10px; }
+  .search-welcome > div { width: 52px; height: 58px; }
+  .search-welcome p { font-size: 21px; }
+  .place-search-input { padding-left: 10px; }
+  .place-search-form .search-submit { width: 46px; min-width: 46px; }
+  .chosen-place h3 { font-size: 29px; }
+}
+@media (max-width: 360px) {
+  .place-dialog #modal { padding: 14px 12px 0; }
+  .place-dialog .modal-head h2 { font-size: 28px; }
+  .place-search-input > .ui-icon { display: none; }
+  .place-search-input { padding-left: 2px; }
+  .place-search-input input::placeholder { font-size: 12px; }
+  .search-welcome p { font-size: 19px; }
+  .place-suggestion b { font-size: 25px; }
+  .place-suggestion .suggestion-icon { width: 38px; height: 42px; }
+  .place-save-bar button.primary { font-size: 23px; }
+}
+@media (max-height: 600px) {
+  .search-welcome { display: none; }
+  .place-dialog { height: 98dvh; }
+  .place-search-form { margin-top: 2px; }
+}

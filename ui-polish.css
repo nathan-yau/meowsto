@@ -1,0 +1,30 @@
+/* UI polish 2026-10-15 (loaded last): slim pills/buttons, one-line header, no sync text, bottom spacing */
+/* 5. hide sync status in chrome */
+header .sync, #sync { display: none !important; }
+/* 4. one-line header */
+header { flex-wrap: nowrap !important; gap: 10px !important; padding: 12px 14px 6px !important; }
+header .brand { flex: 1 1 auto; min-width: 0; flex-wrap: nowrap; gap: 8px; }
+header .brand > div:last-child { min-width: 0; }
+/* TODO(app-name): display name pending from user — change text in index.html <h1 class="app-name"> + manifest.webmanifest */
+header h1, header .app-name { white-space: nowrap !important; overflow: hidden; text-overflow: ellipsis; font-size: clamp(22px, 7vw, 34px) !important; line-height: 1.1 !important; }
+header .brand p { white-space: nowrap !important; overflow: hidden; text-overflow: ellipsis; font-size: clamp(13px, 3.8vw, 17px) !important; margin-top: 1px !important; }
+header .brand p span { display: inline; }
+#brand-art { width: clamp(40px, 12vw, 64px) !important; height: clamp(40px, 12vw, 64px) !important; flex: none; }
+header .round, header .avatar { width: 44px !important; height: 44px !important; min-width: 44px !important; min-height: 44px !important; flex: none !important; }
+/* 1. slimmer tab pills, equal widths */
+.tabs { padding: 4px 12px 10px !important; gap: 8px !important; }
+.tabs button { flex: 1 1 0 !important; width: 0; height: 42px !important; min-height: 42px !important; font-size: 16px !important; border-radius: 18px !important; padding: 0 6px !important; }
+.tabs .ui-icon { width: 20px !important; height: 20px !important; }
+@media (min-width: 601px) { .tabs button { height: 44px !important; min-height: 44px !important; font-size: 17px !important; } }
+/* slimmer primary buttons */
+.hero button, .timeline-add, .map-view-button, .view-wishlist .hero button, .primary, .btn.pri,
+.actions button, .form-actions button { min-height: 42px !important; padding: 8px 14px !important; font-size: 15px !important; border-radius: 16px !important; line-height: 1.25 !important; }
+.btn.pri { min-height: 44px !important; font-size: 16px !important; }
+.filters button { min-height: 36px !important; padding: 6px 13px !important; }
+.map-toolbar button { min-height: 40px !important; padding: 7px 11px !important; }
+/* 7. comfortable bottom margin, safe-area aware */
+main, .content { padding-bottom: calc(28px + env(safe-area-inset-bottom, 0px)) !important; }
+.panel-body, .form-scroll, .search-results, .page-list { padding-bottom: calc(16px + env(safe-area-inset-bottom, 0px)); }
+.panel-inner { padding-bottom: calc(12px + env(safe-area-inset-bottom, 0px)) !important; }
+.detail-sheet { padding-bottom: calc(24px + env(safe-area-inset-bottom, 0px)) !important; }
+#toast { bottom: calc(22px + env(safe-area-inset-bottom, 0px)) !important; }

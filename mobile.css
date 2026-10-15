@@ -1,0 +1,181 @@
+/* Readable type and comfortable touch targets, layered over the illustrated theme. */
+:root {
+  --font-ui: 'Nunito', system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+  --font-display: 'Gaegu', cursive;
+  --muted: #6d655c;
+}
+html { -webkit-text-size-adjust: 100%; }
+body { font-family: var(--font-ui); font-size: 16px; line-height: 1.5; }
+h1, h2, h3 { font-family: var(--font-display); font-weight: 700; line-height: 1.12; }
+button, input, select, textarea { font-family: var(--font-ui); font-size: 16px; line-height: 1.35; }
+button { min-width: 44px; min-height: 44px; font-weight: 800; touch-action: manipulation; }
+button:active { transform: scale(.98); }
+input, select, textarea { min-width: 0; min-height: 48px; }
+input, textarea { font-weight: 400; }
+textarea { min-height: 112px; }
+input[type='checkbox'] { min-height: 24px; min-width: 24px; width: 24px; height: 24px; flex: none; accent-color: var(--green); }
+.checkbox { min-height: 48px; font-size: 16px; line-height: 1.4; cursor: pointer; }
+input[type='file'] { width: 100%; font-size: 16px; }
+input[type='file']::file-selector-button { font: 700 14px var(--font-ui); min-height: 44px; margin: 0 10px 0 0; border: 0; border-radius: 10px; padding: 8px 12px; background: var(--sage); color: var(--ink); }
+.brand, .brand > div:last-child, .detail-top .info, .latest > div:last-child, .visit-card > div { min-width: 0; }
+.brand p { font-family: var(--font-display); line-height: 1.2; white-space: normal; }
+.round, .avatar { width: 48px; height: 48px; min-width: 48px; flex: none; display: grid; place-items: center; }
+.round .ui-icon { width: 26px; height: 26px; }
+.ui-icon { flex-shrink: 0; }
+.tabs button { min-width: 0; min-height: 52px; flex: 1 1 0; font-size: 18px; line-height: 1.2; gap: 8px; padding: 10px 6px; }
+.tabs .ui-icon { width: 26px; height: 26px; }
+.tabs button.active { background: #477754; }
+.primary { color: var(--ink); border-color: #f8a393; }
+.primary, .secondary { font-size: 16px; line-height: 1.35; padding: 12px 16px; }
+.hero p, .address, .note, .visit-card p, .latest p { font-family: var(--font-ui); font-size: 16px; line-height: 1.45; overflow-wrap: anywhere; }
+.hero h2 { white-space: normal; }
+.hero button { font-size: 16px; min-height: 48px; }
+.filters { gap: 8px; }
+.filters button { min-height: 44px; flex: none; font-size: 15px; padding: 10px 16px; }
+.tag { font-family: var(--font-ui); font-size: 14px; line-height: 1.4; padding: 4px 10px; }
+.rating { font-family: var(--font-ui); font-size: 17px; line-height: 1.4; }
+.rating small, .restaurant .rating small, .detail-top .rating small { font-size: 13px; }
+.save, button.chevron { min-width: 44px; width: 44px; min-height: 44px; height: 44px; display: inline-grid; place-items: center; flex-shrink: 0; }
+.save .ui-icon { width: 24px; height: 28px; }
+.chevron { font-size: 30px; line-height: 1; }
+.visit-note button { min-width: 0; overflow-wrap: anywhere; }
+.visit-note b { font-family: var(--font-display); font-size: 25px; line-height: 1.1; }
+.visit-note small { font-size: 14px; line-height: 1.5; margin-top: 5px; }
+.actions, .form-actions { gap: 10px; }
+.actions > *, .form-actions > * { min-width: 0; }
+.actions button, .form-actions button { font-size: 16px; padding: 12px 10px; }
+.map-toolbar { gap: 8px; }
+.map-toolbar button { font-size: 15px; line-height: 1.3; padding: 10px 12px; min-height: 48px; }
+.leaflet-control-zoom a { width: 44px !important; height: 44px !important; line-height: 44px !important; font-size: 26px !important; touch-action: manipulation; }
+.map-label { font-family: var(--font-ui); min-height: 50px; max-width: 210px; }
+.map-label b { font-size: 15px; line-height: 1.3; overflow-wrap: anywhere; }
+.map-label small { font-size: 13px; line-height: 1.4; }
+.map-hint { font-family: var(--font-ui); font-size: 12px; line-height: 1.4; }
+.close { width: 44px; height: 44px; min-width: 44px; font-family: var(--font-ui); font-size: 28px; line-height: 1; flex: none; }
+.modal-head { gap: 12px; align-items: flex-start; }
+.modal-head h2 { font-size: 32px; overflow-wrap: anywhere; }
+#modal { overflow-wrap: anywhere; }
+.hint { font: 14px/1.55 var(--font-ui); }
+label { font-size: 16px; line-height: 1.4; }
+.search-form input { flex: 1; width: 0; }
+.search-form button { flex: none; }
+.search-results button { font-size: 16px; line-height: 1.4; }
+.search-results small { font-size: 14px; line-height: 1.5; margin-top: 4px; }
+.link { color: #416c50; font-size: 16px; min-height: 44px; display: flex; align-items: center; padding: 8px 0; line-height: 1.4; }
+.text-button { padding: 10px 12px; }
+.section-title { gap: 12px; }
+.section-title select { font-size: 16px; min-height: 44px; }
+.section-title h2 { min-width: 0; }
+.visit-time, .visit-date small { font-family: var(--font-ui); font-size: 14px; line-height: 1.4; }
+.visit-date { font-family: var(--font-display); }
+.meal { font-family: var(--font-ui); font-size: 14px; padding: 4px 10px; line-height: 1.35; }
+.visit-card h3 { overflow-wrap: anywhere; }
+.visit-card > div:first-child { flex: 0 0 auto; }
+.visit-card > div:nth-child(2) { flex: 1; min-width: 0; }
+.latest .badge { color: var(--ink); font-family: var(--font-ui); font-size: 14px; padding: 5px 12px; line-height: 1.3; }
+.latest-rating { font-size: 15px; }
+.onboarding p { font-size: 16px; line-height: 1.55; }
+.stats { font-size: 15px; }
+.stats b { font-family: var(--font-display); }
+.storage-warning { margin: 12px; padding: 18px; border: 2px solid #cf7860; border-radius: 18px; background: #fff1df; }
+.storage-warning h2 { font-size: 28px; }
+.storage-warning p { margin: 8px 0 14px; }
+.map-status { position: absolute; z-index: 600; top: 76px; left: 12px; right: 12px; background: #fff8ec; border: 2px solid #bc8973; border-radius: 16px; padding: 12px; font: 14px/1.45 var(--font-ui); box-shadow: 0 3px 12px #38271f20; }
+.map-status[hidden] { display: none; }
+.map-status > div { display: flex; gap: 12px; align-items: center; margin-top: 8px; }
+.map-status button, .map-status a { min-height: 44px; font-size: 14px; }
+.map-status a { display: inline-flex; align-items: center; color: #416c50; }
+.added { font-size: 14px; }
+#toast { font-size: 16px; line-height: 1.4; }
+@media (hover: none) { button:hover { transform: none; filter: none; } }
+@media (max-width: 600px) {
+  header { padding: 16px 12px 12px; gap: 8px; }
+  .brand { flex: 1; gap: 6px; }
+  #brand-art { width: 48px; height: 56px; }
+  h1 { font-size: clamp(22px, 5.5vw, 32px); letter-spacing: -.5px; }
+  .brand p { font-size: 16px; margin-top: 4px; }
+  .round, .avatar { width: 44px; height: 44px; min-width: 44px; }
+  .tabs { padding: 4px 12px 14px; gap: 6px; }
+  .tabs button { min-height: 50px; font-size: 15px; gap: 5px; padding: 10px 4px; border-radius: 18px; }
+  .tabs .ui-icon { width: 22px; height: 22px; }
+  .content { padding: 0 12px 24px; }
+  .hero { display: grid; grid-template-columns: 64px minmax(0, 1fr); padding: 12px; gap: 8px 12px; }
+  .hero .art-box { width: 64px; height: 72px; }
+  .hero h2 { font-size: 29px; }
+  .hero p { font-size: 15px; line-height: 1.45; }
+  .hero button { grid-column: 1 / -1; width: 100%; max-width: none; margin: 2px 0 0; min-height: 48px; font-size: 16px; padding: 12px; }
+  .filters { padding: 12px 0; margin-right: -12px; padding-right: 12px; }
+  .filters button { font-size: 15px; padding: 10px 14px; }
+  .restaurant { padding: 12px; gap: 12px; }
+  .restaurant .food-tile { width: 76px; height: 92px; }
+  .restaurant h3 { font-size: 27px; padding-right: 36px; min-height: 32px; }
+  .restaurant .address, .restaurant .note { font-size: 15px; line-height: 1.45; }
+  .restaurant .rating { font-size: 16px; margin: 4px 0; }
+  .restaurant .tag { font-size: 13px; padding: 4px 8px; }
+  .restaurant .tags { gap: 5px; margin: 7px 0; }
+  .right-meta { right: 5px; top: 5px; }
+  .save .ui-icon { width: 24px; height: 28px; }
+  .map-toolbar { left: 10px; right: 10px; }
+  .map-toolbar button { font-size: 14px; padding: 10px; min-height: 48px; }
+  .map-label { min-width: 116px; max-width: 145px; padding: 7px; }
+  .map-label b { font-size: 14px; line-height: 1.25; }
+  .map-label small { font-size: 12px; line-height: 1.4; }
+  .detail-top { display: grid; grid-template-columns: 84px minmax(0, 1fr) 44px; gap: 10px; align-items: start; }
+  .detail-top .food-tile { width: 84px; height: 94px; grid-column: 1; grid-row: 1 / span 2; }
+  .detail-top .info { grid-column: 2; grid-row: 1 / span 2; }
+  .detail-top .save { grid-column: 3; grid-row: 1; }
+  .detail-top > button.chevron { grid-column: 3; grid-row: 2; }
+  .detail-top h2 { font-size: 29px; }
+  .detail-top .rating { font-size: 16px; }
+  .detail-top .address { font-size: 15px; line-height: 1.45; }
+  .detail-top .tag { font-size: 13px; padding: 4px 8px; }
+  .visit-note small { font-size: 14px; line-height: 1.5; }
+  .actions { flex-wrap: wrap; }
+  .actions > * { flex: 1 1 130px; }
+  .onboarding .actions > * { flex-basis: 100%; }
+  .onboarding { padding: 20px 16px; }
+  .onboarding h2 { font-size: 30px; }
+  .form-grid { grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); }
+  .form-grid > div { min-width: 0; }
+  .form-grid label { font-size: 14px; min-height: 40px; display: flex; align-items: flex-end; }
+  .modal-head h2 { font-size: 30px; }
+  #modal { padding: 16px; }
+  dialog .detail-top { grid-template-columns: 84px minmax(0, 1fr); }
+  dialog .detail-top > div:not(.food-tile) { min-width: 0; }
+  .latest { align-items: start; }
+  .latest .art-box { width: 82px; height: 90px; }
+  .latest h2 { font-size: 29px; }
+  .latest p, .visit-card p { font-size: 15px; line-height: 1.45; }
+  .section-title h2 { font-size: 29px; }
+  .section-title h2 small { font-family: var(--font-ui); font-size: 14px; }
+  .section-title select { max-width: 142px; font-size: 14px; padding: 8px 10px; }
+  .visit-date { width: 48px; font-size: 23px; }
+  .visit-row { gap: 18px; }
+  .visit-card { gap: 9px; padding: 12px 10px; }
+  .visit-card .art-box { width: 45px; height: 50px; }
+  .visit-card h3 { font-size: 27px; }
+  .visit-card > .chevron { display: none; }
+}
+@media (max-width: 360px) {
+  header { gap: 6px; padding-left: 10px; padding-right: 10px; }
+  #brand-art { width: 36px; height: 44px; }
+  .brand { gap: 4px; }
+  .brand p { font-size: 14px; }
+  .brand p span { display: none; }
+  h1 { font-size: 22px; }
+  .tabs { padding-left: 10px; padding-right: 10px; gap: 4px; }
+  .tabs button { font-size: 14px; gap: 4px; }
+  .tabs .ui-icon { width: 18px; height: 20px; }
+  .map-toolbar button { font-size: 13px; padding: 10px 8px; }
+  .restaurant .food-tile { width: 62px; height: 78px; }
+  .restaurant { padding: 10px; gap: 9px; }
+  .detail-top { grid-template-columns: 68px minmax(0, 1fr) 44px; gap: 8px; }
+  .detail-top .food-tile { width: 68px; height: 80px; }
+  .form-actions { flex-wrap: wrap; }
+  .form-actions button { flex: 1 1 100%; }
+  .search-form { flex-direction: column; }
+  .search-form input { width: 100%; flex: auto; }
+  .latest .art-box { width: 64px; height: 74px; }
+  .section-title h2 { font-size: 26px; white-space: nowrap; }
+  .section-title select { max-width: 134px; }
+}

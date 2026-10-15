@@ -1,0 +1,85 @@
+/* One-screen app shell. Only long content panels and dialogs scroll. */
+html, body { width: 100%; height: 100%; overflow: hidden; overscroll-behavior: none; }
+body { position: fixed; inset: 0; }
+.app {
+  display: flex;
+  flex-direction: column;
+  height: 100vh;
+  height: 100dvh;
+  min-height: 0;
+  margin: 0 auto;
+  padding-top: env(safe-area-inset-top, 0px);
+  padding-bottom: env(safe-area-inset-bottom, 0px);
+  overflow: hidden;
+  border-radius: 0;
+}
+header, .tabs { flex: none; }
+#main { flex: 1; min-height: 0; overflow: hidden; display: flex; flex-direction: column; }
+.view-map .map-wrap { flex: 1 1 0; min-height: 100px; overflow: hidden; }
+.view-map #map { position: absolute; inset: 0; width: 100%; height: 100%; }
+.view-map #sheet { flex: 0 1 auto; min-height: 0; max-height: 52%; overflow: auto; overscroll-behavior: contain; scrollbar-width: thin; }
+.detail-sheet { margin-top: 0; }
+.onboarding { margin: 0; padding: 14px 16px 16px; border-radius: 26px 26px 0 0; border-bottom: 0; }
+.onboarding-art { width: 58px; height: 58px; margin-bottom: 4px; }
+.onboarding h2 { font-size: 28px; }
+.onboarding p { font-size: 15px; line-height: 1.4; margin: 6px auto 12px; }
+.onboarding .actions { flex-wrap: nowrap; }
+.onboarding .actions > * { flex: 1 1 0; font-size: 14px; padding: 10px 8px; }
+.view-wishlist > .content, .view-timeline > .content { flex: 1; min-height: 0; display: flex; flex-direction: column; overflow: hidden; padding-bottom: 0; }
+.hero, .filters, .milestones, .latest, .section-title, .timeline-add { flex-shrink: 0; }
+.restaurant-list, .timeline-list { flex: 1; min-height: 0; overflow-y: auto; overflow-x: hidden; overscroll-behavior: contain; scrollbar-width: thin; padding-bottom: 16px; }
+.timeline-list { padding-right: 2px; }
+.restaurant-list .empty { padding: 20px 12px; }
+.view-timeline .milestones { padding-top: 12px; padding-bottom: 10px; }
+.view-timeline .milestones:before { top: 42px; }
+.view-timeline .latest { padding: 14px; }
+.view-timeline .section-title { margin: 12px 0 8px; }
+.view-timeline .timeline-add { margin-bottom: 12px; }
+dialog { max-height: calc(100dvh - 24px - env(safe-area-inset-top, 0px) - env(safe-area-inset-bottom, 0px)); overflow-y: auto; overscroll-behavior: contain; }
+.modal-head { position: sticky; top: -16px; z-index: 2; background: var(--cream); padding: 8px 0; }
+.storage-warning { flex-shrink: 0; max-height: 45%; overflow: auto; }
+@media (max-width: 600px) {
+  header { padding-top: 10px; padding-bottom: 8px; }
+  .tabs { padding-bottom: 10px; }
+  .detail-sheet { padding-top: 18px; }
+  .view-wishlist .hero { grid-template-columns: 52px minmax(0, 1fr); padding: 10px 12px; gap: 6px 10px; }
+  .view-wishlist .hero .art-box { width: 52px; height: 58px; }
+  .view-wishlist .hero h2 { font-size: 28px; }
+  .view-wishlist .hero p { font-size: 14px; }
+  .view-wishlist .hero button { min-height: 44px; padding: 10px; }
+  .view-wishlist .filters { padding-top: 10px; padding-bottom: 10px; }
+  .view-timeline .milestones:before { top: 37px; }
+  .view-timeline .latest .art-box { width: 64px; height: 74px; }
+  .view-timeline .latest h2 { font-size: 27px; }
+  .view-timeline .latest p { display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden; }
+  .view-timeline .latest .tags { display: none; }
+}
+@media (max-height: 700px) {
+  .onboarding-art { display: none; }
+  .onboarding h2 { font-size: 25px; }
+  .view-timeline .milestones { display: none; }
+  .view-map #sheet { max-height: 55%; }
+}
+/* Vector geography is styled directly; labels, pins and controls stay sharp. */
+.leaflet-container { background: #f3ecde; }
+.leaflet-gl-layer { pointer-events: none; }
+.preview-map-status { padding: 12px; background: #fff2df; border-radius: 14px; font-size: 14px; }
+
+@media (max-height: 500px) {
+  header { padding-top: 6px; padding-bottom: 6px; }
+  #brand-art { height: 36px; width: 36px; }
+  .brand p { display: none; }
+  .tabs { padding-top: 0; padding-bottom: 6px; }
+  .tabs button { min-height: 44px; padding-top: 6px; padding-bottom: 6px; }
+  .onboarding { padding-top: 8px; }
+  .onboarding h2, .onboarding p { display: none; }
+  .view-wishlist .hero .art-box, .view-wishlist .hero p { display: none; }
+  .view-wishlist .hero { display: flex; flex-wrap: nowrap; }
+  .view-wishlist .hero h2 { font-size: 24px; }
+  .view-wishlist .hero button { width: auto; margin: 0 0 0 auto; }
+  .view-timeline .latest { display: none; }
+}
+
+/* Pagination replaces list scrolling */
+.restaurant-list, .timeline-list, .view-map #sheet { overflow: hidden !important; }
+.filters { overflow: hidden !important; flex-wrap: wrap; }

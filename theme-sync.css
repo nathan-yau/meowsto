@@ -1,0 +1,22 @@
+/* Unified sage theme + top pills, no bottom nav (loaded last) */
+:root { --bg: #ebf4e9; --cream: #ebf4e9; --pill: #fbf8ef; --pill-line: #d8d2c2; --green: #5b8a63; }
+html, body, .app, header, .tabs, main, .content, .panel-inner, .modal-head, dialog, .place-dialog, .onboarding { background-color: var(--bg) !important; }
+body.locked, #lockscr { background: var(--bg) !important; }
+.app { box-shadow: none !important; padding-bottom: 0 !important; }
+.bottom, #bnav { display: none !important; }
+.tabs { display: flex !important; gap: 8px; padding: 6px 12px 12px !important; }
+.tabs button {
+  flex: 1 1 0 !important; min-width: 0; height: 52px !important; min-height: 52px !important;
+  padding: 0 6px !important; font-size: 17px !important; font-weight: 800; border-radius: 22px !important;
+  display: flex; align-items: center; justify-content: center; gap: 6px;
+  background: var(--pill); border: 2px solid var(--pill-line); color: var(--ink); white-space: nowrap;
+}
+.tabs button.active, .tabs button.active[data-tab=wishlist] { background: var(--green) !important; border-color: #2f4f37 !important; color: #fff !important; }
+/* consistent primary action buttons across views */
+.hero button, .timeline-add, .map-view-button, .view-wishlist .hero button, .primary {
+  min-height: 48px !important; font-size: 16px !important; padding: 10px 16px !important; border-radius: 18px !important;
+}
+@media (min-width: 601px) { .tabs button { height: 56px !important; font-size: 20px !important; } }
+/* header avatar image */
+header .avatar { background: #8fae86 !important; border-radius: 50% !important; overflow: hidden; font-size: 0 !important; border: 2px solid #b9cfae !important; }
+header .avatar:after { content: none !important; }

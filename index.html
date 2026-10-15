@@ -1,0 +1,91 @@
+<!doctype html>
+<html lang="en"><head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no,viewport-fit=cover">
+<meta name="referrer" content="strict-origin-when-cross-origin">
+<meta name="theme-color" content="#ebf4e9">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="Meowsto">
+<meta name="apple-mobile-web-app-status-bar-style" content="default">
+<link rel="apple-touch-icon" sizes="180x180" href="assets/apple-touch-icon.png?v=ui20261015m">
+<link rel="icon" type="image/png" sizes="32x32" href="assets/favicon-32.png?v=ui20261015m">
+<link rel="icon" type="image/png" sizes="192x192" href="assets/icon-192.png?v=ui20261015m">
+<link rel="manifest" href="manifest.webmanifest?v=ui20261015m">
+<meta name="description" content="A little journal for good food and good days. Meowsto — an encrypted food journal.">
+<title>Meowsto · Good Food, Good Days</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://photon.komoot.io" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Gaegu:wght@400;700&family=Nunito:wght@400;600;700;800;900&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="vendor/leaflet.css">
+<link rel="stylesheet" href="vendor/maplibre-gl.css">
+<link rel="stylesheet" href="style.css?v=ui20261015m">
+<link rel="stylesheet" href="mobile.css?v=ui20261015m">
+<link rel="stylesheet" href="viewport.css?v=ui20261015m">
+<link rel="stylesheet" href="restaurant-flow.css?v=ui20261015m">
+<link rel="stylesheet" href="auth-panels.css?v=ui20261015m">
+<link rel="stylesheet" href="theme-sync.css?v=ui20261015m">
+<link rel="stylesheet" href="ui-polish.css?v=ui20261015m">
+<script defer src="vendor/leaflet.js"></script>
+<script defer src="vendor/maplibre-gl.js"></script>
+<script defer src="vendor/leaflet-maplibre-gl.js"></script>
+<script defer src="logic.js?v=ui20261015m"></script>
+<script defer src="app.js?v=ui20261015m"></script>
+<link rel="stylesheet" href="meowsto.css?v=ui20261015m">
+</head>
+<body class="locked">
+<div id="lockscr">
+  <div class="lockcard">
+    <div id="lock-art" class="lock-art" aria-hidden="true"><img src="assets/meowsto-logo-256.png?v=ui20261015m" alt=""></div>
+    <h1>Meowsto</h1>
+    <p class="sub">Your journal is encrypted on this device before upload — the server can’t read it.</p>
+    <div class="seg" id="lmode">
+      <button type="button" data-m="login" class="on">Log in</button>
+      <button type="button" data-m="reg">Sign up</button>
+    </div>
+    <form id="uf">
+      <input id="un" type="text" autocomplete="username" autocapitalize="none" spellcheck="false" placeholder="Username" aria-label="Username">
+      <input id="pw" type="password" autocomplete="current-password" placeholder="Password" aria-label="Password">
+      <input id="pw2" class="ro" type="password" autocomplete="new-password" placeholder="Repeat password" aria-label="Confirm password">
+      <input id="code" class="ro" type="text" autocomplete="off" autocapitalize="none" placeholder="Invite code" aria-label="Invite code">
+      <label class="remember"><input id="rem" type="checkbox" checked><span>Remember me on this device</span></label>
+      <label class="ro ack"><input id="ack" type="checkbox"><span>I understand my password is the decryption key: <b>if I forget it, my data is gone forever</b> and nobody can reset it.</span></label>
+      <button id="go" class="btn pri" type="submit">Log in</button>
+    </form>
+    <div id="umsg" class="umsg"></div>
+  </div>
+</div>
+
+<div id="app" class="app" hidden>
+  <header>
+    <div class="brand">
+      <div id="brand-art"><img src="assets/meowsto-logo-256.png?v=ui20261015m" alt="Meowsto logo"></div>
+      <div>
+        <h1 class="app-name" data-app-name>Meowsto</h1>
+        <p class="app-tagline">Good Food, Good Days <span>🌱</span></p>
+      </div>
+    </div>
+    <div class="sync" id="sync" hidden></div>
+    <button class="round" data-action="search" aria-label="Search restaurants">⌕</button>
+    <button class="avatar" data-action="profile" aria-label="Profile"></button>
+  </header>
+  <nav class="tabs" aria-label="Journal views">
+    <button data-tab="map">🗺️ <span>Map</span></button>
+    <button data-tab="timeline">▣ <span>Timeline</span></button>
+    <button data-tab="wishlist">♡ <span>Wishlist</span></button>
+  </nav>
+  <main id="main"></main>
+</div>
+
+<div id="panel" class="panel" hidden aria-hidden="true">
+  <div class="panel-inner">
+    <div class="panel-head">
+      <h2 id="panel-title"></h2>
+      <button type="button" class="close" data-action="close-panel" aria-label="Close">×</button>
+    </div>
+    <div id="modal" class="panel-body"></div>
+  </div>
+</div>
+
+<div id="toast" role="status" aria-live="polite"></div>
+</body></html>
