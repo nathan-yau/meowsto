@@ -93,7 +93,7 @@ function validBackup(d){return RL.validDb(d)}
 function persist(){if(!USER)return false;try{markDirty();const envPlaceholder=true;cacheEnv;return true}catch{toast('Save failed');return false}}
 function commit(change){
   const prev=structuredClone(state);
-  {const used=new Set(state.visits.map(v=>v.restaurantId));state.restaurants=state.restaurants.filter(r=>!(r.demo&&/^demo-\d$/.test(r.id)&&!used.has(r.id)))}
+  {const used=new Set(state.visits.map(v=>v.restaurantId));state.restaurants=state.restaurants.filter(r=>!(r.demo&&!r.preview&&/^demo-\d$/.test(r.id)&&!used.has(r.id)))}
   try{
     change();
     if(!validBackup(state))throw Error('Please check the name, date, time, and rating.');
@@ -202,11 +202,16 @@ function createMapTiles(target,statusSelector='#map-status'){
   load();
   return {redraw:load};
 }
-function drawMarkers(){if(!map)return;markers.forEach(m=>m.remove());markers=[];state.restaurants.filter(r=>Number.isFinite(r.lat)&&Number.isFinite(r.lng)).forEach(r=>{const vv=visits(r.id),iconHtml=window.L.divIcon({className:'restaurant-pin',html:`<div class="map-label ${r.id===selected?'selected':''}">${art(r.kind)}<div><b>${esc(r.name)}</b><small>★ ${vv.length} visit${vv.length===1?'':'s'}${vv[0]?`<br>Last: ${fmt(vv[0].date)}`:r.wish?' · Want to try':' · Not visited'}</small></div></div>`,iconSize:[155,70],iconAnchor:[35,78]});const m=window.L.marker([r.lat,r.lng],{icon:iconHtml,title:r.name}).addTo(map).on('click',()=>{selected=r.id;drawMarkers();renderSheet();enhanceIcons()});markers.push(m)})}
+function pinTier(){const z=map?map.getZoom():mapZoom;return z>=14?'full':z>=12?'mini':'meow'}
+function markerIcon(r){const t=pinTier(),sel=r.id===selected?' selected':'';if(t==='meow'){const sz=r.id===selected?[30,41]:[22,30];return window.L.icon({iconUrl:'assets/meow-map-pin.png?v=ui20261015u',iconSize:sz,iconAnchor:[sz[0]/2,sz[1]],className:'meow-pin'+sel})}const pr=personalRating(r),rt=pr?`★ ${Number(pr).toFixed(1).replace(/\.0$/,'')}`:(r.wish?'♡':'');return window.L.divIcon({className:'restaurant-pin pin-'+t,html:`<div class="map-chip${sel}"><b>${esc(r.name)}</b>${rt&&t==='full'?`<small>${rt}</small>`:''}</div>`,iconSize:null,iconAnchor:[0,0]})}
+function updateMarkerIcons(){markers.forEach(m=>m.setIcon(markerIcon(m._r)))}
+function selectPin(id){selected=selected===id?null:id;updateMarkerIcons();renderSheet();enhanceIcons()}
+function drawMarkers(){if(!map)return;markers.forEach(m=>m.remove());markers=[];state.restaurants.filter(r=>Number.isFinite(r.lat)&&Number.isFinite(r.lng)).forEach(r=>{const m=window.L.marker([r.lat,r.lng],{icon:markerIcon(r),title:r.name,riseOnHover:true}).addTo(map).on('click',e=>{window.L.DomEvent.stopPropagation(e);selectPin(r.id)});m._r=r;markers.push(m)});if(!map._meowZoom){map._meowZoom=1;let last=pinTier();map.on('zoomend',()=>{mapZoom=map.getZoom();const t=pinTier();if(t!==last){last=t;updateMarkerIcons()}});map.on('moveend',()=>{const c=map.getCenter();mapCenter=[c.lat,c.lng]});map.on('click',()=>{if(selected){selected=null;updateMarkerIcons();renderSheet();enhanceIcons()}})}}
 function distance(r){if(!userLocation||!Number.isFinite(r.lat))return '';const rad=x=>x*Math.PI/180,dlat=rad(r.lat-userLocation[0]),dlng=rad(r.lng-userLocation[1]),a=Math.sin(dlat/2)**2+Math.cos(rad(r.lat))*Math.cos(rad(userLocation[0]))*Math.sin(dlng/2)**2;let km=6371*2*Math.atan2(Math.sqrt(a),Math.sqrt(1-a));return `${km<1?Math.round(km*1000)+' m':km.toFixed(1)+' km'} · `}
 function renderSheet(){
   const el=$('#sheet');if(!el)return;
-  const r=rest(selected)||state.restaurants[0];
+  const r=rest(selected);
+  if(!r&&state.restaurants.length){el.innerHTML='';return}
   if(!r){el.innerHTML='<section class="empty onboarding"><div class="onboarding-art">'+logo()+'</div><h2>Your next favorite starts here</h2><p>Find a real restaurant, save it to your map, and make your first food memory.</p><div class="actions"><button class="primary" data-action="search">Find a restaurant</button><button data-action="locate">◎ Use my location</button></div></section>';return}
   selected=r.id;const vv=visits(r.id);
   el.innerHTML=`<section class="detail-sheet sheet-compact"><div class="handle"></div><div class="detail-top">${tile(r)}<div class="info"><h2>${esc(r.name)}</h2>${rating(r)}${tags(r)}<p class="address">♧ ${distance(r)}${esc(r.address||'Pinned location')}</p></div><button class="save" data-save="${r.id}" aria-label="Toggle wishlist">${r.wish?'▮':'♧'}</button><button class="chevron" data-detail="${r.id}" aria-label="Restaurant details">›</button></div><div class="visit-note"><button data-detail="${r.id}"><b>♜ ${vv.length} visit${vv.length===1?'':'s'}</b><small>Last visit: ${vv[0]?vv[0].date:'Not yet'}</small></button><button data-note="${r.id}"><b>▤ My note</b><small>${esc(r.note||'Add a little note…')}</small></button></div><div class="actions"><button class="secondary" data-addvisit="${r.id}">▣ Add Visit</button><button class="primary" data-action="search">♧ Add New Restaurant</button></div></section>`;
@@ -412,12 +417,12 @@ document.addEventListener('keydown',e=>{if((e.key==='Enter'||e.key===' ')&&e.tar
 document.addEventListener('change',e=>{if(e.target.id==='timeline-sort'){sort=e.target.value;listPage=0;render()}});
 
 const DEMO_PINS=[['demo-1','Kibo Ramen','ramen',49.2797,-123.1218,'Granville St'],['demo-2','Purr & Pour Café','cafe',49.2844,-123.1089,'Gastown'],['demo-3','Seawall Sushi','sushi',49.2888,-123.1307,'Coal Harbour'],['demo-4','Matcha Moon','matcha',49.2765,-123.1303,'Yaletown'],['demo-5','Sweet Paws Dessert','dessert',49.2635,-123.1385,'Kitsilano']];
-function seedDemoPins(){if(state.restaurants.length||!(USER==='demo'||/github\.io$/.test(location.hostname)))return;const d=RL.today();state.restaurants=DEMO_PINS.map(([id,name,kind,lat,lng,address],i)=>({id,name,kind,lat,lng,address,tags:['demo'],note:'Sample place for preview',wish:i%2===1,added:d,rating:null,demo:true}))}
+function seedDemoPins(){if(state.restaurants.length||!(USER==='demo'||/github\.io$/.test(location.hostname)))return;const d=RL.today();state.restaurants=DEMO_PINS.map(([id,name,kind,lat,lng,address],i)=>({id,name,kind,lat,lng,address,tags:['demo'],note:'Sample place for preview',wish:i%2===1,added:d,rating:null,demo:true,preview:true}))}
 function bootApp(){
   seedDemoPins();
   document.body.classList.remove('locked');
   $('#app').hidden=false;
-  selected=state.restaurants[0]?.id||null;
+  selected=null;
   const pinned=state.restaurants.find(r=>Number.isFinite(r.lat));
   if(pinned){mapCenter=[pinned.lat,pinned.lng];mapZoom=14}
   renderAvatar();

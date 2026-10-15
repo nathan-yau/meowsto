@@ -15,3 +15,12 @@ header .avatar img,.profile-avatar img{width:100%;height:100%;object-fit:cover;d
 .leaflet-control-attribution,.leaflet-control-zoom,.maplibregl-ctrl-attrib,.maplibregl-ctrl-bottom-right{display:none!important}
 .map-label{font-family:Nunito,sans-serif}.map-label b{font-family:Gaegu,cursive;font-size:20px}.map-label small{font-family:Nunito,sans-serif;font-size:12px;font-weight:600}
 #map .maplibregl-canvas{filter:saturate(.9) sepia(.05)}
+/* compact map chips (ui20261015u) */
+.restaurant-pin{background:none;border:0}
+.map-chip{position:absolute;left:0;bottom:6px;transform:translateX(-50%);display:flex;align-items:center;gap:5px;white-space:nowrap;max-width:150px;padding:3px 9px;border-radius:14px;background:#fffaf1;border:1.5px solid #38271f;box-shadow:0 2px 5px rgba(56,39,31,.18);font-family:Nunito,sans-serif;line-height:1.2;cursor:pointer}
+.map-chip:after{content:'';position:absolute;left:50%;bottom:-6px;width:8px;height:8px;margin-left:-5px;background:inherit;border:inherit;border-width:0 1.5px 1.5px 0;transform:rotate(45deg)}
+.map-chip b{font-family:Gaegu,cursive;font-size:15px;overflow:hidden;text-overflow:ellipsis}
+.map-chip small{font-size:11px;font-weight:700;color:#a35a2a}
+.pin-mini .map-chip{padding:1px 6px;max-width:96px}.pin-mini .map-chip b{font-size:12px}
+.map-chip.selected{background:#fa746b;color:#fff;z-index:2}.map-chip.selected small{color:#fff}
+.leaflet-marker-icon.meow-pin{filter:drop-shadow(0 1px 2px rgba(0,0,0,.25))}
