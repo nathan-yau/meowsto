@@ -1,0 +1,58 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="940" height="1670" viewBox="0 0 940 1670" fill="none">
+  <rect width="940" height="1670" fill="#E3EEDF"/>
+  <!-- soft organic blobs -->
+  <ellipse cx="80" cy="220" rx="220" ry="180" fill="#C9DCC4" opacity=".7"/>
+  <ellipse cx="880" cy="180" rx="200" ry="160" fill="#CDE0C8" opacity=".65"/>
+  <ellipse cx="120" cy="1480" rx="260" ry="200" fill="#C6DAC1" opacity=".7"/>
+  <ellipse cx="820" cy="1520" rx="240" ry="180" fill="#CBDEC6" opacity=".65"/>
+  <ellipse cx="470" cy="80" rx="180" ry="90" fill="#D0E2CB" opacity=".5"/>
+  <!-- leaf sprigs -->
+  <g fill="#A8C2A2" opacity=".95">
+    <!-- top-right sprig -->
+    <path d="M820 90c20 40 18 78-6 110 42-8 72-38 82-78-28 6-54-2-76-32z"/>
+    <path d="M790 130c28 28 52 32 78 18-10-30-34-48-70-52 4 12 2 24-8 34z"/>
+    <path d="M860 70c-8 36 4 68 28 88 8-36-2-68-28-88z"/>
+    <path d="M845 155c22 18 48 16 70-2-18-24-44-34-70-28 2 10 2 20 0 30z"/>
+    <!-- bottom-left sprig -->
+    <path d="M90 1520c-18 36-12 72 12 100-40-4-68-32-76-70 26 4 50-6 64-30z"/>
+    <path d="M120 1480c-24 26-48 28-72 12 12-28 36-44 70-46-2 12 0 24 2 34z"/>
+    <path d="M70 1560c10 34-2 64-24 84-6-34 4-64 24-84z"/>
+    <path d="M55 1495c-20 16-44 14-64-2 16-22 40-32 64-26-2 10-2 18 0 28z"/>
+    <!-- mid-left small -->
+    <path d="M40 620c14 28 12 54-2 76 30-4 50-26 56-54-20 4-38-2-54-22z"/>
+    <path d="M55 680c-16 18-34 18-50 6 8-20 26-30 50-30-2 8 0 16 0 24z"/>
+  </g>
+  <!-- paw prints -->
+  <g fill="#B4C9AE" opacity=".7">
+    <!-- upper left paw -->
+    <ellipse cx="150" cy="380" rx="14" ry="18" transform="rotate(-20 150 380)"/>
+    <circle cx="132" cy="352" r="7"/>
+    <circle cx="150" cy="346" r="7.5"/>
+    <circle cx="168" cy="352" r="7"/>
+    <circle cx="178" cy="368" r="6"/>
+    <!-- mid right paw -->
+    <ellipse cx="860" cy="620" rx="13" ry="17" transform="rotate(25 860 620)"/>
+    <circle cx="840" cy="598" r="6.5"/>
+    <circle cx="856" cy="590" r="7"/>
+    <circle cx="874" cy="596" r="6.5"/>
+    <circle cx="882" cy="612" r="5.5"/>
+    <!-- lower mid paw -->
+    <ellipse cx="720" cy="1380" rx="12" ry="16" transform="rotate(-15 720 1380)"/>
+    <circle cx="704" cy="1356" r="6"/>
+    <circle cx="720" cy="1350" r="6.5"/>
+    <circle cx="736" cy="1356" r="6"/>
+    <circle cx="746" cy="1370" r="5.5"/>
+    <!-- upper mid-left faint -->
+    <ellipse cx="280" cy="160" rx="10" ry="13" transform="rotate(10 280 160)"/>
+    <circle cx="266" cy="142" r="5"/>
+    <circle cx="280" cy="136" r="5.5"/>
+    <circle cx="294" cy="142" r="5"/>
+    <circle cx="300" cy="154" r="4.5"/>
+    <!-- lower right small -->
+    <ellipse cx="880" cy="1100" rx="11" ry="14" transform="rotate(-30 880 1100)"/>
+    <circle cx="864" cy="1080" r="5.5"/>
+    <circle cx="878" cy="1074" r="6"/>
+    <circle cx="894" cy="1080" r="5.5"/>
+    <circle cx="900" cy="1094" r="5"/>
+  </g>
+</svg>

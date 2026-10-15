@@ -3,68 +3,203 @@ body.locked #app { display: none !important; }
 body.locked #lockscr { display: flex; }
 body:not(.locked) #lockscr { display: none; }
 body:not(.locked) #app { display: flex; }
+
 #lockscr {
   position: fixed; inset: 0; z-index: 9000;
   display: none; align-items: center; justify-content: center;
-  background: linear-gradient(165deg, #e9eddf 0%, #faf7ee 55%, #fce9df 100%);
-  padding: 16px; overflow: hidden;
+  background-color: #e3eedf;
+  background-image: url("assets/auth-bg.svg?v=ui20261015as");
+  background-size: 100% 100%;
+  background-position: center;
+  background-repeat: no-repeat;
+  padding: 20px 16px;
+  overflow: hidden;
 }
-/* Lock card: fixed to login-only natural height (~532px @ 390×844).
-   Sign up must NOT grow the card — shrink logo/title/spacing, then reveal fields. */
+
+/* Cream card — soft elevation, no heavy ink frame */
 .lockcard {
-  width: min(100%, 380px);
-  height: min(532px, calc(100dvh - 32px));
-  max-height: calc(100dvh - 32px);
-  background: var(--cream, #faf7ee); border: 3px solid var(--ink, #38271f);
-  border-radius: 28px; padding: 22px 20px 18px;
-  box-shadow: 0 8px 0 #38271f18; display: flex; flex-direction: column; gap: 10px;
-  overflow: hidden; justify-content: safe center;
+  width: min(100%, 372px);
+  height: auto;
+  max-height: calc(100dvh - 40px);
+  background: #faf9f3;
+  border: 0;
+  border-radius: 32px;
+  padding: 28px 24px 22px;
+  box-shadow:
+    0 18px 40px rgba(56, 72, 52, 0.14),
+    0 2px 0 rgba(255, 255, 255, 0.65) inset;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  overflow: hidden;
+  justify-content: safe center;
   transition: none !important;
 }
 .lockcard > * { flex: none; }
 
-/* Login sizes (compact). Grow-back is delayed so fields collapse first. */
+/* Logo in sage circle + motion sparkles */
 .lock-art {
-  width: 88px; height: 88px; margin: 0 auto; flex: none;
+  position: relative;
+  width: 92px; height: 92px; margin: 0 auto; flex: none;
   transition: width .32s ease, height .32s ease;
   transition-delay: .16s;
 }
-.lockcard h1 {
-  text-align: center; font-size: 36px; margin: 0;
+.lock-art img {
+  width: 100%; height: 100%; object-fit: contain; border-radius: 50%;
+  display: block;
+  box-shadow: 0 4px 14px rgba(90, 110, 85, 0.18);
+}
+.lock-sparkles {
+  position: absolute; inset: 0 -28px;
+  pointer-events: none;
+}
+.lock-sparkles::before,
+.lock-sparkles::after {
+  content: "";
+  position: absolute;
+  top: 50%;
+  width: 22px;
+  height: 28px;
+  transform: translateY(-50%);
+  background:
+    linear-gradient(#a8bfa2, #a8bfa2) 0 4px / 14px 2.5px no-repeat,
+    linear-gradient(#a8bfa2, #a8bfa2) 4px 13px / 14px 2.5px no-repeat,
+    linear-gradient(#a8bfa2, #a8bfa2) 0 22px / 14px 2.5px no-repeat;
+  opacity: .9;
+}
+.lock-sparkles::before {
+  left: -2px;
+  transform: translateY(-50%) rotate(-32deg);
+}
+.lock-sparkles::after {
+  right: -2px;
+  transform: translateY(-50%) scaleX(-1) rotate(-32deg);
+}
+
+.lockcard h1,
+.lockcard .lock-title {
+  text-align: center;
+  font-family: Gaegu, Nunito, sans-serif;
+  font-size: 42px;
+  font-weight: 700;
+  margin: 2px 0 0;
+  color: #3a2a22;
+  letter-spacing: 0.01em;
+  position: relative;
   transition: font-size .32s ease;
   transition-delay: .16s;
 }
+/* tiny leaves sprouting from the final "o" */
+.lockcard .lock-title::after {
+  content: "";
+  position: absolute;
+  right: calc(50% - 82px);
+  top: 2px;
+  width: 16px; height: 14px;
+  background:
+    radial-gradient(ellipse 4.5px 7px at 28% 60%, #8fad86 68%, transparent 70%),
+    radial-gradient(ellipse 4.5px 7px at 72% 35%, #8fad86 68%, transparent 70%);
+  opacity: .95;
+  pointer-events: none;
+  transform: rotate(-8deg);
+}
 .lockcard .sub {
-  text-align: center; color: var(--muted, #6d655c); font-size: 14px; line-height: 1.4;
-  margin: 0 0 4px; font-family: var(--font-ui, Nunito, sans-serif);
+  text-align: center;
+  color: #5a534a;
+  font-size: 13.5px;
+  line-height: 1.45;
+  margin: 0 0 2px;
+  padding: 0 4px;
+  font-family: var(--font-ui, Nunito, sans-serif);
+  font-weight: 600;
   transition: font-size .32s ease, line-height .32s ease, margin .32s ease;
   transition-delay: .16s;
 }
+
+/* Pill Log in / Sign up */
 .seg {
-  display: flex; gap: 8px; background: #f0e9db; border-radius: 18px; padding: 4px;
-  border: 2px solid #e1d8ca; flex: none;
+  display: flex; gap: 0;
+  background: #f0ebe0;
+  border-radius: 999px;
+  padding: 4px;
+  border: 1.5px solid #e2d9cb;
+  flex: none;
   transition: padding .32s ease;
   transition-delay: .16s;
 }
 .seg button {
-  flex: 1; border: 0; background: transparent; border-radius: 14px;
-  min-height: 44px; font-weight: 800;
-  transition: min-height .32s ease, background .2s ease, color .2s ease;
-  transition-delay: .16s, 0s, 0s;
+  flex: 1; border: 0; background: transparent;
+  border-radius: 999px;
+  min-height: 44px;
+  font-weight: 800;
+  font-family: var(--font-ui, Nunito, sans-serif);
+  font-size: 15px;
+  color: #3a2a22;
+  transition: min-height .32s ease, background .2s ease, color .2s ease, box-shadow .2s ease;
+  transition-delay: .16s, 0s, 0s, 0s;
 }
-.seg button.on { background: var(--coral, #fa746b); color: #fff; border: 2px solid var(--ink, #38271f); }
+.seg button.on {
+  background: linear-gradient(180deg, #ff8a7a 0%, #f56d5f 100%);
+  color: #fff;
+  border: 0;
+  box-shadow: 0 3px 0 #d85a4e, 0 4px 10px rgba(245, 109, 95, 0.28);
+}
+
 #uf {
   display: flex; flex-direction: column; gap: 0;
 }
-#uf > * + * { margin-top: 10px; }
-#uf .signup-fields + .remember { margin-top: 10px; }
-#uf input[type=text], #uf input[type=password] {
-  width: 100%; border: 2px solid #cfc5b4; border-radius: 16px; padding: 12px 14px;
-  background: #fffdf8; font-family: var(--font-ui, Nunito, sans-serif); font-size: 16px;
-  min-height: 0; height: auto;
-  transition: padding .32s ease, border-radius .32s ease, font-size .32s ease;
+#uf > * + * { margin-top: 12px; }
+#uf .signup-fields + .remember { margin-top: 12px; }
+
+/* Fields with person/lock icons + brown rounded borders */
+#uf .field {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  width: 100%;
+  margin: 0;
+  padding: 0 14px;
+  min-height: 52px;
+  background: #fffef9;
+  border: 1.75px solid #6b5346;
+  border-radius: 16px;
+  box-sizing: border-box;
+  transition: min-height .32s ease, border-radius .32s ease, padding .32s ease;
   transition-delay: .16s;
 }
+#uf .field:focus-within {
+  border-color: #4a382f;
+  box-shadow: 0 0 0 3px rgba(250, 116, 107, 0.18);
+}
+#uf .field-ico {
+  display: grid; place-items: center;
+  flex: none;
+  color: #5c463a;
+  width: 22px; height: 22px;
+}
+#uf .field input {
+  flex: 1;
+  min-width: 0;
+  border: 0 !important;
+  background: transparent !important;
+  outline: none;
+  box-shadow: none !important;
+  padding: 12px 0 !important;
+  margin: 0;
+  font-family: var(--font-ui, Nunito, sans-serif);
+  font-size: 16px;
+  font-weight: 600;
+  color: #3a2a22;
+  min-height: 0; height: auto;
+  border-radius: 0 !important;
+}
+#uf .field input::placeholder { color: #9a9084; font-weight: 600; }
+
+/* legacy direct-input rules kept for invite/ack nesting safety */
+#uf input[type=text], #uf input[type=password] {
+  font-family: var(--font-ui, Nunito, sans-serif); font-size: 16px;
+}
+
 /* Collapsible signup-only fields: reveal AFTER logo/title shrink */
 #uf .signup-fields {
   display: grid;
@@ -84,7 +219,7 @@ body:not(.locked) #app { display: flex; }
   min-height: 0;
   display: flex;
   flex-direction: column;
-  gap: 8px;
+  gap: 10px;
   transition: gap .32s ease;
   transition-delay: .16s;
 }
@@ -94,17 +229,17 @@ body.reg-mode #uf .signup-fields {
   margin-top: 6px !important;
   transform: translateY(0);
   pointer-events: auto;
-  /* Reveal after logo/title shrink starts */
   transition:
     grid-template-rows .34s cubic-bezier(.4, 0, .2, 1) .16s,
     opacity .26s ease .18s,
     transform .30s ease .16s,
     margin-top .30s ease .16s;
 }
+
 .remember, .ack {
-  display: flex; gap: 8px; align-items: flex-start; margin: 0;
-  font-size: 13px; line-height: 1.25; font-weight: 600;
-  font-family: var(--font-ui, Nunito, sans-serif); color: #5c554c;
+  display: flex; gap: 10px; align-items: flex-start; margin: 0;
+  font-size: 13.5px; line-height: 1.3; font-weight: 700;
+  font-family: var(--font-ui, Nunito, sans-serif); color: #3a2a22;
   transition: font-size .32s ease, gap .32s ease, padding .32s ease, margin-top .32s ease;
   transition-delay: .16s;
 }
@@ -115,20 +250,57 @@ body.reg-mode #uf .signup-fields {
 .remember span, .ack span {
   font-size: inherit; line-height: inherit; font-weight: inherit;
 }
+
+/* Sage checkbox */
 .remember input[type=checkbox],
 .ack input[type=checkbox] {
-  width: 16px; height: 16px; min-width: 16px; min-height: 16px;
+  appearance: none;
+  -webkit-appearance: none;
+  width: 18px; height: 18px; min-width: 18px; min-height: 18px;
   margin: 0; flex: none; align-self: center;
+  border: 1.75px solid #7f9a78;
+  border-radius: 5px;
+  background: #fffef9;
+  display: grid; place-items: center;
+  cursor: pointer;
+  transition: background .15s ease, border-color .15s ease;
 }
-.ack input[type=checkbox] { align-self: flex-start; margin-top: 1px; }
+.remember input[type=checkbox]:checked,
+.ack input[type=checkbox]:checked {
+  background: #8fad86;
+  border-color: #6f8f68;
+}
+.remember input[type=checkbox]:checked::after,
+.ack input[type=checkbox]:checked::after {
+  content: "";
+  width: 5px; height: 9px;
+  border: solid #fff;
+  border-width: 0 2.2px 2.2px 0;
+  transform: rotate(45deg) translate(-1px, -1px);
+}
+.ack input[type=checkbox] { align-self: flex-start; margin-top: 2px; }
 .ack {
   background: #fff1df; border: 2px dashed #cf7860; border-radius: 14px; padding: 10px;
 }
+
+/* Coral primary CTA */
 .btn.pri {
-  background: var(--coral, #fa746b); color: #fff; border: 2px solid var(--ink, #38271f);
-  border-radius: 18px; min-height: 52px; font-weight: 800; font-size: 18px;
-  transition: min-height .32s ease, font-size .32s ease, border-radius .32s ease;
-  transition-delay: .16s;
+  background: linear-gradient(180deg, #ff8a7a 0%, #f56d5f 55%, #ef6356 100%);
+  color: #fff;
+  border: 0;
+  border-radius: 18px;
+  min-height: 54px;
+  font-weight: 800;
+  font-size: 18px;
+  font-family: var(--font-ui, Nunito, sans-serif);
+  letter-spacing: 0.01em;
+  box-shadow: 0 4px 0 #d85a4e, 0 8px 18px rgba(245, 109, 95, 0.28);
+  transition: min-height .32s ease, font-size .32s ease, border-radius .32s ease, transform .12s ease, box-shadow .12s ease;
+  transition-delay: .16s, .16s, .16s, 0s, 0s;
+}
+.btn.pri:active {
+  transform: translateY(2px);
+  box-shadow: 0 2px 0 #d85a4e, 0 4px 10px rgba(245, 109, 95, 0.22);
 }
 .umsg {
   min-height: 1.2em; text-align: center; font-size: 14px;
@@ -138,62 +310,66 @@ body.reg-mode #uf .signup-fields {
 }
 .umsg.bad { color: #b94a3a; font-weight: 700; }
 
-/* Sign up: shrink chrome immediately so invite+ack fit in the same 532px card */
+/* Sign up: shrink chrome immediately so invite+ack fit */
 body.reg-mode .lockcard {
-  gap: 6px;
-  padding: 14px 18px 12px;
+  gap: 8px;
+  padding: 18px 20px 14px;
 }
 body.reg-mode .lock-art {
-  width: 52px; height: 52px;
+  width: 56px; height: 56px;
   transition-delay: 0s;
 }
-body.reg-mode .lockcard h1 {
+body.reg-mode .lockcard h1,
+body.reg-mode .lockcard .lock-title {
   font-size: 32px;
   transition-delay: 0s;
 }
-/* Sign up: hide tagline entirely so logo/title can stay larger */
+body.reg-mode .lockcard .lock-title::after { display: none; }
 body.reg-mode .lockcard .sub {
   display: none;
 }
 body.reg-mode .seg { padding: 3px; transition-delay: 0s; }
-body.reg-mode .seg button { min-height: 38px; transition-delay: 0s, 0s, 0s; }
-body.reg-mode #uf > * + * { margin-top: 6px; }
-body.reg-mode .signup-fields-inner { gap: 6px; transition-delay: 0s; }
-body.reg-mode #uf input[type=text],
-body.reg-mode #uf input[type=password] {
-  padding: 9px 12px; border-radius: 14px;
+body.reg-mode .seg button { min-height: 40px; transition-delay: 0s, 0s, 0s, 0s; }
+body.reg-mode #uf > * + * { margin-top: 8px; }
+body.reg-mode .signup-fields-inner { gap: 8px; transition-delay: 0s; }
+body.reg-mode #uf .field {
+  min-height: 46px; border-radius: 14px; padding: 0 12px;
   transition-delay: 0s;
 }
+body.reg-mode #uf .field input { padding: 9px 0 !important; }
 body.reg-mode .ack {
   padding: 7px; font-size: 11.5px; line-height: 1.22; border-radius: 12px;
   transition-delay: 0s;
 }
-body.reg-mode .remember { font-size: 12px; transition-delay: 0s; }
+body.reg-mode .remember { font-size: 12.5px; transition-delay: 0s; }
 body.reg-mode .btn.pri {
-  min-height: 46px; font-size: 16px; border-radius: 16px;
+  min-height: 48px; font-size: 16px; border-radius: 16px;
   transition-delay: 0s;
 }
 body.reg-mode .umsg { font-size: 12.5px; transition-delay: 0s; }
 
-/* Short viewports: keep same card policy, further compact login chrome */
 @media (max-height: 600px) {
-  .lockcard { height: min(532px, calc(100dvh - 24px)); gap: 6px; padding: 12px 16px 10px; }
-  .lock-art { width: 56px; height: 56px; }
-  .lockcard h1 { font-size: 28px; }
+  .lockcard { gap: 8px; padding: 14px 16px 12px; }
+  .lock-art { width: 60px; height: 60px; }
+  .lockcard h1, .lockcard .lock-title { font-size: 30px; }
+  .lockcard .lock-title::after { display: none; }
   .lockcard .sub { font-size: 12px; margin: 0; }
   .seg button { min-height: 38px; }
-  .btn.pri { min-height: 44px; font-size: 16px; }
-  body.reg-mode .lock-art { width: 40px; height: 40px; }
-  body.reg-mode .lockcard h1 { font-size: 26px; }
+  #uf .field { min-height: 46px; }
+  .btn.pri { min-height: 46px; font-size: 16px; }
+  body.reg-mode .lock-art { width: 44px; height: 44px; }
+  body.reg-mode .lockcard h1,
+  body.reg-mode .lockcard .lock-title { font-size: 26px; }
 }
 @media (prefers-reduced-motion: reduce) {
-  .lockcard, .lock-art, .lockcard h1, .lockcard .sub, .seg, .seg button,
-  #uf > *, #uf input[type=text], #uf input[type=password],
+  .lockcard, .lock-art, .lockcard h1, .lockcard .lock-title, .lockcard .sub, .seg, .seg button,
+  #uf > *, #uf .field, #uf .field input,
   .signup-fields, .signup-fields-inner, .remember, .ack, .btn.pri, .umsg {
     transition: none !important;
     transition-delay: 0s !important;
   }
 }
+
 header .sync { font-size: 11px; color: var(--muted); font-family: var(--font-ui, Nunito, sans-serif); max-width: 72px; line-height: 1.2; text-align: right; }
 
 /* Full-screen / sheet panels — NOT <dialog> */

@@ -17,9 +17,10 @@ header .round, header .avatar { width: 44px !important; height: 44px !important;
 .tabs .ui-icon { width: 20px !important; height: 20px !important; }
 @media (min-width: 601px) { .tabs button { height: 44px !important; min-height: 44px !important; font-size: 17px !important; } }
 /* slimmer primary buttons */
-.hero button, .timeline-add, .map-view-button, .view-wishlist .hero button, .primary, .btn.pri,
+.hero button, .timeline-add, .map-view-button, .view-wishlist .hero button, .primary,
 .actions button, .form-actions button { min-height: 42px !important; padding: 8px 14px !important; font-size: 15px !important; border-radius: 16px !important; line-height: 1.25 !important; }
-.btn.pri { min-height: 44px !important; font-size: 16px !important; }
+/* lock-screen CTA sized in auth-panels.css — do not slim #go */
+#app .btn.pri { min-height: 44px !important; font-size: 16px !important; }
 .filters button { min-height: 36px !important; padding: 6px 13px !important; }
 .map-toolbar button { min-height: 34px !important; padding: 6px 8px !important; }
 /* 7. tight bottom spacing, safe-area aware */
