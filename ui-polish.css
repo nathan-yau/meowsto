@@ -21,7 +21,7 @@ header .round, header .avatar { width: 44px !important; height: 44px !important;
 .actions button, .form-actions button { min-height: 42px !important; padding: 8px 14px !important; font-size: 15px !important; border-radius: 16px !important; line-height: 1.25 !important; }
 .btn.pri { min-height: 44px !important; font-size: 16px !important; }
 .filters button { min-height: 36px !important; padding: 6px 13px !important; }
-.map-toolbar button { min-height: 40px !important; padding: 7px 11px !important; }
+.map-toolbar button { min-height: 34px !important; padding: 6px 8px !important; }
 /* 7. comfortable bottom margin, safe-area aware */
 main, .content { padding-bottom: calc(28px + env(safe-area-inset-bottom, 0px)) !important; }
 .panel-body, .form-scroll, .search-results, .page-list { padding-bottom: calc(16px + env(safe-area-inset-bottom, 0px)); }

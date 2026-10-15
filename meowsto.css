@@ -28,3 +28,21 @@ header .avatar img,.profile-avatar img{width:100%;height:100%;object-fit:cover;d
 .explore-banner{position:absolute;top:58px;left:50%;transform:translateX(-50%);z-index:500;background:#548ac1;color:#fff;font:700 12px Nunito,sans-serif;padding:4px 12px;border-radius:12px;white-space:nowrap}
 .explore-chip{background:#eef4fb;border-color:#548ac1;border-style:dashed}.explore-chip b{font-size:13px}
 .explore-pop{display:grid;gap:4px;font-family:Nunito,sans-serif}.explore-pop small{color:#81796e;text-transform:capitalize}.explore-pop button{margin-top:4px;border:1px solid #38271f;border-radius:12px;background:#ffcec0;padding:4px 8px;font-size:14px}
+
+/* Map toolbar: three short buttons, one row on mobile */
+.map-toolbar{
+  display:flex;align-items:stretch;justify-content:space-between;gap:6px;
+  flex-wrap:nowrap;left:10px;right:10px;
+}
+.map-toolbar button{
+  flex:1 1 0;min-width:0;white-space:nowrap;
+  font-size:15px;line-height:1.15;padding:6px 8px;min-height:36px;
+  border-radius:16px;
+}
+@media(max-width:600px){
+  .map-toolbar{gap:5px;left:8px;right:8px;top:10px}
+  .map-toolbar button{font-size:14px;padding:6px 6px;min-height:34px;border-radius:14px}
+}
+@media(max-width:360px){
+  .map-toolbar button{font-size:13px;padding:5px 4px}
+}
