@@ -278,9 +278,19 @@ header .sync { font-size: 11px; color: var(--muted); font-family: var(--font-ui,
   .tabs { display: flex; }
 }
 
-/* No vertical scroll on wishlist/timeline lists — paginate instead */
-.restaurant-list, .timeline-list {
+/* Wishlist paginates; timeline All Visits scrolls */
+.restaurant-list {
   overflow: hidden !important; display: flex; flex-direction: column; gap: 8px;
+}
+.timeline-list {
+  overflow-y: auto !important;
+  overflow-x: hidden !important;
+  display: block !important;
+  flex: 1 1 0 !important;
+  min-height: 0 !important;
+  -webkit-overflow-scrolling: touch;
+  overscroll-behavior: contain;
+  padding-bottom: 12px;
 }
 .list-pager {
   display: flex; align-items: center; justify-content: center; gap: 10px;

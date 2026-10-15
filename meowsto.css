@@ -51,14 +51,24 @@ header .avatar img,.profile-avatar img{width:100%;height:100%;object-fit:cover;d
 .restaurant.no-tile{align-items:flex-start}
 .restaurant.no-tile .info{padding-right:8px}
 .milestones .circle:empty{background:var(--cream)}
-/* Compact map detail: no food icon */
-.detail-sheet.sheet-compact .detail-top.no-tile{gap:10px;align-items:flex-start}
-.detail-sheet.sheet-compact{padding:14px 14px 10px;margin:0}
-.detail-sheet.sheet-compact .handle{margin:-6px auto 10px}
-.detail-sheet.sheet-compact .detail-top h2{font-size:26px;line-height:1.15}
-.detail-sheet.sheet-compact .visit-note{margin:10px 0}
-.detail-sheet.sheet-compact .actions button{padding:8px 10px;font-size:16px}
-/* Tighter timeline cards */
+/* Compact map bottom sheet */
+.detail-sheet.sheet-compact{
+  padding:12px 14px calc(8px + env(safe-area-inset-bottom,0px));
+  margin:0;border-radius:22px 22px 0 0;border-top:2px solid var(--ink);border-left:0;border-right:0;
+}
+.detail-sheet.sheet-compact .handle{width:40px;height:4px;margin:0 auto 10px;background:#c4bbb0}
+.detail-sheet.sheet-compact .sheet-head{display:flex;align-items:flex-start;gap:10px}
+.detail-sheet.sheet-compact .sheet-head .info{flex:1;min-width:0}
+.detail-sheet.sheet-compact .sheet-head h2{font-size:24px;line-height:1.15;margin:0}
+.detail-sheet.sheet-compact .sheet-sub{margin:4px 0 0;font-size:13px;line-height:1.35;color:#6d655c;font-family:Nunito,sans-serif}
+.detail-sheet.sheet-compact .tags{margin:6px 0 0;gap:4px}
+.detail-sheet.sheet-compact .tag{font-size:12px;padding:2px 8px}
+.detail-sheet.sheet-compact .save{flex:none;font-size:26px;line-height:1;padding:4px;border:0;background:none}
+.detail-sheet.sheet-compact .sheet-stats{margin:8px 0 0;font-size:13px;color:#6d655c;font-family:Nunito,sans-serif}
+.detail-sheet.sheet-compact .sheet-actions{display:flex;gap:8px;margin-top:10px}
+.detail-sheet.sheet-compact .sheet-actions button{flex:1;min-height:40px;padding:8px 6px;font-size:14px;border-radius:14px}
+.detail-sheet.sheet-compact .visit-note,.detail-sheet.sheet-compact .detail-top .food-tile{display:none}
+/* Timeline cards + inline expand */
 .latest.no-art{display:block;padding:10px 12px;border-radius:18px;gap:0}
 .latest.no-art h2{font-size:24px;line-height:1.15;margin:0 0 4px}
 .latest.no-art .badge,.latest.no-art .latest-rating{font-size:13px;padding:2px 9px}
@@ -67,16 +77,31 @@ header .avatar img,.profile-avatar img{width:100%;height:100%;object-fit:cover;d
 .visit-date{width:46px;font-size:18px;padding-top:8px;line-height:1.1}
 .visit-date small{font-size:12px}
 .visit-date:before{width:12px;height:12px;right:-17px;top:18px}
-.visit-card.no-art{align-items:center;padding:8px 12px;gap:8px;border-radius:14px;min-height:0}
+.visit-card.no-art{
+  display:flex;flex-direction:column;align-items:stretch;gap:0;
+  padding:0;border-radius:14px;min-height:0;width:100%;text-align:left;
+  border:2px solid #cbc8b8;background:#fffcf6;cursor:pointer;
+}
+.visit-card.no-art .visit-card-main{display:flex;align-items:center;gap:8px;padding:8px 12px}
 .visit-card.no-art .visit-card-body{flex:1;min-width:0}
-.visit-card.no-art .visit-time{display:inline;margin:0 8px 0 0;font-size:13px}
+.visit-card.no-art .visit-time{display:inline;margin:0 8px 0 0;font-size:13px;color:#6d655c}
 .visit-card.no-art .meal{display:inline-block;font-size:13px;padding:1px 8px;margin:0 0 2px}
 .visit-card.no-art h3{font-size:20px;line-height:1.15;margin:2px 0 0}
-.visit-card.no-art .chevron{font-size:22px;opacity:.55}
+.visit-card.no-art .chevron{font-size:16px;opacity:.55;flex:none}
+.visit-card.no-art.expanded{border-color:#38271f;background:#fff8ec}
+.visit-expand{padding:0 12px 10px;border-top:1px dashed #e1d8ca}
+.visit-expand-meta{display:flex;flex-wrap:wrap;gap:8px 12px;align-items:center;margin-top:8px;font-size:13px;font-family:Nunito,sans-serif;color:#6d655c}
+.visit-expand-meta .rating{font-size:15px;color:var(--ink)}
+.visit-expand-note{margin:8px 0 0;font-size:14px;line-height:1.4;color:var(--ink);font-family:Nunito,sans-serif}
+.visit-expand-photos{margin-top:8px;display:flex;gap:6px;overflow:auto}
+.visit-expand-photos img{height:72px;border-radius:10px;object-fit:cover}
+.visit-expand-actions{display:flex;gap:8px;margin-top:10px}
+.visit-expand-actions button{flex:1;min-height:36px;padding:6px 10px;font-size:13px;border-radius:12px}
 @media(max-width:600px){
   .latest.no-art{padding:8px 10px;border-radius:16px}
   .latest.no-art h2{font-size:22px}
-  .visit-card.no-art{padding:7px 10px}
+  .visit-card.no-art .visit-card-main{padding:7px 10px}
   .visit-card.no-art h3{font-size:18px}
   .visit-date{width:42px;font-size:16px}
+  .detail-sheet.sheet-compact .sheet-head h2{font-size:22px}
 }

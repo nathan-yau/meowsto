@@ -89,7 +89,7 @@ function removeLegacySamples(data){
 }
 let state=initial(), recoveryRequired=false, recoveryRaw=null;
 let tab='map',selected=null,filter='All',sort='newest',map,baseLayer,mapSizeObserver,markers=[],userLocation,searchTimer,searchBusy=false,searchResults=[],mapCenter=[...DEFAULT_CENTER],mapZoom=DEFAULT_ZOOM,searchContext={},pendingVisit=false;
-let listPage=0, PAGE_SIZE=4, panelMode='sheet';
+let listPage=0, PAGE_SIZE=4, panelMode='sheet', expandedVisitId=null;
 const rest=id=>state.restaurants.find(r=>r.id===id), visits=id=>state.visits.filter(v=>v.restaurantId===id).sort((a,b)=>(b.date+b.time).localeCompare(a.date+a.time));
 function validBackup(d){return RL.validDb(d)}
 function persist(){if(!USER)return false;try{markDirty();const envPlaceholder=true;cacheEnv;return true}catch{toast('Save failed');return false}}
@@ -179,7 +179,7 @@ function renderTimeline(){
   const latest=[...state.visits].sort((a,b)=>(b.date+b.time).localeCompare(a.date+a.time))[0];
   const r=latest&&rest(latest.restaurantId);
   const miles=all.slice(0,5);
-  $('#main').innerHTML=`<div class="content">${miles.length?`<div class="milestones">${miles.map(v=>`<button data-visit="${v.id}"><span class="circle" aria-hidden="true"></span><small>${fmt(v.date)}</small></button>`).join('')}</div>`:''}${r?`<section class="latest no-art" data-detail="${r.id}" role="button" tabindex="0"><div><h2>${esc(r.name)}</h2><span class="badge">Latest visit</span> <span class="latest-rating">★ ${latest.rating}</span></div></section>`:''}<div class="section-title"><h2>All Visits <small>(${all.length})</small></h2><select id="timeline-sort" aria-label="Sort visits"><option value="newest" ${sort!=='oldest'?'selected':''}>Newest First</option><option value="oldest" ${sort==='oldest'?'selected':''}>Oldest First</option></select></div><button class="primary timeline-add" data-action="visit">＋ Add Visit</button><div class="timeline-list" aria-label="Visit history">${all.length?all.map(v=>`<div class="visit-row"><div class="visit-date">${fmt(v.date)}<small>${new Date(v.date+'T12:00:00').toLocaleDateString('en-US',{weekday:'short'})}</small></div><button class="visit-card no-art" data-visit="${v.id}"><div class="visit-card-body"><span class="visit-time">${esc(v.time)}</span><span class="meal">${v.meal==='Cafe'?'☕':'♜'} ${esc(v.meal)}</span><h3>${esc(rest(v.restaurantId)?.name||'Restaurant')}</h3></div><span class="chevron">›</span></button></div>`).join(''):'<div class="empty">Your story starts with a good meal.<br>Log your first visit!</div>'}</div></div>`;
+  $('#main').innerHTML=`<div class="content">${miles.length?`<div class="milestones">${miles.map(v=>`<button data-visit="${v.id}"><span class="circle" aria-hidden="true"></span><small>${fmt(v.date)}</small></button>`).join('')}</div>`:''}${r?`<section class="latest no-art" data-detail="${r.id}" role="button" tabindex="0"><div><h2>${esc(r.name)}</h2><span class="badge">Latest visit</span> <span class="latest-rating">★ ${latest.rating}</span></div></section>`:''}<div class="section-title"><h2>All Visits <small>(${all.length})</small></h2><select id="timeline-sort" aria-label="Sort visits"><option value="newest" ${sort!=='oldest'?'selected':''}>Newest First</option><option value="oldest" ${sort==='oldest'?'selected':''}>Oldest First</option></select></div><button class="primary timeline-add" data-action="visit">＋ Add Visit</button><div class="timeline-list" aria-label="Visit history">${all.length?all.map(v=>{const open=expandedVisitId===v.id;return `<div class="visit-row"><div class="visit-date">${fmt(v.date)}<small>${new Date(v.date+'T12:00:00').toLocaleDateString('en-US',{weekday:'short'})}</small></div><div class="visit-card no-art${open?' expanded':''}" data-visit-toggle="${v.id}" role="button" tabindex="0" aria-expanded="${open?'true':'false'}"><div class="visit-card-main"><div class="visit-card-body"><span class="visit-time">${esc(v.time)}</span><span class="meal">${v.meal==='Cafe'?'☕':'♜'} ${esc(v.meal)}</span><h3>${esc(rest(v.restaurantId)?.name||'Restaurant')}</h3></div><span class="chevron" aria-hidden="true">${open?'▴':'▾'}</span></div>${open?visitExpandHtml(v):''}</div></div>`}).join(''):'<div class="empty">Your story starts with a good meal.<br>Log your first visit!</div>'}</div></div>`;
 }
 
 function renderMap(){
@@ -237,7 +237,24 @@ function renderSheet(){
   if(!r&&state.restaurants.length){el.innerHTML='';return}
   if(!r){el.innerHTML='<section class="empty onboarding"><div class="onboarding-art">'+logo()+'</div><h2>Your next favorite starts here</h2><p>Find a real restaurant, save it to your map, and make your first food memory.</p><div class="actions"><button class="primary" data-action="search">Find a restaurant</button><button data-action="locate">◎ Use my location</button></div></section>';return}
   selected=r.id;const vv=visits(r.id);
-  el.innerHTML=`<section class="detail-sheet sheet-compact"><div class="handle"></div><div class="detail-top no-tile"><div class="info"><h2>${esc(r.name)}</h2>${rating(r)}${tags(r)}<p class="address">♧ ${distance(r)}${esc(r.address||'Pinned location')}</p></div><button class="save" data-save="${r.id}" aria-label="Toggle wishlist">${r.wish?'▮':'♧'}</button><button class="chevron" data-detail="${r.id}" aria-label="Restaurant details">›</button></div><div class="visit-note"><button data-detail="${r.id}"><b>♜ ${vv.length} visit${vv.length===1?'':'s'}</b><small>Last visit: ${vv[0]?vv[0].date:'Not yet'}</small></button><button data-note="${r.id}"><b>▤ My note</b><small>${esc(r.note||'Add a little note…')}</small></button></div><div class="actions"><button class="secondary" data-addvisit="${r.id}">▣ Add Visit</button><button class="primary" data-action="search">♧ Add New Restaurant</button></div></section>`;
+  const pr=personalRating(r);
+  el.innerHTML=`<section class="detail-sheet sheet-compact">
+    <div class="handle" aria-hidden="true"></div>
+    <div class="sheet-head">
+      <div class="info">
+        <h2>${esc(r.name)}</h2>
+        <p class="sheet-sub">${pr?`★ ${pr} · `:''}${distance(r)}${esc(r.address||'Pinned location')}</p>
+        ${tags(r)}
+      </div>
+      <button type="button" class="save" data-save="${r.id}" aria-label="Toggle wishlist">${r.wish?'▮':'♧'}</button>
+    </div>
+    <p class="sheet-stats">♜ ${vv.length} visit${vv.length===1?'':'s'}${vv[0]?` · last ${relativeVisitLabel(vv[0].date)||vv[0].date}`:''}</p>
+    <div class="sheet-actions">
+      <button type="button" class="secondary" data-addvisit="${r.id}">＋ Visit</button>
+      <button type="button" data-note="${r.id}">▤ Note</button>
+      <button type="button" class="primary" data-detail="${r.id}">Details ›</button>
+    </div>
+  </section>`;
 }
 
 function restaurantDetail(id){
@@ -287,6 +304,15 @@ function visitForm(restaurantId,visitId){
   $('#visit-form').onsubmit=async e=>{e.preventDefault();const form=e.target,f=new FormData(form),btn=form.querySelector('.primary');btn.disabled=true;try{let photos=f.has('removePhotos')?[]:[...(v.photos||[])];const files=[...($('#v-photo')?.files||[])];if(files.length+photos.length>3)throw Error('Keep up to 3 photos per visit.');for(const file of files)photos.push(await compressImage(file));if(!form.isConnected)return;const item={id:visitId||uid(),restaurantId:f.get('restaurantId'),date:f.get('date'),time:f.get('time'),meal:f.get('meal'),rating:Number(f.get('rating')),note:f.get('note').trim(),photos,u:Date.now()};if(!commit(()=>{if(visitId)state.visits=state.visits.map(x=>x.id===visitId?item:x);else state.visits.push(item)}))return;closePanel();render();toast('A delicious memory saved!')}catch(err){toast(err.message)}finally{btn.disabled=false}};
 }
 async function compressImage(file){if(!/^image\/(jpeg|png|webp)$/.test(file.type)||file.size>15000000)throw Error('Choose a JPG, PNG, or WebP under 15 MB.');const bmp=await createImageBitmap(file),scale=Math.min(1,1000/Math.max(bmp.width,bmp.height));const c=document.createElement('canvas');c.width=bmp.width*scale;c.height=bmp.height*scale;c.getContext('2d').drawImage(bmp,0,0,c.width,c.height);bmp.close();return c.toDataURL('image/jpeg',.72)}
+function visitExpandHtml(v){
+  const photos=(v.photos||[]).map(p=>`<img src="${p}" alt="Food from this visit">`).join('');
+  return `<div class="visit-expand"><div class="visit-expand-meta"><span class="rating"><span class="star">★</span> ${v.rating}</span><span>${esc(v.time)} · ${esc(v.meal)}</span></div>${v.note?`<p class="visit-expand-note">${esc(v.note)}</p>`:''}${photos?`<div class="photos visit-expand-photos">${photos}</div>`:''}<div class="visit-expand-actions"><button type="button" data-editvisit="${v.id}">Edit</button><button type="button" class="danger" data-deletevisit="${v.id}">Delete</button></div></div>`;
+}
+function toggleTimelineVisit(id){
+  expandedVisitId=expandedVisitId===id?null:id;
+  // re-render list in place when possible
+  if(tab==='timeline')renderTimeline();
+}
 function visitDetail(id){const v=state.visits.find(v=>v.id===id);if(!v)return;openPanel(rest(v.restaurantId)?.name||'Visit',`<div class="form-scroll"><p>${v.date} · ${esc(v.time)} · ${esc(v.meal)}</p><p class="rating"><span class="star">★</span> ${v.rating}</p><p>${esc(v.note)}</p><div class="photos">${(v.photos||[]).map(p=>`<img src="${p}" alt="Food from this visit">`).join('')}</div><div class="form-actions"><button data-editvisit="${id}">Edit Visit</button><button class="danger" data-deletevisit="${id}">Delete Visit</button></div></div>`,{full:true,cls:'entry-panel'})}
 
 let activeSearch=null, searchGeneration=0, autocompleteTimer=null, lastSearchAt=0, placePreviewMap=null, searchResultPage=0;
@@ -443,20 +469,21 @@ function confirmAction(title,message,fn){openPanel(title,`<p>${message}</p><div 
 function locate(){if(!navigator.geolocation)return toast('Location unavailable.');toast('Finding your location…');navigator.geolocation.getCurrentPosition(p=>{userLocation=[p.coords.latitude,p.coords.longitude];mapCenter=userLocation;mapZoom=15;if(map)map.setView(mapCenter,mapZoom);if(tab!=='map')tab='map';render();toast('Map centered')},()=>toast('Location unavailable or denied.'),{enableHighAccuracy:true,timeout:10000})}
 
 document.addEventListener('click',e=>{
-  const b=e.target.closest('button,[data-detail]');if(!b)return;const d=b.dataset;
+  const b=e.target.closest('button,[data-detail],[data-visit-toggle]');if(!b)return;const d=b.dataset;
   if(d.page==='prev'){listPage=Math.max(0,listPage-1);if(tab==='wishlist'){renderWishlist();enhanceIcons()}return}
   if(d.page==='next'){listPage++;if(tab==='wishlist'){renderWishlist();enhanceIcons()}return}
   if(d.spage==='prev'){searchResultPage=Math.max(0,searchResultPage-1);renderSearchPage($('#search-results'),'');return}
   if(d.spage==='next'){searchResultPage++;renderSearchPage($('#search-results'),'');return}
-  if(d.tab){tab=d.tab;closePanel();render();return}
+  if(d.tab){if(d.tab!=='timeline')expandedVisitId=null;tab=d.tab;closePanel();render();return}
   if(d.filter){filter=d.filter;listPage=0;render();return}
   if(d.detail)return restaurantDetail(d.detail);
   if(d.edit)return restaurantForm(d.edit);
   if(d.map){const r=rest(d.map);selected=r.id;mapCenter=[r.lat,r.lng];mapZoom=16;if(map)map.setView(mapCenter,mapZoom);tab='map';closePanel();render();return}
   if(d.addvisit)return visitForm(d.addvisit);
+  if(d.visitToggle){toggleTimelineVisit(d.visitToggle);return}
   if(d.visit)return visitDetail(d.visit);
   if(d.editvisit)return visitForm(null,d.editvisit);
-  if(d.deletevisit)return confirmAction('Delete this visit?','This visit and its photos will be removed.',()=>{state.del=state.del||{};state.del['v:'+d.deletevisit]=Date.now();state.visits=state.visits.filter(v=>v.id!==d.deletevisit)});
+  if(d.deletevisit)return confirmAction('Delete this visit?','This visit and its photos will be removed.',()=>{state.del=state.del||{};state.del['v:'+d.deletevisit]=Date.now();state.visits=state.visits.filter(v=>v.id!==d.deletevisit);if(expandedVisitId===d.deletevisit)expandedVisitId=null});
   if(d.delete)return confirmAction('Delete restaurant?','This restaurant and all its visits will be removed.',()=>{state.del=state.del||{};state.del['r:'+d.delete]=Date.now();state.restaurants=state.restaurants.filter(r=>r.id!==d.delete);state.visits=state.visits.filter(v=>v.restaurantId!==d.delete)});
   if(d.explore!=null){const x=exploreResults[+d.explore];if(x){map?.closePopup();restaurantForm(null,{name:x.name,address:x.address,lat:x.lat,lng:x.lng,wish:true,kind:x.amenity==='cafe'?'cafe':'shop'})}return}
   if(d.save){if(!commit(()=>{const x=rest(d.save);x.wish=!x.wish;x.u=Date.now()}))return;if(!$('#panel').hidden)restaurantDetail(d.save);render();toast(rest(d.save).wish?'Saved to wishlist':'Removed from wishlist');return}
