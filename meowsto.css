@@ -158,3 +158,7 @@ header .avatar img,.profile-avatar img{width:100%;height:100%;object-fit:cover;d
 .panel.compact-search .panel-body{padding-top:8px}
 .panel.compact-search .place-search-form{margin-top:4px}
 .panel.compact-search .search-idle{padding:12px 4px;text-align:center;color:var(--muted);font-size:14px}
+/* search hit icons: always side by side (override .search-results button{display:block;width:100%;margin}) */
+.search-results .place-hit .place-hit-title{display:flex;flex-direction:row;flex-wrap:nowrap;align-items:center;justify-content:space-between}
+.search-results .place-hit .place-hit-actions{display:flex;flex-direction:row;flex-wrap:nowrap;align-items:center;gap:4px;margin-left:auto;flex:none}
+.search-results .place-hit .place-hit-actions .hit-icon{display:grid;width:28px;height:28px;min-width:28px;margin:0;padding:0;flex:none}
