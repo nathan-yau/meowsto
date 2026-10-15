@@ -1,4 +1,4 @@
-/* Map page restyle to match map-mock (ui20261015ba). Loaded last. */
+/* Map page restyle to match map-mock (ui20261015bc). Loaded last. */
 :root{--mm-ink:#38271f;--mm-line:#e3dccd;--mm-cream:#fffaf1;--mm-sage:#5b8a63;--mm-sage-d:#3f6a48;--mm-coral:#f8776b;--mm-coral-soft:#fde3dc;--mm-sage-soft:#e4eedc}
 /* Header */
 header{padding:16px 16px 10px!important;gap:10px!important;align-items:center}
@@ -31,6 +31,8 @@ header .avatar .avatar-initial{font-size:22px}
 .map-search-go{width:40px!important;min-width:40px!important;height:40px!important;border-radius:50%!important;border:0!important;background:var(--mm-coral)!important;color:#fff!important;display:grid;place-items:center;box-shadow:none!important;transform:none!important}
 .map-search-go .ui-icon{width:20px;height:20px;stroke-width:2.4}
 .explore-banner{top:112px!important}
+.map-hide-visited{top:112px!important;left:12px!important;padding:7px 11px!important;border:2px solid var(--mm-line)!important;background:var(--mm-cream)!important;box-shadow:0 3px 10px #38271f14!important;font:700 12px Nunito,sans-serif!important;color:var(--mm-ink)!important}
+.map-wrap:has(.map-hide-visited:not([hidden])) .explore-banner{top:150px!important}
 /* Pins: speech bubbles with dot anchor */
 .pin-full .map-chip,.pin-mini .map-chip{bottom:16px;background:var(--mm-cream);border:2px solid var(--mm-ink);border-radius:12px;padding:5px 11px;box-shadow:0 2px 6px #38271f22}
 .map-chip:after{bottom:-7px;width:10px;height:10px;margin-left:-6px;border-width:0 2px 2px 0}

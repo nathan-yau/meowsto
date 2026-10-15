@@ -91,6 +91,14 @@ let state=initial(), recoveryRequired=false, recoveryRaw=null;
 let tab='map',selected=null,filter='All',sort='newest',map,baseLayer,mapSizeObserver,markers=[],searchMarkers=[],userLocation,searchTimer,searchBusy=false,searchResults=[],mapCenter=[...DEFAULT_CENTER],mapZoom=DEFAULT_ZOOM,searchContext={},pendingVisit=false;
 const HIDE_VISITED_KEY='meowsto-hide-visited';
 let hideVisited=localStorage.getItem(HIDE_VISITED_KEY)==='1',lastSearchQuery='';
+function syncHideVisitedChip(){
+  const el=document.querySelector('.map-hide-visited');
+  if(!el)return;
+  const searching=!!document.querySelector('#sheet .search-sheet')||searchResults.length>0;
+  el.hidden=!searching;
+  const cb=el.querySelector('[data-hide-visited]');
+  if(cb)cb.checked=hideVisited;
+}
 let listPage=0, PAGE_SIZE=4, panelMode='sheet', expandedVisitId=null;
 const rest=id=>state.restaurants.find(r=>r.id===id), visits=id=>state.visits.filter(v=>v.restaurantId===id).sort((a,b)=>(b.date+b.time).localeCompare(a.date+a.time));
 function validBackup(d){return RL.validDb(d)}
@@ -185,7 +193,7 @@ function renderTimeline(){
 }
 
 function renderMap(){
-  $('#main').innerHTML=`<div class="map-wrap"><div class="map-toolbar"><button type="button" data-action="locate" class="chip-near" aria-label="Go to my location">${icon('pin')}<span>Near me</span>${icon('chev')}</button><button type="button" data-action="explore" class="explore-toggle${exploreOn?' active':''}" aria-pressed="${exploreOn}" aria-label="${exploreOn?'Exit explore mode':'Explore nearby restaurants'}">${exploreOn?'✕ <span>Exit</span>':icon('sparkle')+'<span>Explore</span>'+icon('chev')}</button><label class="hide-visited-toggle map-hide-visited"><input type="checkbox" data-hide-visited ${hideVisited?'checked':''}><span>Hide visited</span></label></div><form class="map-search-bar" id="map-search-form" role="search"><span class="map-search-ico" aria-hidden="true">${icon('search')}</span><input id="map-search-query" type="search" enterkeyhint="search" placeholder="Search nearby restaurants" aria-label="Search nearby restaurants" autocomplete="off" maxlength="200"><button type="submit" class="map-search-go" aria-label="Search">${icon('arrow')}</button></form><div id="map" aria-label="Restaurant map"></div>${exploreOn?'<div class="explore-banner">Explore mode · nearby restaurants from OpenStreetMap (not your pins)</div>':''}<div id="map-status" class="map-status" role="status" hidden></div></div><div id="sheet"></div>`;
+  $('#main').innerHTML=`<div class="map-wrap"><div class="map-toolbar"><button type="button" data-action="locate" class="chip-near" aria-label="Go to my location">${icon('pin')}<span>Near me</span>${icon('chev')}</button><button type="button" data-action="explore" class="explore-toggle${exploreOn?' active':''}" aria-pressed="${exploreOn}" aria-label="${exploreOn?'Exit explore mode':'Explore nearby restaurants'}">${exploreOn?'✕ <span>Exit</span>':icon('sparkle')+'<span>Explore</span>'+icon('chev')}</button></div><form class="map-search-bar" id="map-search-form" role="search"><span class="map-search-ico" aria-hidden="true">${icon('search')}</span><input id="map-search-query" type="search" enterkeyhint="search" placeholder="Search nearby restaurants" aria-label="Search nearby restaurants" autocomplete="off" maxlength="200"><button type="submit" class="map-search-go" aria-label="Search">${icon('arrow')}</button></form><label class="hide-visited-toggle map-hide-visited" hidden><input type="checkbox" data-hide-visited ${hideVisited?'checked':''}><span>Hide visited</span></label><div id="map" aria-label="Restaurant map"></div>${exploreOn?'<div class="explore-banner">Explore mode · nearby restaurants from OpenStreetMap (not your pins)</div>':''}<div id="map-status" class="map-status" role="status" hidden></div></div><div id="sheet"></div>`;
   if(typeof L==='undefined'||typeof window.L==='undefined'&&typeof leaflet==='undefined'){/* leaflet global is L which conflicts — use window check */}
   if(typeof window.L==='undefined'){$('#map').innerHTML='<div class="failure">The map could not load. Check your connection.<br><button data-action="reload-map">Try again</button></div>';wireMapSearch()}
   else{
@@ -196,6 +204,7 @@ function renderMap(){
   renderSheet();
   enhanceIcons();
   wireMapSearch();
+  syncHideVisitedChip();
   if(map&&typeof ResizeObserver!=='undefined'){mapSizeObserver=new ResizeObserver(()=>{if(map)map.invalidateSize({animate:false,debounceMoveend:true})});mapSizeObserver.observe($('#map'))}
 }
 
@@ -456,6 +465,8 @@ function centerMapAboveSheet(lat,lng,zoom){
   let top=mc.top,bottom=mc.bottom;
   const sb=document.querySelector('.map-search-bar');
   if(sb){const r=sb.getBoundingClientRect();if(r.height&&r.bottom>top&&r.bottom<bottom)top=r.bottom}
+  const hv=document.querySelector('.map-hide-visited:not([hidden])');
+  if(hv){const r=hv.getBoundingClientRect();if(r.height&&r.bottom>top&&r.bottom<bottom)top=r.bottom}
   const s=$('#sheet')?.querySelector('.search-sheet,.detail-sheet');
   if(s){const r=s.getBoundingClientRect();if(r.height&&r.top<bottom&&r.top>top)bottom=r.top}
   // visible-area midpoint relative to raw container centre (in px)
@@ -470,6 +481,7 @@ function pinVisibleAboveSheet(lat,lng){
 function dismissSearchSheet(){
   // keep searchResults + blue pins; only Clear / new search / leaving map tab removes them
   const sheet=$('#sheet');if(sheet)renderSheet();
+  syncHideVisitedChip();
 }
 function bindSheetDismiss(root,onDismiss){
   if(!root||root.dataset.dismissBound)return;
@@ -550,6 +562,7 @@ function renderPlaceHits(output,features,opts={}){
   const visible=searchResults.map((f,i)=>searchHitHidden(f)?null:i).filter(i=>i!=null);
   const head=document.querySelector('.search-sheet-head h2');
   if(head)head.textContent=visible.length?`Nearby matches · ${visible.length}`:'Nearby matches';
+  syncHideVisitedChip();
   const cb=document.querySelector('[data-hide-visited]');
   if(cb)cb.checked=hideVisited;
   if(searchFocusIdx!=null&&(searchHitHidden(searchResults[searchFocusIdx])||!searchResults[searchFocusIdx]))searchFocusIdx=null;
@@ -630,6 +643,7 @@ function showSearchSheetResults(sheet,features,opts={}){
   sheet.innerHTML=`<section class="search-sheet"><div class="handle" aria-hidden="true"></div><div class="search-sheet-head"><h2>Nearby matches</h2><div class="search-sheet-tools"><button type="button" class="text-button" data-action="clear-search-sheet">Clear</button></div></div><div id="search-results" class="search-results place-results"></div></section>`;
   renderPlaceHits($('#search-results'),features,opts);
   bindSheetDismiss(sheet.querySelector('.search-sheet'),dismissSearchSheet);
+  syncHideVisitedChip();
 }
 function wireMapSearch(){
   const form=$('#map-search-form'),input=$('#map-search-query');
@@ -650,6 +664,7 @@ function wireMapSearch(){
     }
     sheet.innerHTML=`<section class="search-sheet"><div class="handle" aria-hidden="true"></div><p class="search-message loading" role="status">Searching nearby…</p></section>`;
     bindSheetDismiss(sheet.querySelector('.search-sheet'),dismissSearchSheet);
+    syncHideVisitedChip();
     if(searchBusy){activeSearch?.abort();searchGeneration++;searchBusy=false}
     const generation=++searchGeneration,controller=new AbortController();activeSearch=controller;searchBusy=true;
     const timeout=setTimeout(()=>controller.abort(),9000);
@@ -704,7 +719,7 @@ function showSearch(context={}){
   setTimeout(()=>{const input=$('#map-search-query');if(input){input.focus();if(context.wish)toast('Search, then tap Wishlist on a result')}},60);
 }
 function openFromSearchFeature(f,mode){
-  clearSearchMarkers();searchResults=[];searchFocusIdx=null;
+  clearSearchMarkers();searchResults=[];searchFocusIdx=null;syncHideVisitedChip();
   const p=f.properties,coords=f.geometry.coordinates;
   const sourceId=p.sourceId||(p.osm_type&&p.osm_id?`${p.osm_type}:${p.osm_id}`:null)||(p.mapbox_id?`mapbox:${p.mapbox_id}`:null);
   const wantWish=mode==='wish'||(mode!=='add'&&(searchContext.wish||tab==='wishlist'));
@@ -766,6 +781,7 @@ document.addEventListener('change',e=>{
     try{localStorage.setItem(HIDE_VISITED_KEY,hideVisited?'1':'0')}catch{}
     if(hideVisited&&selected&&visits(selected).length){selected=null;renderSheet();enhanceIcons()}
     drawMarkers();
+    syncHideVisitedChip();
   }
 });
 document.addEventListener('click',e=>{
@@ -793,7 +809,7 @@ document.addEventListener('click',e=>{
   if(d.result!==undefined){const f=searchResults[Number(d.result)];if(!f)return;return openFromSearchFeature(f)}
   switch(d.action){
     case'close':case'close-panel':pendingVisit=false;closePanel();break;
-    case'clear-search-sheet':searchResults=[];searchFocusIdx=null;clearSearchMarkers();if($('#sheet'))renderSheet();break;
+    case'clear-search-sheet':searchResults=[];searchFocusIdx=null;clearSearchMarkers();if($('#sheet'))renderSheet();syncHideVisitedChip();break;
     case'add':pendingVisit=false;showSearch();break;
     case'manual':restaurantForm(searchContext.editId||null,{...searchContext.draft,name:$('#search-query')?.value.trim()||'',wish:searchContext.wish??tab==='wishlist'});break;
     case'explore':exploreOn=!exploreOn;if(!exploreOn&&exploreLayer){exploreLayer.remove();exploreLayer=null}selected=null;render();toast(exploreOn?'Explore on: nearby places':'Explore off: your pins');break;
