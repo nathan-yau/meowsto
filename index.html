@@ -20,19 +20,20 @@
 <link href="https://fonts.googleapis.com/css2?family=Gaegu:wght@400;700&family=Nunito:wght@400;600;700;800;900&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="vendor/leaflet.css">
 <link rel="stylesheet" href="vendor/maplibre-gl.css">
-<link rel="stylesheet" href="style.css?v=ui20261015au">
-<link rel="stylesheet" href="mobile.css?v=ui20261015au">
-<link rel="stylesheet" href="viewport.css?v=ui20261015au">
-<link rel="stylesheet" href="restaurant-flow.css?v=ui20261015au">
-<link rel="stylesheet" href="auth-panels.css?v=ui20261015au">
-<link rel="stylesheet" href="theme-sync.css?v=ui20261015au">
-<link rel="stylesheet" href="ui-polish.css?v=ui20261015au">
+<link rel="stylesheet" href="style.css?v=ui20261015av">
+<link rel="stylesheet" href="mobile.css?v=ui20261015av">
+<link rel="stylesheet" href="viewport.css?v=ui20261015av">
+<link rel="stylesheet" href="restaurant-flow.css?v=ui20261015av">
+<link rel="stylesheet" href="auth-panels.css?v=ui20261015av">
+<link rel="stylesheet" href="theme-sync.css?v=ui20261015av">
+<link rel="stylesheet" href="ui-polish.css?v=ui20261015av">
 <script defer src="vendor/leaflet.js"></script>
 <script defer src="vendor/maplibre-gl.js"></script>
 <script defer src="vendor/leaflet-maplibre-gl.js"></script>
-<script defer src="logic.js?v=ui20261015au"></script>
-<script defer src="app.js?v=ui20261015au"></script>
-<link rel="stylesheet" href="meowsto.css?v=ui20261015au">
+<script defer src="logic.js?v=ui20261015av"></script>
+<script defer src="app.js?v=ui20261015av"></script>
+<link rel="stylesheet" href="meowsto.css?v=ui20261015av">
+<link rel="stylesheet" href="map-mock.css?v=ui20261015av">
 </head>
 <body class="locked">
 <div id="lockscr">
@@ -84,11 +85,10 @@
       <div id="brand-art"><img src="assets/meowsto-logo-256.png?v=ui20261015m" alt="Meowsto logo"></div>
       <div>
         <h1 class="app-name" data-app-name>Meowsto</h1>
-        <p class="app-tagline">Good Food, Good Days <span>🌱</span></p>
+        <p class="app-tagline">Good Food, Good Days <span class="leaf" aria-hidden="true"><svg viewBox="0 0 24 24" width="18" height="18" fill="#9cc08a" stroke="#5b8a63" stroke-width="1.5" stroke-linejoin="round"><path d="M12 20c0-6 3-10 9-11-1 6-4 9-9 9"/><path d="M12 20c0-4-2-7-8-8 .5 4 3 6.5 8 6.5" fill="#b8d4a6"/></svg></span></p>
       </div>
     </div>
     <div class="sync" id="sync" hidden></div>
-    <button class="round" data-action="search" aria-label="Search restaurants">⌕</button>
     <button class="avatar" data-action="profile" aria-label="Profile"></button>
   </header>
   <nav class="tabs" aria-label="Journal views">

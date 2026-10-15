@@ -14,7 +14,7 @@ const DEFAULT_CENTER=[49.2827,-123.1207], DEFAULT_ZOOM=13;
 const MAPBOX_TOKEN='pk.eyJ1IjoibmF0aGFueWF1IiwiYSI6ImNtdjl1eW53YjA4ZWQyd3EwMzJ3ZHQ5d3QifQ.wfFv9UcvOOqXlUX__A0Lrg';
 const artIndex={ramen:0,cafe:1,burger:2,dessert:3,sushi:4,pasta:5,matcha:6,shop:7,cat:8,taco:7};
 function art(kind='shop'){let n=artIndex[kind]??7;return `<span class="illustration" style="--x:${n%3*50}%;--y:${Math.floor(n/3)*50}%" aria-hidden="true"></span>`}
-function icon(type){const paths={map:'<path d="M3 5 9 2l6 3 6-3v17l-6 3-6-3-6 3Z"/><path d="M9 2v17M15 5v17"/>',calendar:'<rect x="3" y="5" width="18" height="17" rx="3"/><path d="M7 2v6M17 2v6M3 11h18"/>',heart:'<path d="M12 21S2 15 2 8a5 5 0 0 1 10-2A5 5 0 0 1 22 8c0 7-10 13-10 13Z"/>',bookmark:'<path d="M6 3h12a1 1 0 0 1 1 1v18l-7-5-7 5V4a1 1 0 0 1 1-1Z"/>',search:'<circle cx="10" cy="10" r="7"/><path d="m15 15 7 7"/>'};return `<svg class="ui-icon" viewBox="0 0 24 24" aria-hidden="true">${paths[type]||paths.bookmark}</svg>`}
+function icon(type){const paths={map:'<path d="M3 5 9 2l6 3 6-3v17l-6 3-6-3-6 3Z"/><path d="M9 2v17M15 5v17"/>',calendar:'<rect x="3" y="5" width="18" height="17" rx="3"/><path d="M7 2v6M17 2v6M3 11h18"/>',heart:'<path d="M12 21S2 15 2 8a5 5 0 0 1 10-2A5 5 0 0 1 22 8c0 7-10 13-10 13Z"/>',bookmark:'<path d="M6 3h12a1 1 0 0 1 1 1v18l-7-5-7 5V4a1 1 0 0 1 1-1Z"/>',search:'<circle cx="10" cy="10" r="7"/><path d="m15 15 7 7"/>',pin:'<path d="M12 22s7-6.6 7-12a7 7 0 0 0-14 0c0 5.4 7 12 7 12Z"/><circle cx="12" cy="10" r="2.5"/>',sparkle:'<path d="M12 2c.8 5.2 2.8 7.2 8 8-5.2.8-7.2 2.8-8 8-.8-5.2-2.8-7.2-8-8 5.2-.8 7.2-2.8 8-8Z"/>',chev:'<path d="m7 10 5 5 5-5"/>',arrow:'<path d="M5 12h14M13 6l6 6-6 6"/>',plus:'<path d="M12 5v14M5 12h14"/>',note:'<rect x="5" y="3" width="14" height="18" rx="2"/><path d="M9 8h6M9 12h6M9 16h4"/>',users:'<circle cx="9" cy="8" r="3"/><path d="M3 20c.8-3.5 3.2-5.5 6-5.5s5.2 2 6 5.5"/><path d="M16 5.5a3 3 0 0 1 0 5.5M18 14.8c1.6.8 2.6 2.6 3 5.2"/>'};return `<svg class="ui-icon" viewBox="0 0 24 24" aria-hidden="true">${paths[type]||paths.bookmark}</svg>`}
 
 /* ---------- auth / sync ---------- */
 let PASS=null,TOK=null,USER=null,ETAG=null,SALT=null,REFRESH=null,dirty=false,saving=false,tmr=null,MODE='login';
@@ -147,7 +147,7 @@ function openModal(title,html){openPanel(title,html,{full:true,cls:'entry-panel'
 function enhanceIcons(){
   $$('.tabs button').forEach(b=>{const key=b.dataset.tab;b.innerHTML=icon({map:'map',timeline:'calendar',wishlist:'heart'}[key])+`<span>${key[0].toUpperCase()+key.slice(1)}</span>`});
   $$('.save').forEach(b=>{b.classList.toggle('saved',!!rest(b.dataset.save)?.wish);b.innerHTML=icon('bookmark')});
-  const round=document.querySelector('header .round');if(round)round.innerHTML=icon('search');
+  
   $$('#bnav [data-tab]').forEach(b=>b.classList.toggle('active',b.dataset.tab===tab));
 }
 
@@ -183,7 +183,7 @@ function renderTimeline(){
 }
 
 function renderMap(){
-  $('#main').innerHTML=`<div class="map-wrap"><div class="map-toolbar"><button type="button" data-action="locate" aria-label="Go to my location">◎ Near me</button><button type="button" data-action="explore" class="explore-toggle${exploreOn?' active':''}" aria-pressed="${exploreOn}" aria-label="${exploreOn?'Exit explore mode':'Explore nearby restaurants'}">${exploreOn?'✕ Exit':'✧ Explore'}</button></div><form class="map-search-bar" id="map-search-form" role="search"><input id="map-search-query" type="search" enterkeyhint="search" placeholder="Search nearby restaurants" aria-label="Search nearby restaurants" autocomplete="off" maxlength="200"><button type="submit" class="map-search-go" aria-label="Search">→</button></form><div id="map" aria-label="Restaurant map"></div>${exploreOn?'<div class="explore-banner">Explore mode · nearby restaurants from OpenStreetMap (not your pins)</div>':''}<div id="map-status" class="map-status" role="status" hidden></div></div><div id="sheet"></div>`;
+  $('#main').innerHTML=`<div class="map-wrap"><div class="map-toolbar"><button type="button" data-action="locate" class="chip-near" aria-label="Go to my location">${icon('pin')}<span>Near me</span>${icon('chev')}</button><button type="button" data-action="explore" class="explore-toggle${exploreOn?' active':''}" aria-pressed="${exploreOn}" aria-label="${exploreOn?'Exit explore mode':'Explore nearby restaurants'}">${exploreOn?'✕ <span>Exit</span>':icon('sparkle')+'<span>Explore</span>'+icon('chev')}</button></div><form class="map-search-bar" id="map-search-form" role="search"><span class="map-search-ico" aria-hidden="true">${icon('search')}</span><input id="map-search-query" type="search" enterkeyhint="search" placeholder="Search nearby restaurants" aria-label="Search nearby restaurants" autocomplete="off" maxlength="200"><button type="submit" class="map-search-go" aria-label="Search">${icon('arrow')}</button></form><div id="map" aria-label="Restaurant map"></div>${exploreOn?'<div class="explore-banner">Explore mode · nearby restaurants from OpenStreetMap (not your pins)</div>':''}<div id="map-status" class="map-status" role="status" hidden></div></div><div id="sheet"></div>`;
   if(typeof L==='undefined'||typeof window.L==='undefined'&&typeof leaflet==='undefined'){/* leaflet global is L which conflicts — use window check */}
   if(typeof window.L==='undefined'){$('#map').innerHTML='<div class="failure">The map could not load. Check your connection.<br><button data-action="reload-map">Try again</button></div>';wireMapSearch()}
   else{
@@ -227,7 +227,7 @@ let exploreOn=false,exploreLayer=null,exploreTimer,exploreAbort,exploreResults=[
 function loadExplore(){clearTimeout(exploreTimer);exploreTimer=setTimeout(async()=>{if(!map||!exploreOn)return;if(map.getZoom()<14){showExplore([]);toast('Zoom in to explore nearby places');return}const b=map.getBounds(),bb=[b.getSouth(),b.getWest(),b.getNorth(),b.getEast()].map(x=>x.toFixed(3)).join(',');if(exploreCache[bb])return showExplore(exploreCache[bb]);exploreAbort?.abort();exploreAbort=new AbortController();try{const q=`[out:json][timeout:15];nwr["amenity"~"^(restaurant|fast_food)$"]["name"](${bb});out center 80;`;let j;for(const ep of['https://overpass-api.de/api/interpreter','https://overpass.private.coffee/api/interpreter','https://overpass.kumi.systems/api/interpreter']){try{const res=await fetch(ep,{method:'POST',body:'data='+encodeURIComponent(q),headers:{'Content-Type':'application/x-www-form-urlencoded'},signal:exploreAbort.signal});if(!res.ok)continue;j=await res.json();break}catch(e){if(e.name==='AbortError')throw e}}if(!j)throw Error('overpass');const list=j.elements.map(e=>({name:e.tags.name,lat:e.lat??e.center?.lat,lng:e.lon??e.center?.lon,amenity:e.tags.amenity,cuisine:e.tags.cuisine||'',address:[e.tags['addr:housenumber'],e.tags['addr:street']].filter(Boolean).join(' ')})).filter(x=>Number.isFinite(x.lat));exploreCache[bb]=list;showExplore(list)}catch(err){if(err.name!=='AbortError')toast('Explore data unavailable right now')}},500)}
 function showExplore(list){if(exploreLayer)exploreLayer.remove();exploreLayer=window.L.layerGroup().addTo(map);exploreResults=list;list.forEach((x,i)=>{window.L.marker([x.lat,x.lng],{title:x.name,icon:window.L.divIcon({className:'restaurant-pin explore-pin',html:`<div class="map-chip explore-chip"><b>${esc(x.name)}</b></div>`,iconSize:null,iconAnchor:[0,0]})}).bindPopup(`<div class="explore-pop"><b>${esc(x.name)}</b><small>${esc(x.amenity.replace('_',' '))}${x.cuisine?' · '+esc(x.cuisine.replace(/;/g,', ')):''}</small><button data-explore="${i}">♡ Save to wishlist</button></div>`).addTo(exploreLayer)})}
 function pinTier(){const z=map?map.getZoom():mapZoom;return z>=14?'full':z>=12?'mini':'meow'}
-function markerIcon(r){const t=pinTier(),sel=r.id===selected?' selected':'';if(t==='meow'){const sz=r.id===selected?[30,41]:[22,30];return window.L.icon({iconUrl:'assets/meow-map-pin.png?v=ui20261015x',iconSize:sz,iconAnchor:[sz[0]/2,sz[1]],className:'meow-pin'+sel})}let meta='';if(t==='full'){const last=visits(r.id)[0];if(last)meta=relativeVisitLabel(last.date);else if(r.wish)meta='♡'}return window.L.divIcon({className:'restaurant-pin pin-'+t,html:`<div class="map-chip${sel}"><b>${esc(r.name)}</b>${meta?`<small>${esc(meta)}</small>`:''}</div>`,iconSize:null,iconAnchor:[0,0]})}
+function markerIcon(r){const t=pinTier(),sel=r.id===selected?' selected':'';if(t==='meow'){const sz=r.id===selected?[30,41]:[22,30];return window.L.icon({iconUrl:'assets/meow-map-pin.png?v=ui20261015x',iconSize:sz,iconAnchor:[sz[0]/2,sz[1]],className:'meow-pin'+sel})}let meta='';if(t==='full'){const last=visits(r.id)[0];if(last)meta=relativeVisitLabel(last.date);else if(r.wish)meta='♡'}return window.L.divIcon({className:'restaurant-pin pin-'+t,html:`<div class="map-chip${sel}">${sel?'<i class="pin-burst" aria-hidden="true"></i>':''}<b>${esc(r.name)}</b>${meta?`<small>${esc(meta)}</small>`:''}</div>`,iconSize:null,iconAnchor:[0,0]})}
 function updateMarkerIcons(){markers.forEach(m=>m.setIcon(markerIcon(m._r)))}
 function selectPin(id){
   selected=selected===id?null:id;
@@ -268,15 +268,15 @@ function renderSheet(){
     <div class="sheet-head">
       <div class="info">
         <h2>${esc(r.name)}</h2>
-        <p class="sheet-sub">${pr?`★ ${pr} · `:''}${distance(r)}${esc(r.address||'Pinned location')}</p>
+        <p class="sheet-sub">${pr?`<span class="sheet-star">★</span> <b>${pr}</b> <span class="sheet-loc">${icon('pin')}</span>`:`<span class="sheet-loc">${icon('pin')}</span>`}${distance(r)}${esc(r.address||'Pinned location')}</p>
         ${tags(r)}
       </div>
       <button type="button" class="save" data-save="${r.id}" aria-label="Toggle wishlist">${r.wish?'▮':'♧'}</button>
     </div>
-    <p class="sheet-stats">♜ ${vv.length} visit${vv.length===1?'':'s'}${vv[0]?` · last ${relativeVisitLabel(vv[0].date)||vv[0].date}`:''}</p>
+    <p class="sheet-stats">${icon('users')} ${vv.length} visit${vv.length===1?'':'s'}${vv[0]?` · last ${relativeVisitLabel(vv[0].date)||vv[0].date}`:''}</p>
     <div class="sheet-actions">
-      <button type="button" class="secondary" data-addvisit="${r.id}">＋ Visit</button>
-      <button type="button" data-note="${r.id}">▤ Note</button>
+      <button type="button" class="secondary" data-addvisit="${r.id}">${icon('plus')} Visit</button>
+      <button type="button" data-note="${r.id}">${icon('note')} Note</button>
       <button type="button" class="primary" data-detail="${r.id}">Details ›</button>
     </div>
   </section>`;
