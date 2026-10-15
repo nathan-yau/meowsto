@@ -1,4 +1,4 @@
-/* Map page restyle to match map-mock (ui20261015bd). Loaded last. */
+/* Map page restyle to match map-mock (ui20261015be). Loaded last. */
 :root{--mm-ink:#38271f;--mm-line:#e3dccd;--mm-cream:#fffaf1;--mm-sage:#5b8a63;--mm-sage-d:#3f6a48;--mm-coral:#f8776b;--mm-coral-soft:#fde3dc;--mm-sage-soft:#e4eedc}
 /* Header */
 header{padding:16px 16px 10px!important;gap:10px!important;align-items:center}
