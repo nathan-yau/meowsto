@@ -88,7 +88,7 @@ function removeLegacySamples(data){
   return d;
 }
 let state=initial(), recoveryRequired=false, recoveryRaw=null;
-let tab='map',selected=null,filter='All',sort='newest',map,baseLayer,mapSizeObserver,markers=[],userLocation,searchTimer,searchBusy=false,searchResults=[],mapCenter=[...DEFAULT_CENTER],mapZoom=DEFAULT_ZOOM,searchContext={},pendingVisit=false;
+let tab='map',selected=null,filter='All',sort='newest',map,baseLayer,mapSizeObserver,markers=[],searchMarkers=[],userLocation,searchTimer,searchBusy=false,searchResults=[],mapCenter=[...DEFAULT_CENTER],mapZoom=DEFAULT_ZOOM,searchContext={},pendingVisit=false;
 let listPage=0, PAGE_SIZE=4, panelMode='sheet', expandedVisitId=null;
 const rest=id=>state.restaurants.find(r=>r.id===id), visits=id=>state.visits.filter(v=>v.restaurantId===id).sort((a,b)=>(b.date+b.time).localeCompare(a.date+a.time));
 function validBackup(d){return RL.validDb(d)}
@@ -230,7 +230,20 @@ function pinTier(){const z=map?map.getZoom():mapZoom;return z>=14?'full':z>=12?'
 function markerIcon(r){const t=pinTier(),sel=r.id===selected?' selected':'';if(t==='meow'){const sz=r.id===selected?[30,41]:[22,30];return window.L.icon({iconUrl:'assets/meow-map-pin.png?v=ui20261015x',iconSize:sz,iconAnchor:[sz[0]/2,sz[1]],className:'meow-pin'+sel})}let meta='';if(t==='full'){const last=visits(r.id)[0];if(last)meta=relativeVisitLabel(last.date);else if(r.wish)meta='♡'}return window.L.divIcon({className:'restaurant-pin pin-'+t,html:`<div class="map-chip${sel}"><b>${esc(r.name)}</b>${meta?`<small>${esc(meta)}</small>`:''}</div>`,iconSize:null,iconAnchor:[0,0]})}
 function updateMarkerIcons(){markers.forEach(m=>m.setIcon(markerIcon(m._r)))}
 function selectPin(id){selected=selected===id?null:id;updateMarkerIcons();renderSheet();enhanceIcons()}
-function drawMarkers(){if(!map)return;markers.forEach(m=>m.remove());markers=[];if(exploreOn){loadExplore();bindMapEvents();return}state.restaurants.filter(r=>Number.isFinite(r.lat)&&Number.isFinite(r.lng)).forEach(r=>{const m=window.L.marker([r.lat,r.lng],{icon:markerIcon(r),title:r.name,riseOnHover:true}).addTo(map).on('click',e=>{window.L.DomEvent.stopPropagation(e);selectPin(r.id)});m._r=r;markers.push(m)});bindMapEvents()}
+function clearSearchMarkers(){searchMarkers.forEach(m=>m.remove());searchMarkers=[]}
+function searchResultIcon(){return window.L.icon({iconUrl:'assets/meow-map-pin-search.png?v=ui20261015ag',iconSize:[24,33],iconAnchor:[12,33],className:'meow-pin meow-pin-search'})}
+function drawSearchMarkers(){
+  clearSearchMarkers();
+  if(!map||!searchResults.length)return;
+  searchResults.forEach((f,i)=>{
+    const c=f.geometry?.coordinates;if(!c||!Number.isFinite(c[0])||!Number.isFinite(c[1]))return;
+    const name=f.properties?.name||'Result';
+    const m=window.L.marker([c[1],c[0]],{icon:searchResultIcon(),title:name,riseOnHover:true,zIndexOffset:600}).addTo(map);
+    m.on('click',e=>{window.L.DomEvent.stopPropagation(e);const el=document.querySelector(`.place-hit[data-hit="${i}"]`);el?.scrollIntoView({block:'nearest',behavior:'smooth'});$$('.place-hit').forEach(x=>x.classList.remove('hit-focus'));el?.classList.add('hit-focus')});
+    searchMarkers.push(m);
+  });
+}
+function drawMarkers(){if(!map)return;markers.forEach(m=>m.remove());markers=[];if(exploreOn){clearSearchMarkers();loadExplore();bindMapEvents();return}state.restaurants.filter(r=>Number.isFinite(r.lat)&&Number.isFinite(r.lng)).forEach(r=>{const m=window.L.marker([r.lat,r.lng],{icon:markerIcon(r),title:r.name,riseOnHover:true}).addTo(map).on('click',e=>{window.L.DomEvent.stopPropagation(e);selectPin(r.id)});m._r=r;markers.push(m)});drawSearchMarkers();bindMapEvents()}
 function bindMapEvents(){if(!map._meowZoom){map._meowZoom=1;let last=pinTier();map.on('zoomend',()=>{mapZoom=map.getZoom();const t=pinTier();if(t!==last){last=t;updateMarkerIcons()}});map.on('moveend',()=>{const c=map.getCenter();mapCenter=[c.lat,c.lng];if(exploreOn)loadExplore()});map.on('click',()=>{if(selected){selected=null;updateMarkerIcons();renderSheet();enhanceIcons()}})}}
 function distance(r){if(!userLocation||!Number.isFinite(r.lat))return '';const rad=x=>x*Math.PI/180,dlat=rad(r.lat-userLocation[0]),dlng=rad(r.lng-userLocation[1]),a=Math.sin(dlat/2)**2+Math.cos(rad(r.lat))*Math.cos(rad(userLocation[0]))*Math.sin(dlng/2)**2;let km=6371*2*Math.atan2(Math.sqrt(a),Math.sqrt(1-a));return `${km<1?Math.round(km*1000)+' m':km.toFixed(1)+' km'} · `}
 function renderSheet(){
@@ -324,13 +337,13 @@ function validPlace(f){
   const c=f?.geometry?.coordinates;return f?.geometry?.type==='Point'&&f.properties&&Array.isArray(c)&&Number.isFinite(c[0])&&Math.abs(c[0])<=180&&Number.isFinite(c[1])&&Math.abs(c[1])<=90
 }
 function placeSearchURL(query,center,nearMap=true){
-  const params=new URLSearchParams({q:query,limit:'3',lat:String(center[0]),lon:String(center[1]),zoom:'13',location_bias_scale:'0.2'});
+  const params=new URLSearchParams({q:query,limit:'8',lat:String(center[0]),lon:String(center[1]),zoom:'13',location_bias_scale:'0.2'});
   for(const type of ['amenity:restaurant','amenity:cafe','amenity:fast_food','amenity:food_court','amenity:bar','amenity:pub','amenity:ice_cream','shop:bakery'])params.append('osm_tag',type);
   if(nearMap)params.set('bbox',[Math.max(-180,center[1]-.45),Math.max(-90,center[0]-.27),Math.min(180,center[1]+.45),Math.min(90,center[0]+.27)].join(','));
   return 'https://photon.komoot.io/api/?'+params.toString();
 }
 function mapboxForwardURL(query,center,nearMap){
-  const params=new URLSearchParams({q:query,access_token:MAPBOX_TOKEN,language:'en',limit:'3',types:'poi'});
+  const params=new URLSearchParams({q:query,access_token:MAPBOX_TOKEN,language:'en',limit:'8',types:'poi'});
   if(nearMap&&Array.isArray(center)&&center.length>=2){
     params.set('proximity',`${center[1]},${center[0]}`);
     params.set('bbox',[Math.max(-180,center[1]-.45),Math.max(-90,center[0]-.27),Math.min(180,center[1]+.45),Math.min(90,center[0]+.27)].join(','));
@@ -353,13 +366,14 @@ function mapboxForwardFeatures(features){
 function manualFallback(){return `<details class="manual-fallback"><summary>Can’t find it?</summary><p>Enter details manually.</p><button type="button" class="manual-last-resort" data-action="manual">Enter manually</button></details>`}
 function placeHitHtml(f,i){
   const p=f.properties;
-  return `<article class="place-hit"><div class="place-hit-info"><b>${esc(p.name||p.street||'Place')}</b><small>${esc(placeAddress(p))}</small></div><div class="place-hit-actions"><button type="button" data-result-wish="${i}">♡ Wishlist</button><button type="button" class="primary" data-result-add="${i}">⊕ Add</button></div></article>`;
+  return `<article class="place-hit" data-hit="${i}"><div class="place-hit-info"><b>${esc(p.name||p.street||'Place')}</b><small>${esc(placeAddress(p))}</small></div><div class="place-hit-actions"><button type="button" data-result-wish="${i}">♡ Wishlist</button><button type="button" class="primary" data-result-add="${i}">⊕ Add</button></div></article>`;
 }
 function renderPlaceHits(output,features){
-  searchResults=(features||[]).filter(validPlace).slice(0,3);
+  searchResults=(features||[]).filter(validPlace);
   if(!output)return;
-  if(!searchResults.length){output.innerHTML='<div class="search-idle"><p>No nearby matches. Try another name.</p></div>'+manualFallback();return}
+  if(!searchResults.length){clearSearchMarkers();output.innerHTML='<div class="search-idle"><p>No nearby matches. Try another name.</p></div>'+manualFallback();return}
   output.innerHTML=`<div class="place-hits">${searchResults.map(placeHitHtml).join('')}</div>`+manualFallback();
+  drawSearchMarkers();
 }
 function searchCenter(){return searchContext.center||userLocation||mapCenter}
 async function fetchPlaceFeatures(q,signal){
@@ -369,14 +383,14 @@ async function fetchPlaceFeatures(q,signal){
     if(!res.ok)throw Error('mapbox '+res.status);
     const json=await res.json();
     if(!Array.isArray(json.features))throw Error('mapbox invalid');
-    return mapboxForwardFeatures(json.features).slice(0,3);
+    return mapboxForwardFeatures(json.features);
   }catch(mbErr){
     if(mbErr?.name==='AbortError')throw mbErr;
     const res=await fetch(placeSearchURL(q,center,true),{signal});
     if(!res.ok)throw Error('Search unavailable');
     const data=await res.json();
     if(!Array.isArray(data.features))throw Error('Invalid');
-    return data.features.filter(validPlace).slice(0,3);
+    return data.features.filter(validPlace);
   }
 }
 function wireMapSearch(){
@@ -442,6 +456,7 @@ function showSearch(context={}){
   setTimeout(()=>{const input=$('#map-search-query');if(input){input.focus();if(context.wish)toast('Search, then tap Wishlist on a result')}},60);
 }
 function openFromSearchFeature(f,mode){
+  clearSearchMarkers();searchResults=[];
   const p=f.properties,coords=f.geometry.coordinates;
   const sourceId=p.sourceId||(p.osm_type&&p.osm_id?`${p.osm_type}:${p.osm_id}`:null)||(p.mapbox_id?`mapbox:${p.mapbox_id}`:null);
   const wantWish=mode==='wish'||(mode!=='add'&&(searchContext.wish||tab==='wishlist'));
@@ -521,7 +536,7 @@ document.addEventListener('click',e=>{
   if(d.result!==undefined){const f=searchResults[Number(d.result)];if(!f)return;return openFromSearchFeature(f)}
   switch(d.action){
     case'close':case'close-panel':pendingVisit=false;closePanel();break;
-    case'clear-search-sheet':searchResults=[];if($('#sheet'))renderSheet();break;
+    case'clear-search-sheet':searchResults=[];clearSearchMarkers();if($('#sheet'))renderSheet();break;
     case'add':pendingVisit=false;showSearch();break;
     case'manual':restaurantForm(searchContext.editId||null,{...searchContext.draft,name:$('#search-query')?.value.trim()||'',wish:searchContext.wish??tab==='wishlist'});break;
     case'explore':exploreOn=!exploreOn;if(!exploreOn&&exploreLayer){exploreLayer.remove();exploreLayer=null}selected=null;render();toast(exploreOn?'Explore on: nearby places':'Explore off: your pins');break;

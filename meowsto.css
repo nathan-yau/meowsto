@@ -140,8 +140,10 @@ header .avatar img,.profile-avatar img{width:100%;height:100%;object-fit:cover;d
 }
 .place-hit-info b{display:block;font-size:20px;line-height:1.15}
 .place-hit-info small{display:block;margin-top:2px;font:13px/1.35 Nunito,sans-serif;color:#6d655c}
-.place-hit-actions{display:flex;gap:8px}
-.place-hit-actions button{flex:1;min-height:38px;padding:6px 8px;font-size:14px;border-radius:12px}
+.place-hit-actions{display:flex;gap:6px}
+.place-hit-actions button{flex:1;min-height:30px;padding:4px 6px;font-size:12px;border-radius:10px;line-height:1.2}
+.place-hit.hit-focus{border-color:#38271f;background:#fff4e4}
+.meow-pin-search{filter:drop-shadow(0 1px 2px rgba(26,58,74,.35))}
 .panel.compact-search .panel-body{padding-top:8px}
 .panel.compact-search .place-search-form{margin-top:4px}
 .panel.compact-search .search-idle{padding:12px 4px;text-align:center;color:var(--muted);font-size:14px}
