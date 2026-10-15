@@ -659,6 +659,8 @@ function showSearchSheetResults(sheet,features,opts={}){
 async function runMapPlaceSearch(q,opts={}){
   q=String(q||'').trim();
   if(q.length<2)return toast('Enter at least two characters.');
+  const z=map?map.getZoom():mapZoom;
+  if(!(z>=14))return toast('Zoom in closer to search nearby');
   clearTimeout(autocompleteTimer);
   selected=null;lastSearchQuery=q;
   const input=$('#map-search-query');
