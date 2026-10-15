@@ -1,4 +1,4 @@
-/* Timeline page restyle to match timeline-mock (ui20261015bi). Loaded last. */
+/* Timeline page restyle to match timeline-mock (ui20261015bj). Loaded last. */
 .tl-page{--tl-ink:#38271f;--tl-muted:#6d655c;--tl-line:#e8e0d0;--tl-cream:#fffaf1;--tl-sage:#5b8a63;--tl-coral:#f26d63;--tl-coral-soft:#fde3dc;--tl-tag:#f3eee4;padding:4px 14px 24px!important}
 .tl-page button,.tl-page select,.tl-page .tl-card,.tl-page .tl-latest{box-shadow:none!important;transform:none!important}
 /* Date slider */
@@ -38,8 +38,9 @@
 .tl-date small{display:block;font:600 12px Nunito,sans-serif;color:var(--tl-muted);margin-top:2px}
 .tl-node{position:relative;z-index:1;width:12px;height:12px;border-radius:50%;background:var(--tl-sage);border:2px solid #fff;margin-top:16px;justify-self:center}
 .tl-row.first .tl-node{background:var(--tl-coral)}
-.tl-card{position:relative;min-width:0;background:var(--tl-cream);border:1.5px solid var(--tl-line);border-radius:16px;padding:10px 12px;cursor:pointer}
-.tl-card.expanded{border-color:#cdbfa8;background:#fff8ec}
+.tl-card{position:relative;min-width:0;background:var(--tl-cream);border:2px solid var(--tl-ink);border-radius:16px;padding:10px 12px;cursor:pointer;overflow:visible}
+.tl-card.expanded{border-color:var(--tl-ink);background:#fff8ec}
+.tl-card > .pin-burst{right:-6px;top:-10px;z-index:2}
 .tl-card-main{display:flex;align-items:center;gap:10px;padding-right:18px}
 .tl-card-body{flex:1;min-width:0}
 .tl-card h3{font:700 17px/1.2 Gaegu,cursive!important;font-size:19px!important;margin:0 0 3px!important;color:var(--tl-ink);overflow-wrap:anywhere}
