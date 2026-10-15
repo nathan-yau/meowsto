@@ -475,8 +475,26 @@ document.addEventListener('click',e=>{
 document.addEventListener('keydown',e=>{if((e.key==='Enter'||e.key===' ')&&e.target.matches('[role=button]')){e.preventDefault();e.target.click()}if(e.key==='Escape'&&!$('#panel').hidden)closePanel()});
 document.addEventListener('change',e=>{if(e.target.id==='timeline-sort'){sort=e.target.value;listPage=0;render()}});
 
-const DEMO_PINS=[['demo-1','Kibo Ramen','ramen',49.2797,-123.1218,'Granville St'],['demo-2','Purr & Pour Café','cafe',49.2844,-123.1089,'Gastown'],['demo-3','Seawall Sushi','sushi',49.2888,-123.1307,'Coal Harbour'],['demo-4','Matcha Moon','matcha',49.2765,-123.1303,'Yaletown'],['demo-5','Sweet Paws Dessert','dessert',49.2635,-123.1385,'Kitsilano']];
-function seedDemoPins(){if(state.restaurants.length||!(USER==='demo'||/github\.io$/.test(location.hostname)))return;const d=RL.today();state.restaurants=DEMO_PINS.map(([id,name,kind,lat,lng,address],i)=>({id,name,kind,lat,lng,address,tags:['demo'],note:'Sample place for preview',wish:i%2===1,added:d,rating:null,demo:true,preview:true}))}
+const DEMO_PINS=[['demo-1','Kibo Ramen','ramen',49.2797,-123.1218,'Granville St','Cozy bowls on rainy nights'],['demo-2','Purr & Pour Café','cafe',49.2844,-123.1089,'Gastown','Cats, coffee, and cinnamon buns'],['demo-3','Seawall Sushi','sushi',49.2888,-123.1307,'Coal Harbour','Omakase with a harbour view'],['demo-4','Matcha Moon','matcha',49.2765,-123.1303,'Yaletown','Soft serve and iced matcha'],['demo-5','Sweet Paws Dessert','dessert',49.2635,-123.1385,'Kitsilano','Pawprint cookies after a Kits walk']];
+function demoDay(daysAgo){const d=new Date();d.setDate(d.getDate()-daysAgo);return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0')}
+const DEMO_VISITS=[
+  ['visit-1','demo-1',1,'19:10','Dinner',4.5,'Tonkotsu with extra egg — cozy rainy night.'],
+  ['visit-2','demo-5',2,'15:40','Dessert',5,'Pawprint cookies after a walk in Kits.'],
+  ['visit-3','demo-2',3,'10:20','Cafe',4.8,'Oat latte and a warm cinnamon bun.'],
+  ['visit-4','demo-3',5,'18:45','Dinner',4.2,'Omakase night by the water.'],
+  ['visit-5','demo-4',8,'14:05','Cafe',4.6,'Iced matcha and soft serve in Yaletown.'],
+  ['visit-6','demo-1',12,'12:30','Lunch',4,'Spicy miso for lunch — still thinking about it.'],
+  ['visit-7','demo-3',18,'13:15','Lunch',4.3,'Salmon bowl on a sunny afternoon.']
+];
+function seedDemoPins(){
+  if(state.restaurants.length||!(USER==='demo'||/github\.io$/.test(location.hostname)))return;
+  const d=RL.today();
+  state.restaurants=DEMO_PINS.map(([id,name,kind,lat,lng,address,note],i)=>({id,name,kind,lat,lng,address,tags:['demo'],note,wish:i%2===1,added:demoDay(20+i),rating:null,demo:true,preview:true,u:0}));
+  if(!state.visits.length){
+    state.visits=DEMO_VISITS.map(([id,restaurantId,ago,time,meal,rating,note])=>({id,restaurantId,date:demoDay(ago),time,meal,rating,note,photos:[],u:0}));
+  }
+  state.u=Date.now();
+}
 function bootApp(){
   seedDemoPins();
   document.body.classList.remove('locked');
