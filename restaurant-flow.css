@@ -32,7 +32,7 @@
 .place-search-form .search-submit { width: 52px; min-width: 52px; height: 56px; padding: 0; border: 2px solid #d68c74; background: #ffb19b; border-radius: 18px; font-size: 29px; box-shadow: 0 3px 0 #edddc9; }
 .search-area { display: flex; align-items: center; justify-content: space-between; gap: 6px; flex: none; font-size: 12px; line-height: 1.4; padding: 3px; color: #716b60; }
 .search-area button { font-size: 12px; min-height: 44px; border: 0; background: transparent; color: #416c50; padding: 8px 4px; text-decoration: underline; }
-.place-results { flex: 1; min-height: 0; overflow-y: auto; overflow-x: hidden; overscroll-behavior: contain; padding: 0 1px 8px; scrollbar-width: thin; }
+.place-results { flex: 1; min-height: 0; overflow-y: auto; overflow-x: hidden; overscroll-behavior: contain; padding: 0 1px 8px; scrollbar-width: none; }
 .search-results .place-suggestion { display: flex; align-items: center; gap: 12px; width: 100%; min-height: 82px; margin: 0 0 8px; padding: 10px 12px; border: 2px solid #e2d9c9; border-radius: 20px; background: #fffdf6; text-align: left; }
 .place-suggestion > span:nth-child(2) { flex: 1; min-width: 0; }
 .place-suggestion .suggestion-icon { display: block; width: 48px; height: 50px; flex: none; padding: 2px; border-radius: 14px; background: #f4ead4; }
@@ -54,7 +54,7 @@
 .place-search-footer > small { text-align: center; color: #817565; font-size: 11px; }
 .place-dialog [hidden] { display: none !important; }
 .place-editor { flex: 1; display: flex; flex-direction: column; min-height: 0; }
-.place-editor-scroll { flex: 1; min-height: 0; overflow-y: auto; overscroll-behavior: contain; scrollbar-width: thin; padding: 0 2px 12px; }
+.place-editor-scroll { flex: 1; min-height: 0; overflow-y: auto; overscroll-behavior: contain; scrollbar-width: none; padding: 0 2px 12px; }
 .chosen-place { display: flex; align-items: center; gap: 14px; background: #fff0d0; border: 2px solid #e8d8b6; border-radius: 22px; padding: 12px; }
 .chosen-art { width: 68px; height: 74px; flex: none; }
 .chosen-place > div:last-child { min-width: 0; }

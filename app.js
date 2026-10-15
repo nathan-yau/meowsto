@@ -229,7 +229,17 @@ function showExplore(list){if(exploreLayer)exploreLayer.remove();exploreLayer=wi
 function pinTier(){const z=map?map.getZoom():mapZoom;return z>=14?'full':z>=12?'mini':'meow'}
 function markerIcon(r){const t=pinTier(),sel=r.id===selected?' selected':'';if(t==='meow'){const sz=r.id===selected?[30,41]:[22,30];return window.L.icon({iconUrl:'assets/meow-map-pin.png?v=ui20261015x',iconSize:sz,iconAnchor:[sz[0]/2,sz[1]],className:'meow-pin'+sel})}let meta='';if(t==='full'){const last=visits(r.id)[0];if(last)meta=relativeVisitLabel(last.date);else if(r.wish)meta='♡'}return window.L.divIcon({className:'restaurant-pin pin-'+t,html:`<div class="map-chip${sel}"><b>${esc(r.name)}</b>${meta?`<small>${esc(meta)}</small>`:''}</div>`,iconSize:null,iconAnchor:[0,0]})}
 function updateMarkerIcons(){markers.forEach(m=>m.setIcon(markerIcon(m._r)))}
-function selectPin(id){selected=selected===id?null:id;updateMarkerIcons();renderSheet();enhanceIcons()}
+function selectPin(id){
+  selected=selected===id?null:id;
+  updateMarkerIcons();renderSheet();enhanceIcons();
+  if(selected&&map){
+    const r=rest(selected);
+    if(r&&Number.isFinite(r.lat)&&Number.isFinite(r.lng)){
+      const z=Math.max(map.getZoom(),15);
+      centerMapAboveSheet(r.lat,r.lng,z);
+    }
+  }
+}
 function clearSearchMarkers(){searchMarkers.forEach(m=>m.remove());searchMarkers=[]}
 function searchResultIcon(){return window.L.icon({iconUrl:'assets/meow-map-pin-search.png?v=ui20261015ag',iconSize:[24,33],iconAnchor:[12,33],className:'meow-pin meow-pin-search'})}
 function drawSearchMarkers(){
@@ -270,6 +280,9 @@ function renderSheet(){
       <button type="button" class="primary" data-detail="${r.id}">Details ›</button>
     </div>
   </section>`;
+  bindSheetDismiss(el.querySelector('.detail-sheet'), ()=>{
+    selected=null;updateMarkerIcons();renderSheet();enhanceIcons();
+  });
 }
 
 function restaurantDetail(id){
@@ -373,10 +386,76 @@ function hitDistanceLabel(f){
   const km=6371*2*Math.atan2(Math.sqrt(a),Math.sqrt(1-a));
   return km<1?Math.round(km*1000)+' m':km.toFixed(1)+' km';
 }
+
+function sheetCoverPx(){
+  const s=$('#sheet')?.querySelector('.search-sheet,.detail-sheet');
+  return s?Math.round(s.getBoundingClientRect().height):0;
+}
+function centerMapAboveSheet(lat,lng,zoom){
+  if(!map||!Number.isFinite(lat)||!Number.isFinite(lng))return;
+  const z=zoom!=null?zoom:Math.max(map.getZoom(),16);
+  map.setView([lat,lng],z,{animate:true});
+  const cover=sheetCoverPx();
+  if(cover>24){
+    // panBy positive Y moves pane up → pin sits higher, above bottom sheet
+    const dy=Math.round(cover*0.48);
+    requestAnimationFrame(()=>map.panBy([0,dy],{animate:true}));
+  }
+}
+function dismissSearchSheet(){
+  searchResults=[];clearSearchMarkers();
+  const sheet=$('#sheet');if(sheet)renderSheet();
+}
+function bindSheetDismiss(root,onDismiss){
+  if(!root||root.dataset.dismissBound)return;
+  root.dataset.dismissBound='1';
+  const grips=[root.querySelector('.handle'),root.querySelector('.search-sheet-head,.sheet-head')].filter(Boolean);
+  if(!grips.length)return;
+  let startY=0,dy=0,dragging=false,pid=null;
+  const threshold=()=>Math.max(64,Math.round(root.getBoundingClientRect().height*0.28));
+  const onMove=e=>{
+    if(!dragging||e.pointerId!==pid)return;
+    dy=e.clientY-startY;
+    if(dy<0)dy=0;
+    root.style.transform=`translateY(${dy}px)`;
+    root.style.opacity=String(Math.max(0.35,1-dy/Math.max(180,root.offsetHeight)));
+  };
+  const onUp=e=>{
+    if(!dragging||e.pointerId!==pid)return;
+    dragging=false;pid=null;
+    root.classList.remove('sheet-dragging');
+    try{root.releasePointerCapture(e.pointerId)}catch{}
+    window.removeEventListener('pointermove',onMove);
+    window.removeEventListener('pointerup',onUp);
+    window.removeEventListener('pointercancel',onUp);
+    if(dy>=threshold()){
+      root.style.transform=`translateY(${root.offsetHeight+40}px)`;
+      root.style.opacity='0';
+      setTimeout(()=>{root.style.transform='';root.style.opacity='';onDismiss&&onDismiss()},180);
+    }else{
+      root.style.transform='';root.style.opacity='';
+    }
+    dy=0;
+  };
+  const onDown=e=>{
+    if(e.button!=null&&e.button!==0)return;
+    // ignore interactive controls inside header (Clear, wishlist toggle, etc.)
+    if(e.target.closest('button,a,input,select,textarea,label'))return;
+    dragging=true;pid=e.pointerId;startY=e.clientY;dy=0;
+    root.classList.add('sheet-dragging');
+    try{root.setPointerCapture(e.pointerId)}catch{}
+    window.addEventListener('pointermove',onMove,{passive:false});
+    window.addEventListener('pointerup',onUp);
+    window.addEventListener('pointercancel',onUp);
+  };
+  grips.forEach(g=>{
+    g.addEventListener('pointerdown',onDown);
+  });
+}
 function focusSearchHit(i){
   const f=searchResults[Number(i)];if(!f||!map)return;
   const c=f.geometry?.coordinates;if(!c)return;
-  map.setView([c[1],c[0]],Math.max(map.getZoom(),16),{animate:true});
+  centerMapAboveSheet(c[1],c[0],Math.max(map.getZoom(),16));
   $$('.place-hit').forEach(x=>x.classList.remove('hit-focus'));
   const el=document.querySelector(`.place-hit[data-hit="${i}"]`);
   el?.classList.add('hit-focus');
@@ -387,7 +466,7 @@ function focusSearchHit(i){
 function placeHitHtml(f,i){
   const p=f.properties,dist=hitDistanceLabel(f),addr=placeAddress(p);
   const meta=`${dist?`<span class="hit-dist">${esc(dist)}</span>${addr?' · ':''}`:''}${esc(addr)}`;
-  return `<article class="place-hit" data-hit="${i}" data-hit-focus="${i}" role="button" tabindex="0"><div class="place-hit-info"><div class="place-hit-title"><b>${esc(p.name||p.street||'Place')}</b><div class="place-hit-actions"><button type="button" class="hit-icon" data-result-wish="${i}" aria-label="Save to wishlist" title="Wishlist"><img src="assets/icon-wish-meow.png?v=ui20261015aq" alt="" width="26" height="26" decoding="async"></button><button type="button" class="hit-icon" data-result-add="${i}" aria-label="Add restaurant" title="Add"><img src="assets/icon-add-meow.png?v=ui20261015aq" alt="" width="26" height="26" decoding="async"></button></div></div><small>${meta}</small></div></article>`;
+  return `<article class="place-hit" data-hit="${i}" data-hit-focus="${i}" role="button" tabindex="0"><div class="place-hit-info"><div class="place-hit-title"><b>${esc(p.name||p.street||'Place')}</b><div class="place-hit-actions"><button type="button" class="hit-icon" data-result-wish="${i}" aria-label="Save to wishlist" title="Wishlist"><img src="assets/icon-wish-meow.png?v=ui20261015ar" alt="" width="26" height="26" decoding="async"></button><button type="button" class="hit-icon" data-result-add="${i}" aria-label="Add restaurant" title="Add"><img src="assets/icon-add-meow.png?v=ui20261015ar" alt="" width="26" height="26" decoding="async"></button></div></div><small>${meta}</small></div></article>`;
 }
 function renderPlaceHits(output,features){
   searchResults=(features||[]).filter(validPlace);
@@ -399,6 +478,12 @@ function renderPlaceHits(output,features){
   const hits=output.querySelector('.place-hits');
   requestAnimationFrame(()=>{
     if(!hits||!output.isConnected)return;
+    const row=hits.querySelector('.place-hit');
+    if(row){
+      const rh=row.getBoundingClientRect().height||48;
+      hits.style.setProperty('--place-hit-h',rh+'px');
+      hits.style.maxHeight=Math.round(rh*3.5)+'px';
+    }
     output.classList.toggle('can-scroll',hits.scrollHeight>hits.clientHeight+4);
   });
   drawSearchMarkers();
@@ -456,6 +541,11 @@ async function fetchPlaceFeaturesLive(q,center,signal){
     return data.features.filter(validPlace);
   }
 }
+function showSearchSheetResults(sheet,features){
+  sheet.innerHTML=`<section class="search-sheet"><div class="handle" aria-hidden="true"></div><div class="search-sheet-head"><h2>Nearby matches</h2><button type="button" class="text-button" data-action="clear-search-sheet">Clear</button></div><div id="search-results" class="search-results place-results"></div></section>`;
+  renderPlaceHits($('#search-results'),features);
+  bindSheetDismiss(sheet.querySelector('.search-sheet'),dismissSearchSheet);
+}
 function wireMapSearch(){
   const form=$('#map-search-form'),input=$('#map-search-query');
   if(!form||!input||form.dataset.wired)return;
@@ -465,18 +555,27 @@ function wireMapSearch(){
     const q=input.value.trim();if(q.length<2)return toast('Enter at least two characters.');
     selected=null;
     const sheet=$('#sheet');if(!sheet)return;
+    // Same query + map-center key as last successful search → re-show cached sheet only (no Mapbox)
+    const center=searchCenter();
+    const cacheKey=searchCacheKey(q,center);
+    const cached=String(q||'').trim().toLowerCase()==='demo'?null:searchCacheGet(cacheKey);
+    if(cached){
+      showSearchSheetResults(sheet,cached);
+      return;
+    }
     sheet.innerHTML=`<section class="search-sheet"><div class="handle" aria-hidden="true"></div><p class="search-message loading" role="status">Searching nearby…</p></section>`;
+    bindSheetDismiss(sheet.querySelector('.search-sheet'),dismissSearchSheet);
     if(searchBusy){activeSearch?.abort();searchGeneration++;searchBusy=false}
     const generation=++searchGeneration,controller=new AbortController();activeSearch=controller;searchBusy=true;
     const timeout=setTimeout(()=>controller.abort(),9000);
     try{
       const features=await fetchPlaceFeatures(q,controller.signal);
       if(generation!==searchGeneration||!sheet.isConnected)return;
-      sheet.innerHTML=`<section class="search-sheet"><div class="handle" aria-hidden="true"></div><div class="search-sheet-head"><h2>Nearby matches</h2><button type="button" class="text-button" data-action="clear-search-sheet">Clear</button></div><div id="search-results" class="search-results place-results"></div></section>`;
-      renderPlaceHits($('#search-results'),features);
+      showSearchSheetResults(sheet,features);
     }catch{
       if(generation!==searchGeneration||!sheet.isConnected)return;
       sheet.innerHTML=`<section class="search-sheet"><div class="handle" aria-hidden="true"></div><div class="search-idle" role="status"><h3>Connection hiccup</h3><p>Try again in a moment.</p><button type="button" id="retry-place-search">Try again</button></div>${manualFallback()}</section>`;
+      bindSheetDismiss(sheet.querySelector('.search-sheet'),dismissSearchSheet);
       $('#retry-place-search')?.addEventListener('click',()=>form.requestSubmit());
     }finally{
       clearTimeout(timeout);
