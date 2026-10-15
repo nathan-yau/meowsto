@@ -90,14 +90,25 @@ function removeLegacySamples(data){
 let state=initial(), recoveryRequired=false, recoveryRaw=null;
 let tab='map',selected=null,filter='All',sort='newest',map,baseLayer,mapSizeObserver,markers=[],searchMarkers=[],userLocation,searchTimer,searchBusy=false,searchResults=[],mapCenter=[...DEFAULT_CENTER],mapZoom=DEFAULT_ZOOM,searchContext={},pendingVisit=false;
 const HIDE_VISITED_KEY='meowsto-hide-visited';
-let hideVisited=localStorage.getItem(HIDE_VISITED_KEY)==='1',lastSearchQuery='';
+let hideVisitedPref=localStorage.getItem(HIDE_VISITED_KEY)==='1';
+let hideVisited=false,lastSearchQuery=''; // effective hide only while searching
+function isMapSearching(){
+  return !!document.querySelector('#sheet .search-sheet')||searchResults.length>0;
+}
 function syncHideVisitedChip(){
   const el=document.querySelector('.map-hide-visited');
   if(!el)return;
-  const searching=!!document.querySelector('#sheet .search-sheet')||searchResults.length>0;
+  const searching=isMapSearching();
   el.hidden=!searching;
+  // Only while searching can Hide visited be on; leaving search forces OFF for UI + pins.
+  // Preference stays in hideVisitedPref / localStorage for the next search session.
+  const want=searching&&hideVisitedPref;
   const cb=el.querySelector('[data-hide-visited]');
-  if(cb)cb.checked=hideVisited;
+  if(cb)cb.checked=want;
+  if(want!==hideVisited){
+    hideVisited=want;
+    if(map)drawMarkers();
+  }
 }
 let listPage=0, PAGE_SIZE=4, panelMode='sheet', expandedVisitId=null;
 const rest=id=>state.restaurants.find(r=>r.id===id), visits=id=>state.visits.filter(v=>v.restaurantId===id).sort((a,b)=>(b.date+b.time).localeCompare(a.date+a.time));
@@ -777,8 +788,9 @@ function locate(){if(!navigator.geolocation)return toast('Location unavailable.'
 document.addEventListener('change',e=>{
   const t=e.target;
   if(t&&t.matches&&t.matches('[data-hide-visited]')){
-    hideVisited=!!t.checked;
-    try{localStorage.setItem(HIDE_VISITED_KEY,hideVisited?'1':'0')}catch{}
+    hideVisitedPref=!!t.checked;
+    hideVisited=isMapSearching()&&hideVisitedPref;
+    try{localStorage.setItem(HIDE_VISITED_KEY,hideVisitedPref?'1':'0')}catch{}
     if(hideVisited&&selected&&visits(selected).length){selected=null;renderSheet();enhanceIcons()}
     drawMarkers();
     syncHideVisitedChip();
