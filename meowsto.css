@@ -162,3 +162,28 @@ header .avatar img,.profile-avatar img{width:100%;height:100%;object-fit:cover;d
 .search-results .place-hit .place-hit-title{display:flex;flex-direction:row;flex-wrap:nowrap;align-items:center;justify-content:space-between}
 .search-results .place-hit .place-hit-actions{display:flex;flex-direction:row;flex-wrap:nowrap;align-items:center;gap:4px;margin-left:auto;flex:none}
 .search-results .place-hit .place-hit-actions .hit-icon{display:grid;width:28px;height:28px;min-width:28px;margin:0;padding:0;flex:none}
+/* v-an: tighter search bar */
+.map-search-bar{padding:2px 2px 2px 10px;border-radius:13px;gap:4px;align-items:center}
+.map-search-bar input{padding:4px 0;font-size:13px;height:28px;min-height:0;line-height:1.2;border:0}
+.map-search-go{width:32px;min-width:32px;height:28px;min-height:0;border-radius:10px;font-size:14px;line-height:1}
+/* v-an: redesigned sheets — light floating card */
+.search-sheet,.detail-sheet.sheet-compact{
+  margin:0 8px calc(6px + env(safe-area-inset-bottom,0px))!important;padding:8px 12px 10px!important;
+  background:#fffaf1;border:1.5px solid #e6dccb!important;border-radius:18px!important;
+  box-shadow:0 6px 22px #38271f1f;font-family:Nunito,sans-serif
+}
+.search-sheet .handle,.detail-sheet.sheet-compact .handle{width:32px;height:3px;margin:0 auto 6px;background:#dcd2c4;border-radius:3px}
+.search-sheet-head{margin-bottom:6px}
+.search-sheet-head h2{font:800 13px Nunito,sans-serif;letter-spacing:.04em;text-transform:uppercase;color:#8a7f72}
+.search-sheet-head .text-button{font:700 12px Nunito,sans-serif;color:#c06a55;text-decoration:none;padding:2px 6px}
+.search-sheet .place-hits{gap:0}
+.search-sheet .place-hit{border:0;border-bottom:1px dashed #e6dccb;border-radius:0;background:none;padding:7px 2px}
+.search-sheet .place-hit:last-child{border-bottom:0}
+.search-sheet .place-hit.hit-focus{background:#fff1e6;border-radius:10px}
+.search-sheet .search-message{font-size:13px;color:#8a7f72;margin:2px 0}
+.detail-sheet.sheet-compact .sheet-head h2{font-family:Gaegu,cursive;font-size:22px}
+.detail-sheet.sheet-compact .sheet-sub{font-size:12px;margin-top:2px}
+.detail-sheet.sheet-compact .sheet-stats{font-size:12px;margin-top:4px}
+.detail-sheet.sheet-compact .sheet-actions{gap:6px;margin-top:8px}
+.detail-sheet.sheet-compact .sheet-actions button{min-height:32px;padding:5px 6px;font:700 13px Nunito,sans-serif;border-radius:999px;border-width:1.5px;box-shadow:none}
+.detail-sheet.sheet-compact .save{font-size:22px;padding:2px}

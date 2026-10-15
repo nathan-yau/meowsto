@@ -387,7 +387,7 @@ function focusSearchHit(i){
 function placeHitHtml(f,i){
   const p=f.properties,dist=hitDistanceLabel(f),addr=placeAddress(p);
   const meta=`${dist?`<span class="hit-dist">${esc(dist)}</span>${addr?' · ':''}`:''}${esc(addr)}`;
-  return `<article class="place-hit" data-hit="${i}" data-hit-focus="${i}" role="button" tabindex="0"><div class="place-hit-info"><div class="place-hit-title"><b>${esc(p.name||p.street||'Place')}</b><div class="place-hit-actions"><button type="button" class="hit-icon" data-result-wish="${i}" aria-label="Save to wishlist" title="Wishlist"><img src="assets/icon-wish-meow.png?v=ui20261015am" alt="" width="26" height="26" decoding="async"></button><button type="button" class="hit-icon" data-result-add="${i}" aria-label="Add restaurant" title="Add"><img src="assets/icon-add-meow.png?v=ui20261015am" alt="" width="26" height="26" decoding="async"></button></div></div><small>${meta}</small></div></article>`;
+  return `<article class="place-hit" data-hit="${i}" data-hit-focus="${i}" role="button" tabindex="0"><div class="place-hit-info"><div class="place-hit-title"><b>${esc(p.name||p.street||'Place')}</b><div class="place-hit-actions"><button type="button" class="hit-icon" data-result-wish="${i}" aria-label="Save to wishlist" title="Wishlist"><img src="assets/icon-wish-meow.png?v=ui20261015an" alt="" width="26" height="26" decoding="async"></button><button type="button" class="hit-icon" data-result-add="${i}" aria-label="Add restaurant" title="Add"><img src="assets/icon-add-meow.png?v=ui20261015an" alt="" width="26" height="26" decoding="async"></button></div></div><small>${meta}</small></div></article>`;
 }
 function renderPlaceHits(output,features){
   searchResults=(features||[]).filter(validPlace);
@@ -423,6 +423,17 @@ function demoPlaceFeatures(){
 async function fetchPlaceFeatures(q,signal){
   if(String(q||'').trim().toLowerCase()==='demo')return demoPlaceFeatures();
   const center=searchCenter();
+  const key=searchCacheKey(q,center),hit=searchCacheGet(key);if(hit)return hit;
+  const out=await fetchPlaceFeaturesLive(q,center,signal);
+  if(out&&out.length)searchCachePut(key,out);
+  return out;
+}
+const SEARCH_CACHE_KEY='meowsto-search-cache-v1',SEARCH_CACHE_TTL=7*864e5,SEARCH_CACHE_MAX=60;
+function searchCacheKey(q,c){const n=String(q||'').trim().toLowerCase().replace(/\s+/g,' ');const p=Array.isArray(c)&&c.length>=2?`${(+c[0]).toFixed(2)},${(+c[1]).toFixed(2)}`:'none';return n+'@'+p}
+function searchCacheLoad(){try{return JSON.parse(localStorage.getItem(SEARCH_CACHE_KEY)||'{}')||{}}catch{return {}}}
+function searchCacheGet(k){const c=searchCacheLoad(),e=c[k];if(!e)return null;if(Date.now()-e.t>SEARCH_CACHE_TTL){delete c[k];try{localStorage.setItem(SEARCH_CACHE_KEY,JSON.stringify(c))}catch{}return null}return e.f}
+function searchCachePut(k,f){const c=searchCacheLoad();c[k]={t:Date.now(),f};const ks=Object.keys(c).sort((a,b)=>c[a].t-c[b].t);while(ks.length>SEARCH_CACHE_MAX)delete c[ks.shift()];try{localStorage.setItem(SEARCH_CACHE_KEY,JSON.stringify(c))}catch{}}
+async function fetchPlaceFeaturesLive(q,center,signal){
   try{
     const res=await fetch(mapboxForwardURL(q,center,true),{signal});
     if(!res.ok)throw Error('mapbox '+res.status);
