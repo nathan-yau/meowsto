@@ -19,19 +19,19 @@
 <link href="https://fonts.googleapis.com/css2?family=Gaegu:wght@400;700&family=Nunito:wght@400;600;700;800;900&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="vendor/leaflet.css">
 <link rel="stylesheet" href="vendor/maplibre-gl.css">
-<link rel="stylesheet" href="style.css?v=ui20261015m">
-<link rel="stylesheet" href="mobile.css?v=ui20261015m">
-<link rel="stylesheet" href="viewport.css?v=ui20261015m">
-<link rel="stylesheet" href="restaurant-flow.css?v=ui20261015m">
-<link rel="stylesheet" href="auth-panels.css?v=ui20261015m">
-<link rel="stylesheet" href="theme-sync.css?v=ui20261015m">
-<link rel="stylesheet" href="ui-polish.css?v=ui20261015m">
+<link rel="stylesheet" href="style.css?v=ui20261015o">
+<link rel="stylesheet" href="mobile.css?v=ui20261015o">
+<link rel="stylesheet" href="viewport.css?v=ui20261015o">
+<link rel="stylesheet" href="restaurant-flow.css?v=ui20261015o">
+<link rel="stylesheet" href="auth-panels.css?v=ui20261015o">
+<link rel="stylesheet" href="theme-sync.css?v=ui20261015o">
+<link rel="stylesheet" href="ui-polish.css?v=ui20261015o">
 <script defer src="vendor/leaflet.js"></script>
 <script defer src="vendor/maplibre-gl.js"></script>
 <script defer src="vendor/leaflet-maplibre-gl.js"></script>
-<script defer src="logic.js?v=ui20261015m"></script>
-<script defer src="app.js?v=ui20261015m"></script>
-<link rel="stylesheet" href="meowsto.css?v=ui20261015m">
+<script defer src="logic.js?v=ui20261015o"></script>
+<script defer src="app.js?v=ui20261015o"></script>
+<link rel="stylesheet" href="meowsto.css?v=ui20261015o">
 </head>
 <body class="locked">
 <div id="lockscr">
@@ -46,10 +46,14 @@
     <form id="uf">
       <input id="un" type="text" autocomplete="username" autocapitalize="none" spellcheck="false" placeholder="Username" aria-label="Username">
       <input id="pw" type="password" autocomplete="current-password" placeholder="Password" aria-label="Password">
-      <input id="pw2" class="ro" type="password" autocomplete="new-password" placeholder="Repeat password" aria-label="Confirm password">
-      <input id="code" class="ro" type="text" autocomplete="off" autocapitalize="none" placeholder="Invite code" aria-label="Invite code">
+      <div class="signup-fields" id="signup-fields" aria-hidden="true">
+        <div class="signup-fields-inner">
+          <input id="pw2" type="password" autocomplete="new-password" placeholder="Repeat password" aria-label="Confirm password" tabindex="-1">
+          <input id="code" type="text" autocomplete="off" autocapitalize="none" placeholder="Invite code" aria-label="Invite code" tabindex="-1">
+          <label class="ack"><input id="ack" type="checkbox" tabindex="-1"><span>I understand my password is the decryption key: <b>if I forget it, my data is gone forever</b> and nobody can reset it.</span></label>
+        </div>
+      </div>
       <label class="remember"><input id="rem" type="checkbox" checked><span>Remember me on this device</span></label>
-      <label class="ro ack"><input id="ack" type="checkbox"><span>I understand my password is the decryption key: <b>if I forget it, my data is gone forever</b> and nobody can reset it.</span></label>
       <button id="go" class="btn pri" type="submit">Log in</button>
     </form>
     <div id="umsg" class="umsg"></div>

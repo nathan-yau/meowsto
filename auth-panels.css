@@ -7,32 +7,143 @@ body:not(.locked) #app { display: flex; }
   position: fixed; inset: 0; z-index: 9000;
   display: none; align-items: center; justify-content: center;
   background: linear-gradient(165deg, #e9eddf 0%, #faf7ee 55%, #fce9df 100%);
-  padding: 20px; overflow: hidden;
+  padding: 16px; overflow: hidden;
 }
 .lockcard {
-  width: min(100%, 380px); max-height: calc(100dvh - 40px);
+  width: min(100%, 380px); max-height: calc(100dvh - 32px);
   background: var(--cream, #faf7ee); border: 3px solid var(--ink, #38271f);
   border-radius: 28px; padding: 22px 20px 18px;
   box-shadow: 0 8px 0 #38271f18; display: flex; flex-direction: column; gap: 10px;
+  overflow-y: auto; -webkit-overflow-scrolling: touch;
+  transition: padding .32s ease, gap .32s ease, border-radius .32s ease;
 }
-.lock-art { width: 88px; height: 88px; margin: 0 auto; }
-.lockcard h1 { text-align: center; font-size: 36px; margin: 0; }
-.lockcard .sub { text-align: center; color: var(--muted, #6d655c); font-size: 14px; line-height: 1.4; margin: 0 0 4px; font-family: var(--font-ui, Nunito, sans-serif); }
-.seg { display: flex; gap: 8px; background: #f0e9db; border-radius: 18px; padding: 4px; border: 2px solid #e1d8ca; }
-.seg button { flex: 1; border: 0; background: transparent; border-radius: 14px; min-height: 44px; font-weight: 800; }
+.lock-art {
+  width: 88px; height: 88px; margin: 0 auto; flex: none;
+  transition: width .32s ease, height .32s ease;
+}
+.lockcard h1 {
+  text-align: center; font-size: 36px; margin: 0;
+  transition: font-size .32s ease;
+}
+.lockcard .sub {
+  text-align: center; color: var(--muted, #6d655c); font-size: 14px; line-height: 1.4;
+  margin: 0 0 4px; font-family: var(--font-ui, Nunito, sans-serif);
+  transition: font-size .32s ease, line-height .32s ease, margin .32s ease;
+}
+.seg {
+  display: flex; gap: 8px; background: #f0e9db; border-radius: 18px; padding: 4px;
+  border: 2px solid #e1d8ca; flex: none;
+  transition: padding .32s ease;
+}
+.seg button {
+  flex: 1; border: 0; background: transparent; border-radius: 14px;
+  min-height: 44px; font-weight: 800;
+  transition: min-height .32s ease, background .2s ease, color .2s ease;
+}
 .seg button.on { background: var(--coral, #fa746b); color: #fff; border: 2px solid var(--ink, #38271f); }
-#uf { display: flex; flex-direction: column; gap: 10px; }
+#uf {
+  display: flex; flex-direction: column; gap: 0;
+}
+#uf > * + * { margin-top: 10px; transition: margin-top .32s ease; }
 #uf input[type=text], #uf input[type=password] {
   width: 100%; border: 2px solid #cfc5b4; border-radius: 16px; padding: 12px 14px;
   background: #fffdf8; font-family: var(--font-ui, Nunito, sans-serif); font-size: 16px;
+  transition: padding .32s ease, border-radius .32s ease, font-size .32s ease;
 }
-#uf .ro { display: none; }
-body.reg-mode #uf .ro { display: block; }
-.remember, .ack { display: flex; gap: 10px; align-items: flex-start; font-size: 13px; line-height: 1.4; font-family: var(--font-ui, Nunito, sans-serif); color: #5c554c; }
-.ack { background: #fff1df; border: 2px dashed #cf7860; border-radius: 14px; padding: 10px; }
-.btn.pri { background: var(--coral, #fa746b); color: #fff; border: 2px solid var(--ink, #38271f); border-radius: 18px; min-height: 52px; font-weight: 800; font-size: 18px; }
-.umsg { min-height: 1.2em; text-align: center; font-size: 14px; font-family: var(--font-ui, Nunito, sans-serif); color: #5c554c; }
+/* Collapsible signup-only fields: height + fade/slide */
+.signup-fields {
+  display: grid;
+  grid-template-rows: 0fr;
+  opacity: 0;
+  margin-top: 0 !important;
+  transform: translateY(-8px);
+  pointer-events: none;
+  transition:
+    grid-template-rows .36s cubic-bezier(.4, 0, .2, 1),
+    opacity .28s ease,
+    transform .32s ease,
+    margin-top .32s ease;
+}
+.signup-fields-inner {
+  overflow: hidden;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+body.reg-mode .signup-fields {
+  grid-template-rows: 1fr;
+  opacity: 1;
+  margin-top: 10px !important;
+  transform: translateY(0);
+  pointer-events: auto;
+}
+.remember, .ack {
+  display: flex; gap: 10px; align-items: flex-start; font-size: 13px; line-height: 1.4;
+  font-family: var(--font-ui, Nunito, sans-serif); color: #5c554c;
+  transition: font-size .32s ease, gap .32s ease, padding .32s ease;
+}
+.ack {
+  background: #fff1df; border: 2px dashed #cf7860; border-radius: 14px; padding: 10px;
+}
+.btn.pri {
+  background: var(--coral, #fa746b); color: #fff; border: 2px solid var(--ink, #38271f);
+  border-radius: 18px; min-height: 52px; font-weight: 800; font-size: 18px;
+  transition: min-height .32s ease, font-size .32s ease, border-radius .32s ease;
+}
+.umsg {
+  min-height: 1.2em; text-align: center; font-size: 14px;
+  font-family: var(--font-ui, Nunito, sans-serif); color: #5c554c;
+  transition: font-size .32s ease, min-height .32s ease;
+}
 .umsg.bad { color: #b94a3a; font-weight: 700; }
+
+/* Sign-up: denser lock-card so invite + confirm fit on ~390×844 */
+body.reg-mode .lockcard {
+  padding: 12px 16px 12px;
+  gap: 6px;
+  border-radius: 24px;
+}
+body.reg-mode .lock-art { width: 56px; height: 56px; }
+body.reg-mode .lockcard h1 { font-size: 28px; }
+body.reg-mode .lockcard .sub {
+  font-size: 11.5px; line-height: 1.3; margin: 0;
+}
+body.reg-mode .seg { padding: 3px; border-radius: 16px; }
+body.reg-mode .seg button { min-height: 36px; border-radius: 12px; font-size: 15px; }
+body.reg-mode #uf > * + * { margin-top: 7px; }
+body.reg-mode .signup-fields { margin-top: 7px !important; }
+body.reg-mode .signup-fields-inner { gap: 7px; }
+body.reg-mode #uf input[type=text],
+body.reg-mode #uf input[type=password] {
+  padding: 9px 12px; border-radius: 14px; font-size: 15px;
+}
+body.reg-mode .remember, body.reg-mode .ack {
+  font-size: 11.5px; line-height: 1.35; gap: 8px;
+}
+body.reg-mode .ack { padding: 7px 8px; border-radius: 12px; }
+body.reg-mode .btn.pri {
+  min-height: 44px; font-size: 16px; border-radius: 16px;
+}
+body.reg-mode .umsg { font-size: 12.5px; min-height: 1em; }
+
+@media (max-height: 760px) {
+  body.reg-mode .lock-art { width: 48px; height: 48px; }
+  body.reg-mode .lockcard h1 { font-size: 24px; }
+  body.reg-mode .lockcard .sub { font-size: 11px; }
+  body.reg-mode .seg button { min-height: 34px; }
+  body.reg-mode #uf input[type=text],
+  body.reg-mode #uf input[type=password] { padding: 8px 11px; }
+  body.reg-mode .btn.pri { min-height: 42px; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .lockcard, .lock-art, .lockcard h1, .lockcard .sub, .seg, .seg button,
+  #uf > *, #uf input[type=text], #uf input[type=password],
+  .signup-fields, .remember, .ack, .btn.pri, .umsg {
+    transition: none !important;
+  }
+}
 header .sync { font-size: 11px; color: var(--muted); font-family: var(--font-ui, Nunito, sans-serif); max-width: 72px; line-height: 1.2; text-align: right; }
 
 /* Full-screen / sheet panels — NOT <dialog> */
