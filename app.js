@@ -10,6 +10,9 @@ const AUTH_ORIGIN=(typeof location!=='undefined'&&/^localhost$|^127\.0\.0\.1$/.t
 const DATA_ORIGIN=(typeof location!=='undefined'&&/\.github\.io$/.test(location.hostname))?'https://wonderful-parfait-18a140.netlify.app':'';
 const AUTH_PATHS=new Set(['params','register','login','refresh','logout','password','account']);
 const DEFAULT_CENTER=[49.2827,-123.1207], DEFAULT_ZOOM=13;
+/* Public Mapbox token — Search Box only (basemap stays Leaflet/MapLibre/OSM) */
+const MAPBOX_TOKEN='pk.eyJ1IjoibmF0aGFueWF1IiwiYSI6ImNtdjl1eW53YjA4ZWQyd3EwMzJ3ZHQ5d3QifQ.wfFv9UcvOOqXlUX__A0Lrg';
+let mapboxSessionToken=null;
 const artIndex={ramen:0,cafe:1,burger:2,dessert:3,sushi:4,pasta:5,matcha:6,shop:7,cat:8,taco:7};
 function art(kind='shop'){let n=artIndex[kind]??7;return `<span class="illustration" style="--x:${n%3*50}%;--y:${Math.floor(n/3)*50}%" aria-hidden="true"></span>`}
 function icon(type){const paths={map:'<path d="M3 5 9 2l6 3 6-3v17l-6 3-6-3-6 3Z"/><path d="M9 2v17M15 5v17"/>',calendar:'<rect x="3" y="5" width="18" height="17" rx="3"/><path d="M7 2v6M17 2v6M3 11h18"/>',heart:'<path d="M12 21S2 15 2 8a5 5 0 0 1 10-2A5 5 0 0 1 22 8c0 7-10 13-10 13Z"/>',bookmark:'<path d="M6 3h12a1 1 0 0 1 1 1v18l-7-5-7 5V4a1 1 0 0 1 1-1Z"/>',search:'<circle cx="10" cy="10" r="7"/><path d="m15 15 7 7"/>'};return `<svg class="ui-icon" viewBox="0 0 24 24" aria-hidden="true">${paths[type]||paths.bookmark}</svg>`}
@@ -273,12 +276,53 @@ function visitDetail(id){const v=state.visits.find(v=>v.id===id);if(!v)return;op
 let activeSearch=null, searchGeneration=0, autocompleteTimer=null, lastSearchAt=0, placePreviewMap=null, searchResultPage=0;
 function destroyPlacePreview(){if(placePreviewMap){placePreviewMap.remove();placePreviewMap=null}}
 function cancelSearch(){clearTimeout(autocompleteTimer);searchGeneration++;activeSearch?.abort();activeSearch=null;searchBusy=false}
-function validPlace(f){const c=f?.geometry?.coordinates;return f?.geometry?.type==='Point'&&f.properties&&Array.isArray(c)&&Number.isFinite(c[0])&&Math.abs(c[0])<=180&&Number.isFinite(c[1])&&Math.abs(c[1])<=90}
+function validPlace(f){
+  if(f?.properties?._provider==='mapbox'&&f.properties.mapbox_id)return true;
+  const c=f?.geometry?.coordinates;return f?.geometry?.type==='Point'&&f.properties&&Array.isArray(c)&&Number.isFinite(c[0])&&Math.abs(c[0])<=180&&Number.isFinite(c[1])&&Math.abs(c[1])<=90
+}
+function newMapboxSession(){try{return crypto.randomUUID()}catch{return 'xxxxxxxx-xxxx-4xxx-yxxx-xxxxxxxxxxxx'.replace(/[xy]/g,c=>{const r=Math.random()*16|0;return(c==='x'?r:(r&0x3|0x8)).toString(16)})}}
 function placeSearchURL(query,center,nearMap=true){
   const params=new URLSearchParams({q:query,limit:'5',lat:String(center[0]),lon:String(center[1]),zoom:'13',location_bias_scale:'0.1'});
   for(const type of ['amenity:restaurant','amenity:cafe','amenity:fast_food','amenity:food_court','amenity:bar','amenity:pub','amenity:ice_cream','shop:bakery'])params.append('osm_tag',type);
   if(nearMap)params.set('bbox',[Math.max(-180,center[1]-.45),Math.max(-90,center[0]-.27),Math.min(180,center[1]+.45),Math.min(90,center[0]+.27)].join(','));
   return 'https://photon.komoot.io/api/?'+params.toString();
+}
+function mapboxSuggestURL(query,center,nearMap,sessionToken){
+  const params=new URLSearchParams({q:query,access_token:MAPBOX_TOKEN,session_token:sessionToken,language:'en',limit:'8',types:'poi'});
+  if(nearMap&&Array.isArray(center)&&center.length>=2){
+    params.set('proximity',`${center[1]},${center[0]}`);
+    params.set('bbox',[Math.max(-180,center[1]-.45),Math.max(-90,center[0]-.27),Math.min(180,center[1]+.45),Math.min(90,center[0]+.27)].join(','));
+  }
+  return 'https://api.mapbox.com/search/searchbox/v1/suggest?'+params.toString();
+}
+function mapboxSuggestionFeatures(suggestions,sessionToken){
+  return (suggestions||[]).filter(s=>s&&s.mapbox_id&&s.name).map(s=>{
+    const ctx=s.context||{};
+    return {type:'Feature',geometry:{type:'Point',coordinates:[0,0]},properties:{
+      _provider:'mapbox',_session:sessionToken,mapbox_id:s.mapbox_id,
+      name:s.name_preferred||s.name,full_address:s.full_address||'',address:s.address||'',place_formatted:s.place_formatted||'',
+      housenumber:ctx.address?.address_number,street:ctx.address?.street_name||ctx.street?.name,
+      district:ctx.neighborhood?.name,city:ctx.place?.name,state:ctx.region?.name,country:ctx.country?.name,
+      poi_category:s.poi_category||[],osm_value:(s.poi_category_ids||[])[0]||''
+    }};
+  });
+}
+async function mapboxRetrieve(mapboxId,sessionToken,signal){
+  const params=new URLSearchParams({access_token:MAPBOX_TOKEN,session_token:sessionToken,language:'en'});
+  const res=await fetch(`https://api.mapbox.com/search/searchbox/v1/retrieve/${encodeURIComponent(mapboxId)}?`+params,{signal});
+  if(!res.ok)throw Error('retrieve '+res.status);
+  const data=await res.json();
+  const f=data.features?.[0];
+  const gc=f?.geometry?.coordinates;if(!f||f.geometry?.type!=='Point'||!Array.isArray(gc)||!Number.isFinite(gc[0])||!Number.isFinite(gc[1]))throw Error('bad retrieve');
+  const p=f.properties||{},ctx=p.context||{};
+  return {type:'Feature',geometry:f.geometry,properties:{
+    _provider:'mapbox',mapbox_id:p.mapbox_id||mapboxId,
+    name:p.name_preferred||p.name,full_address:p.full_address||'',address:p.address||'',place_formatted:p.place_formatted||'',
+    housenumber:ctx.address?.address_number,street:ctx.address?.street_name||ctx.street?.name,
+    district:ctx.neighborhood?.name,city:ctx.place?.name,state:ctx.region?.name,country:ctx.country?.name,
+    poi_category:p.poi_category||[],osm_value:(p.poi_category_ids||[])[0]||'',
+    sourceId:p.mapbox_id?`mapbox:${p.mapbox_id}`:null,_retrieved:true
+  }};
 }
 function manualFallback(){return `<details class="manual-fallback"><summary>Still can’t find the restaurant?</summary><p>Try a broader search. Or enter details manually.</p><button type="button" class="manual-last-resort" data-action="manual">Enter details manually</button></details>`}
 function suggestion(f,i){const p=f.properties,category=placeCategory(p);return `<button type="button" id="place-option-${i}" class="place-suggestion" role="option" aria-selected="false" data-result="${i}"><span class="suggestion-icon">${art(category.kind)}</span><span><b>${esc(p.name||p.street||'Place')}</b><small>${esc(placeAddress(p))}</small></span><span class="suggestion-arrow">↗</span></button>`}
@@ -294,17 +338,16 @@ function renderSearchPage(output,saved){
   output.innerHTML=html;
 }
 function showSearch(context={}){
-  cancelSearch();searchContext=context;searchResultPage=0;
+  cancelSearch();searchContext=context;searchResultPage=0;mapboxSessionToken=newMapboxSession();
   openPanel(context.wish?'A little food daydream':'Find your next favorite',`
     <form class="search-form place-search-form" id="search-form"><div class="place-search-input">${icon('search')}<input id="search-query" placeholder="Restaurant, café, or neighborhood" aria-label="Restaurant name and city" role="combobox" aria-autocomplete="list" aria-controls="search-results" aria-expanded="false" autocomplete="off" required minlength="2" maxlength="200"><button type="button" class="clear-search" id="clear-search" aria-label="Clear search" hidden>×</button></div><button class="search-submit" aria-label="Search restaurants">→</button></form>
     <div class="search-area"><span>◎ <span id="search-scope-label">${context.fromPin?'Near selected map point':'Near your map'}</span></span><button type="button" id="search-scope">Search worldwide</button></div>
     <div id="search-results" class="search-results place-results" role="listbox" aria-label="Restaurant suggestions"><div class="search-idle"><span>✧</span><h3>Where are we eating?</h3><p>Start typing a restaurant name.</p></div></div>
-    <footer class="place-search-footer"><a id="google-search-link" target="_blank" rel="noopener" hidden>Search on Google Maps ↗</a><small>Place search by Photon · © OpenStreetMap</small></footer>`,{full:true,cls:'place-panel search-panel'});
+    <footer class="place-search-footer"><a id="google-search-link" target="_blank" rel="noopener" hidden>Search on Google Maps ↗</a><small>Place search by Mapbox · Photon fallback · © OpenStreetMap</small></footer>`,{full:true,cls:'place-panel search-panel'});
   const input=$('#search-query'),form=$('#search-form'),output=$('#search-results');let activeChoice=-1,nearMap=true;
-  const searchKey=q=>{const center=context.center||userLocation||mapCenter;return 'food-search-v2:'+q.toLowerCase()+':'+nearMap+':'+center.map(n=>n.toFixed(2)).join(',')};
+  const searchKey=q=>{const center=context.center||userLocation||mapCenter;return 'food-search-v3-mb:'+q.toLowerCase()+':'+nearMap+':'+center.map(n=>n.toFixed(2)).join(',')};
   const memCache=window.__placeCache||(window.__placeCache=new Map());
-  const cachedSearch=q=>{const k=searchKey(q);if(memCache.has(k))return memCache.get(k);try{const v=JSON.parse(sessionStorage.getItem(k));if(v)memCache.set(k,v);return v}catch{return null}};
-  const _unused=q=>{try{return JSON.parse(sessionStorage.getItem(searchKey(q)))}catch{return null}};
+  const cachedSearch=q=>{const k=searchKey(q);if(memCache.has(k))return memCache.get(k);try{const v=JSON.parse(sessionStorage.getItem(k));if(v&&v._provider!=='mapbox'){memCache.set(k,v);return v}}catch{}return null};
   input.oninput=()=>{
     cancelSearch();form.querySelector('.search-submit').disabled=false;form.querySelector('.search-submit').textContent='→';activeChoice=-1;
     const q=input.value.trim();$('#clear-search').hidden=!q;
@@ -329,7 +372,25 @@ function showSearch(context={}){
     try{
       const center=context.center||userLocation||mapCenter,cacheKey=searchKey(q);
       let data=cachedSearch(q);
-      if(!data){const res=await fetch(placeSearchURL(q,center,nearMap),{signal:controller.signal});if(!res.ok)throw Error('Search unavailable');data=await res.json();if(!Array.isArray(data.features))throw Error('Invalid');memCache.set(cacheKey,data);try{sessionStorage.setItem(cacheKey,JSON.stringify(data))}catch{}}
+      if(!data){
+        try{
+          const res=await fetch(mapboxSuggestURL(q,center,nearMap,mapboxSessionToken),{signal:controller.signal});
+          if(!res.ok)throw Error('mapbox '+res.status);
+          const json=await res.json();
+          if(!Array.isArray(json.suggestions))throw Error('mapbox invalid');
+          data={features:mapboxSuggestionFeatures(json.suggestions,mapboxSessionToken),_provider:'mapbox'};
+          memCache.set(cacheKey,data);
+        }catch(mbErr){
+          if(mbErr?.name==='AbortError')throw mbErr;
+          const res=await fetch(placeSearchURL(q,center,nearMap),{signal:controller.signal});
+          if(!res.ok)throw Error('Search unavailable');
+          data=await res.json();
+          if(!Array.isArray(data.features))throw Error('Invalid');
+          data={...data,_provider:'photon'};
+          memCache.set(cacheKey,data);
+          try{sessionStorage.setItem(cacheKey,JSON.stringify(data))}catch{}
+        }
+      }
       if(generation!==searchGeneration||!output.isConnected)return;
       searchResults=data.features.filter(validPlace);searchResultPage=0;activeChoice=-1;
       renderSearchPage(output,savedHtml);
@@ -343,16 +404,30 @@ function showSearch(context={}){
     }
   };
 }
-function placeCategory(p){const type=String(p.osm_value||'').toLowerCase(),name=String(p.name||'').toLowerCase();
-  if(/cafe|coffee/.test(type+' '+name))return {kind:'cafe',tags:['Cafe']};
-  if(/ramen/.test(name))return {kind:'ramen',tags:['Ramen','Japanese']};
-  if(/sushi/.test(name))return {kind:'sushi',tags:['Sushi','Japanese']};
-  if(/burger/.test(name))return {kind:'burger',tags:['Burgers']};
-  if(/ice_cream|bakery|cake|dessert/.test(type+' '+name))return {kind:'dessert',tags:['Dessert']};
-  if(/pizza|pasta|italian/.test(name))return {kind:'pasta',tags:['Italian']};
+function placeCategory(p){
+  const cats=(p.poi_category||[]).join(' ').toLowerCase();
+  const type=String(p.osm_value||'').toLowerCase(),name=String(p.name||'').toLowerCase();
+  const blob=type+' '+name+' '+cats;
+  if(/cafe|coffee/.test(blob))return {kind:'cafe',tags:['Cafe']};
+  if(/ramen/.test(blob))return {kind:'ramen',tags:['Ramen','Japanese']};
+  if(/sushi/.test(blob))return {kind:'sushi',tags:['Sushi','Japanese']};
+  if(/burger/.test(blob))return {kind:'burger',tags:['Burgers']};
+  if(/ice_cream|bakery|cake|dessert|sweet/.test(blob))return {kind:'dessert',tags:['Dessert']};
+  if(/pizza|pasta|italian/.test(blob))return {kind:'pasta',tags:['Italian']};
   return {kind:'shop',tags:[]};
 }
-function placeAddress(p){return [...new Set([p.housenumber,p.street,p.district,p.city,p.state,p.country].filter(Boolean))].join(', ')}
+function placeAddress(p){
+  if(p.full_address)return p.full_address;
+  if(p._provider==='mapbox')return [p.address,p.place_formatted].filter(Boolean).join(', ')||[p.housenumber,p.street,p.city,p.country].filter(Boolean).join(', ');
+  return [...new Set([p.housenumber,p.street,p.district,p.city,p.state,p.country].filter(Boolean))].join(', ')
+}
+function openFromSearchFeature(f){
+  const p=f.properties,coords=f.geometry.coordinates;
+  const sourceId=p.sourceId||(p.osm_type&&p.osm_id?`${p.osm_type}:${p.osm_id}`:null)||(p.mapbox_id?`mapbox:${p.mapbox_id}`:null);
+  const existing=state.restaurants.find(r=>sourceId&&r.sourceId===sourceId||r.name===(p.name||p.street)&&r.lat===coords[1]&&r.lng===coords[0]);
+  if(existing&&existing.id!==searchContext.editId){if(searchContext.wish&&!existing.wish&&!commit(()=>{rest(existing.id).wish=true;rest(existing.id).u=Date.now()}))return;if(pendingVisit){pendingVisit=false;return visitForm(existing.id)}return restaurantDetail(existing.id)}
+  return restaurantForm(searchContext.editId||null,{...searchContext.draft,name:p.name||p.street||'New restaurant',address:placeAddress(p),lat:coords[1],lng:coords[0],wish:searchContext.wish??tab==='wishlist',sourceId,...placeCategory(p)})
+}
 
 function logo(){return '<img class="meowsto-logo" src="assets/meowsto-logo-256.png?v=ui20261015m" alt="">'}
 function initialOf(){const n=String(USER||'?').trim();return (n.match(/[\p{L}\p{N}]/u)?.[0]||'?').toUpperCase()}
@@ -390,10 +465,27 @@ document.addEventListener('click',e=>{
   if(d.save){if(!commit(()=>{const x=rest(d.save);x.wish=!x.wish;x.u=Date.now()}))return;if(!$('#panel').hidden)restaurantDetail(d.save);render();toast(rest(d.save).wish?'Saved to wishlist':'Removed from wishlist');return}
   if(d.note){const r=rest(d.note);openPanel('My note',`<form id="note-form"><textarea aria-label="My note" maxlength="2000">${esc(r.note)}</textarea><div class="form-actions"><button class="primary">Save note</button></div></form>`,{full:true});$('#note-form').onsubmit=e=>{e.preventDefault();if(!commit(()=>{rest(d.note).note=e.target.querySelector('textarea').value;rest(d.note).u=Date.now()}))return;closePanel();render();toast('Note saved')};return}
   if(d.result!==undefined){
-    const f=searchResults[Number(d.result)],p=f.properties,sourceId=p.osm_type&&p.osm_id?`${p.osm_type}:${p.osm_id}`:null;
-    const existing=state.restaurants.find(r=>sourceId&&r.sourceId===sourceId||r.name===(p.name||p.street)&&r.lat===f.geometry.coordinates[1]&&r.lng===f.geometry.coordinates[0]);
-    if(existing&&existing.id!==searchContext.editId){if(searchContext.wish&&!existing.wish&&!commit(()=>{rest(existing.id).wish=true;rest(existing.id).u=Date.now()}))return;if(pendingVisit){pendingVisit=false;return visitForm(existing.id)}return restaurantDetail(existing.id)}
-    return restaurantForm(searchContext.editId||null,{...searchContext.draft,name:p.name||p.street||'New restaurant',address:placeAddress(p),lat:f.geometry.coordinates[1],lng:f.geometry.coordinates[0],wish:searchContext.wish??tab==='wishlist',sourceId,...placeCategory(p)})
+    const f=searchResults[Number(d.result)];if(!f)return;
+    const p=f.properties;
+    if(p._provider==='mapbox'&&p.mapbox_id&&!p._retrieved){
+      const btn=d.result;const session=p._session||newMapboxSession();
+      (async()=>{
+        try{
+          toast('Loading place…');
+          const controller=new AbortController();activeSearch=controller;
+          const full=await mapboxRetrieve(p.mapbox_id,session,controller.signal);
+          activeSearch=null;mapboxSessionToken=newMapboxSession();
+          searchResults[Number(btn)]=full;
+          openFromSearchFeature(full);
+        }catch(err){
+          activeSearch=null;
+          if(err?.name==='AbortError')return;
+          toast('Could not load that place. Try again.');
+        }
+      })();
+      return;
+    }
+    return openFromSearchFeature(f);
   }
   switch(d.action){
     case'close':case'close-panel':pendingVisit=false;closePanel();break;
