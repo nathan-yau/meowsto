@@ -93,6 +93,7 @@ function validBackup(d){return RL.validDb(d)}
 function persist(){if(!USER)return false;try{markDirty();const envPlaceholder=true;cacheEnv;return true}catch{toast('Save failed');return false}}
 function commit(change){
   const prev=structuredClone(state);
+  {const used=new Set(state.visits.map(v=>v.restaurantId));state.restaurants=state.restaurants.filter(r=>!(r.demo&&/^demo-\d$/.test(r.id)&&!used.has(r.id)))}
   try{
     change();
     if(!validBackup(state))throw Error('Please check the name, date, time, and rating.');
@@ -163,14 +164,12 @@ function renderTimeline(){
 }
 
 function renderMap(){
-  $('#main').innerHTML=`<div class="map-wrap"><div class="map-toolbar"><button data-action="locate">◎ My location</button><button class="primary" data-action="search">⊕ New Restaurant</button></div><div id="map" aria-label="Restaurant map"></div><div id="map-status" class="map-status" role="status" hidden></div><span class="map-hint">Tap the map to add a place</span></div><div id="sheet"></div>`;
+  $('#main').innerHTML=`<div class="map-wrap"><div class="map-toolbar"><button data-action="locate">◎ My location</button><button class="primary" data-action="search">⊕ New Restaurant</button></div><div id="map" aria-label="Restaurant map"></div><div id="map-status" class="map-status" role="status" hidden></div></div><div id="sheet"></div>`;
   if(typeof L==='undefined'||typeof window.L==='undefined'&&typeof leaflet==='undefined'){/* leaflet global is L which conflicts — use window check */}
   if(typeof window.L==='undefined'){$('#map').innerHTML='<div class="failure">The map could not load. Check your connection.<br><button data-action="reload-map">Try again</button></div>'}
   else{
     map=window.L.map('map',{zoomControl:false}).setView(mapCenter,mapZoom);
-    window.L.control.zoom({position:'bottomright'}).addTo(map);
     baseLayer=createMapTiles(map);drawMarkers();
-    map.on('click',e=>showSearch({center:[e.latlng.lat,e.latlng.lng],fromPin:true}));
     if(userLocation)window.L.circleMarker(userLocation,{radius:8,color:'#fff',fillColor:'#548ac1',fillOpacity:1}).addTo(map);
   }
   renderSheet();
@@ -193,7 +192,7 @@ function createMapTiles(target,statusSelector='#map-status'){
     if(layer){layer.remove();layer=null}
     try{
       if(typeof maplibregl==='undefined'||typeof window.L.maplibreGL!=='function')throw Error('Vector maps unavailable');
-      layer=window.L.maplibreGL({style:'assets/quiet-map.json?v=meowsto-cozy',interactive:false,padding:0.15,attributionControl:{customAttribution:attribution}}).addTo(target);
+      layer=window.L.maplibreGL({style:'assets/quiet-map.json?v=meowsto-cozy2',interactive:false,padding:0.15,attributionControl:false}).addTo(target);
       const gl=layer.getMaplibreMap();
       gl.on('error',()=>{if(attempt===generation)failure()});
       gl.on('idle',()=>{if(attempt===generation&&!disposed&&gl.isStyleLoaded()&&gl.areTilesLoaded()){const status=$(statusSelector);if(status)status.hidden=true}});
@@ -412,7 +411,10 @@ document.addEventListener('click',e=>{
 document.addEventListener('keydown',e=>{if((e.key==='Enter'||e.key===' ')&&e.target.matches('[role=button]')){e.preventDefault();e.target.click()}if(e.key==='Escape'&&!$('#panel').hidden)closePanel()});
 document.addEventListener('change',e=>{if(e.target.id==='timeline-sort'){sort=e.target.value;listPage=0;render()}});
 
+const DEMO_PINS=[['demo-1','Kibo Ramen','ramen',49.2797,-123.1218,'Granville St'],['demo-2','Purr & Pour Café','cafe',49.2844,-123.1089,'Gastown'],['demo-3','Seawall Sushi','sushi',49.2888,-123.1307,'Coal Harbour'],['demo-4','Matcha Moon','matcha',49.2765,-123.1303,'Yaletown'],['demo-5','Sweet Paws Dessert','dessert',49.2635,-123.1385,'Kitsilano']];
+function seedDemoPins(){if(state.restaurants.length||!(USER==='demo'||/github\.io$/.test(location.hostname)))return;const d=RL.today();state.restaurants=DEMO_PINS.map(([id,name,kind,lat,lng,address],i)=>({id,name,kind,lat,lng,address,tags:['demo'],note:'Sample place for preview',wish:i%2===1,added:d,rating:null,demo:true}))}
 function bootApp(){
+  seedDemoPins();
   document.body.classList.remove('locked');
   $('#app').hidden=false;
   selected=state.restaurants[0]?.id||null;
