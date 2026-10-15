@@ -240,7 +240,7 @@ function selectPin(id){
     }
   }
 }
-function clearSearchMarkers(){searchMarkers.forEach(m=>m.remove());searchMarkers=[]}
+function clearSearchMarkers(){searchMarkers.forEach(m=>m&&m.remove());searchMarkers=[]}
 function searchResultIcon(){return window.L.icon({iconUrl:'assets/meow-map-pin-search.png?v=ui20261015ag',iconSize:[24,33],iconAnchor:[12,33],className:'meow-pin meow-pin-search'})}
 function drawSearchMarkers(){
   clearSearchMarkers();
@@ -248,12 +248,12 @@ function drawSearchMarkers(){
   searchResults.forEach((f,i)=>{
     const c=f.geometry?.coordinates;if(!c||!Number.isFinite(c[0])||!Number.isFinite(c[1]))return;
     const name=f.properties?.name||'Result';
-    const m=window.L.marker([c[1],c[0]],{icon:searchResultIcon(),title:name,riseOnHover:true,zIndexOffset:600}).addTo(map);
+    const m=window.L.marker([c[1],c[0]],{icon:searchResultIcon(),title:name,riseOnHover:true,zIndexOffset:600,bubblingMouseEvents:false}).addTo(map);
     m.on('click',e=>{window.L.DomEvent.stopPropagation(e);focusSearchHit(i)});
-    searchMarkers.push(m);
+    searchMarkers[i]=m;
   });
 }
-function drawMarkers(){if(!map)return;markers.forEach(m=>m.remove());markers=[];if(exploreOn){clearSearchMarkers();loadExplore();bindMapEvents();return}state.restaurants.filter(r=>Number.isFinite(r.lat)&&Number.isFinite(r.lng)).forEach(r=>{const m=window.L.marker([r.lat,r.lng],{icon:markerIcon(r),title:r.name,riseOnHover:true}).addTo(map).on('click',e=>{window.L.DomEvent.stopPropagation(e);selectPin(r.id)});m._r=r;markers.push(m)});drawSearchMarkers();bindMapEvents()}
+function drawMarkers(){if(!map)return;markers.forEach(m=>m.remove());markers=[];if(exploreOn){clearSearchMarkers();loadExplore();bindMapEvents();return}state.restaurants.filter(r=>Number.isFinite(r.lat)&&Number.isFinite(r.lng)).forEach(r=>{const m=window.L.marker([r.lat,r.lng],{icon:markerIcon(r),title:r.name,riseOnHover:true,bubblingMouseEvents:false}).addTo(map).on('click',e=>{window.L.DomEvent.stopPropagation(e);selectPin(r.id)});m._r=r;markers.push(m)});drawSearchMarkers();bindMapEvents()}
 function bindMapEvents(){if(!map._meowZoom){map._meowZoom=1;let last=pinTier();map.on('zoomend',()=>{mapZoom=map.getZoom();const t=pinTier();if(t!==last){last=t;updateMarkerIcons()}});map.on('moveend',()=>{const c=map.getCenter();mapCenter=[c.lat,c.lng];if(exploreOn)loadExplore()});map.on('click',()=>{if(selected){selected=null;updateMarkerIcons();renderSheet();enhanceIcons()}})}}
 function distance(r){if(!userLocation||!Number.isFinite(r.lat))return '';const rad=x=>x*Math.PI/180,dlat=rad(r.lat-userLocation[0]),dlng=rad(r.lng-userLocation[1]),a=Math.sin(dlat/2)**2+Math.cos(rad(r.lat))*Math.cos(rad(userLocation[0]))*Math.sin(dlng/2)**2;let km=6371*2*Math.atan2(Math.sqrt(a),Math.sqrt(1-a));return `${km<1?Math.round(km*1000)+' m':km.toFixed(1)+' km'} · `}
 function renderSheet(){
@@ -394,13 +394,16 @@ function sheetCoverPx(){
 function centerMapAboveSheet(lat,lng,zoom){
   if(!map||!Number.isFinite(lat)||!Number.isFinite(lng))return;
   const z=zoom!=null?zoom:Math.max(map.getZoom(),16);
-  map.setView([lat,lng],z,{animate:true});
-  const cover=sheetCoverPx();
-  if(cover>24){
-    // panBy positive Y moves pane up → pin sits higher, above bottom sheet
-    const dy=Math.round(cover*0.48);
-    requestAnimationFrame(()=>map.panBy([0,dy],{animate:true}));
-  }
+  const mc=map.getContainer().getBoundingClientRect();
+  let top=mc.top,bottom=mc.bottom;
+  const sb=document.querySelector('.map-search-bar');
+  if(sb){const r=sb.getBoundingClientRect();if(r.height&&r.bottom>top&&r.bottom<bottom)top=r.bottom}
+  const s=$('#sheet')?.querySelector('.search-sheet,.detail-sheet');
+  if(s){const r=s.getBoundingClientRect();if(r.height&&r.top<bottom&&r.top>top)bottom=r.top}
+  // visible-area midpoint relative to raw container centre (in px)
+  const dy=((top+bottom)/2-mc.top)-mc.height/2;
+  const target=map.unproject(map.project([lat,lng],z).subtract([0,dy]),z);
+  map.setView(target,z,{animate:true});
 }
 function dismissSearchSheet(){
   searchResults=[];clearSearchMarkers();
