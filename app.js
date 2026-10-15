@@ -656,42 +656,49 @@ function showSearchSheetResults(sheet,features,opts={}){
   bindSheetDismiss(sheet.querySelector('.search-sheet'),dismissSearchSheet);
   syncHideVisitedChip();
 }
+async function runMapPlaceSearch(q,opts={}){
+  q=String(q||'').trim();
+  if(q.length<2)return toast('Enter at least two characters.');
+  clearTimeout(autocompleteTimer);
+  selected=null;lastSearchQuery=q;
+  const input=$('#map-search-query');
+  if(input&&opts.fillInput!==false)input.value=q;
+  const sheet=$('#sheet');if(!sheet)return;
+  // Same query + map-center key as last successful search → re-show cached sheet only (no Mapbox)
+  const center=searchCenter();
+  const cacheKey=searchCacheKey(q,center);
+  const cached=String(q||'').trim().toLowerCase()==='demo'?null:searchCacheGet(cacheKey);
+  if(cached){
+    showSearchSheetResults(sheet,cached);
+    return;
+  }
+  sheet.innerHTML=`<section class="search-sheet"><div class="handle" aria-hidden="true"></div><p class="search-message loading" role="status">Searching nearby…</p></section>`;
+  bindSheetDismiss(sheet.querySelector('.search-sheet'),dismissSearchSheet);
+  syncHideVisitedChip();
+  if(searchBusy){activeSearch?.abort();searchGeneration++;searchBusy=false}
+  const generation=++searchGeneration,controller=new AbortController();activeSearch=controller;searchBusy=true;
+  const timeout=setTimeout(()=>controller.abort(),9000);
+  try{
+    const features=await fetchPlaceFeatures(q,controller.signal);
+    if(generation!==searchGeneration||!sheet.isConnected)return;
+    showSearchSheetResults(sheet,features);
+  }catch{
+    if(generation!==searchGeneration||!sheet.isConnected)return;
+    sheet.innerHTML=`<section class="search-sheet"><div class="handle" aria-hidden="true"></div><div class="search-idle" role="status"><h3>Connection hiccup</h3><p>Try again in a moment.</p><button type="button" id="retry-place-search">Try again</button></div>${manualFallback()}</section>`;
+    bindSheetDismiss(sheet.querySelector('.search-sheet'),dismissSearchSheet);
+    $('#retry-place-search')?.addEventListener('click',()=>runMapPlaceSearch(lastSearchQuery||q));
+  }finally{
+    clearTimeout(timeout);
+    if(generation===searchGeneration){activeSearch=null;searchBusy=false}
+  }
+}
 function wireMapSearch(){
   const form=$('#map-search-form'),input=$('#map-search-query');
   if(!form||!input||form.dataset.wired)return;
   form.dataset.wired='1';
-  form.onsubmit=async e=>{
-    e.preventDefault();clearTimeout(autocompleteTimer);
-    const q=input.value.trim();if(q.length<2)return toast('Enter at least two characters.');
-    selected=null;lastSearchQuery=q;
-    const sheet=$('#sheet');if(!sheet)return;
-    // Same query + map-center key as last successful search → re-show cached sheet only (no Mapbox)
-    const center=searchCenter();
-    const cacheKey=searchCacheKey(q,center);
-    const cached=String(q||'').trim().toLowerCase()==='demo'?null:searchCacheGet(cacheKey);
-    if(cached){
-      showSearchSheetResults(sheet,cached);
-      return;
-    }
-    sheet.innerHTML=`<section class="search-sheet"><div class="handle" aria-hidden="true"></div><p class="search-message loading" role="status">Searching nearby…</p></section>`;
-    bindSheetDismiss(sheet.querySelector('.search-sheet'),dismissSearchSheet);
-    syncHideVisitedChip();
-    if(searchBusy){activeSearch?.abort();searchGeneration++;searchBusy=false}
-    const generation=++searchGeneration,controller=new AbortController();activeSearch=controller;searchBusy=true;
-    const timeout=setTimeout(()=>controller.abort(),9000);
-    try{
-      const features=await fetchPlaceFeatures(q,controller.signal);
-      if(generation!==searchGeneration||!sheet.isConnected)return;
-      showSearchSheetResults(sheet,features);
-    }catch{
-      if(generation!==searchGeneration||!sheet.isConnected)return;
-      sheet.innerHTML=`<section class="search-sheet"><div class="handle" aria-hidden="true"></div><div class="search-idle" role="status"><h3>Connection hiccup</h3><p>Try again in a moment.</p><button type="button" id="retry-place-search">Try again</button></div>${manualFallback()}</section>`;
-      bindSheetDismiss(sheet.querySelector('.search-sheet'),dismissSearchSheet);
-      $('#retry-place-search')?.addEventListener('click',()=>form.requestSubmit());
-    }finally{
-      clearTimeout(timeout);
-      if(generation===searchGeneration){activeSearch=null;searchBusy=false}
-    }
+  form.onsubmit=e=>{
+    e.preventDefault();
+    runMapPlaceSearch(input.value.trim());
   };
 }
 function showSearch(context={}){
@@ -783,7 +790,7 @@ function downloadJson(text,name){const url=URL.createObjectURL(new Blob([text],{
 function exportBackup(){downloadJson(JSON.stringify(state,null,2),`meowsto-${today()}.json`);toast('Backup exported')}
 async function importBackup(e){const file=e.target.files[0];if(!file)return;try{if(file.size>15000000)throw Error();let d=JSON.parse(await file.text());if(!validBackup(d))throw Error();d=removeLegacySamples(d);openPanel('Replace your journal?',`<p>This backup contains ${d.restaurants.length} restaurants and ${d.visits.length} visits. Importing replaces your cloud journal.</p><div class="form-actions"><button data-action="export">Export current</button><button class="primary" id="confirm-import">Replace journal</button></div>`,{full:true});$('#confirm-import').onclick=()=>{if(!commit(()=>{state=RL.migrate(d)}))return;selected=state.restaurants[0]?.id;closePanel();render();toast('Journal imported')}}catch{toast('Not a valid Meowsto backup.')}}
 function confirmAction(title,message,fn){openPanel(title,`<p>${message}</p><div class="form-actions"><button data-action="close-panel">Cancel</button><button class="primary" id="confirm-action">Confirm</button></div>`,{full:true});$('#confirm-action').onclick=()=>{if(!commit(fn))return;closePanel();render();toast('Done')}}
-function locate(){if(!navigator.geolocation)return toast('Location unavailable.');toast('Finding your location…');navigator.geolocation.getCurrentPosition(p=>{userLocation=[p.coords.latitude,p.coords.longitude];mapCenter=userLocation;mapZoom=15;if(map)map.setView(mapCenter,mapZoom);if(tab!=='map')tab='map';render();toast('Map centered')},()=>toast('Location unavailable or denied.'),{enableHighAccuracy:true,timeout:10000})}
+function locate(){if(!navigator.geolocation)return toast('Location unavailable.');toast('Finding your location…');navigator.geolocation.getCurrentPosition(p=>{userLocation=[p.coords.latitude,p.coords.longitude];mapCenter=userLocation;mapZoom=15;if(map)map.setView(mapCenter,mapZoom);if(tab!=='map')tab='map';render();toast('Map centered');runMapPlaceSearch('restaurant')},()=>toast('Location unavailable or denied.'),{enableHighAccuracy:true,timeout:10000})}
 
 document.addEventListener('change',e=>{
   const t=e.target;
