@@ -89,6 +89,8 @@ function removeLegacySamples(data){
 }
 let state=initial(), recoveryRequired=false, recoveryRaw=null;
 let tab='map',selected=null,filter='All',sort='newest',map,baseLayer,mapSizeObserver,markers=[],searchMarkers=[],userLocation,searchTimer,searchBusy=false,searchResults=[],mapCenter=[...DEFAULT_CENTER],mapZoom=DEFAULT_ZOOM,searchContext={},pendingVisit=false;
+const HIDE_VISITED_KEY='meowsto-hide-visited';
+let hideVisited=localStorage.getItem(HIDE_VISITED_KEY)==='1',lastSearchQuery='';
 let listPage=0, PAGE_SIZE=4, panelMode='sheet', expandedVisitId=null;
 const rest=id=>state.restaurants.find(r=>r.id===id), visits=id=>state.visits.filter(v=>v.restaurantId===id).sort((a,b)=>(b.date+b.time).localeCompare(a.date+a.time));
 function validBackup(d){return RL.validDb(d)}
@@ -243,19 +245,64 @@ function selectPin(id){
 }
 let searchFocusIdx=null;
 function clearSearchMarkers(){searchMarkers.forEach(m=>m&&m.remove());searchMarkers=[]}
+function featureSourceId(p){
+  if(!p)return null;
+  return p.sourceId||(p.osm_type!=null&&p.osm_id!=null?`${p.osm_type}:${p.osm_id}`:null)||(p.mapbox_id?`mapbox:${p.mapbox_id}`:null);
+}
+function metersBetween(lat1,lng1,lat2,lng2){
+  const rad=x=>x*Math.PI/180,dlat=rad(lat2-lat1),dlng=rad(lng2-lng1);
+  const a=Math.sin(dlat/2)**2+Math.cos(rad(lat1))*Math.cos(rad(lat2))*Math.sin(dlng/2)**2;
+  return 6371000*2*Math.atan2(Math.sqrt(a),Math.sqrt(1-a));
+}
+const MATCH_NEAR_M=80;
+function matchJournalRestaurant(f){
+  const p=f?.properties||{},c=f?.geometry?.coordinates;
+  const sid=featureSourceId(p);
+  if(sid){const byId=state.restaurants.find(r=>r.sourceId===sid);if(byId)return byId}
+  const name=String(p.name||p.street||'').trim().toLowerCase();
+  if(!name||!Array.isArray(c)||!Number.isFinite(c[0])||!Number.isFinite(c[1]))return null;
+  let best=null,bestD=MATCH_NEAR_M;
+  for(const r of state.restaurants){
+    if(String(r.name||'').trim().toLowerCase()!==name)continue;
+    if(!Number.isFinite(r.lat)||!Number.isFinite(r.lng))continue;
+    const d=metersBetween(c[1],c[0],r.lat,r.lng);
+    if(d<bestD){bestD=d;best=r}
+  }
+  return best;
+}
+function searchHitLastVisit(f){
+  const r=matchJournalRestaurant(f);if(!r)return null;
+  return visits(r.id)[0]||null;
+}
+function searchHitNameMatchesQuery(f){
+  const q=String(lastSearchQuery||'').trim().toLowerCase();
+  if(!q)return false;
+  const name=String(f?.properties?.name||f?.properties?.street||'').toLowerCase();
+  return name.includes(q);
+}
+function searchHitHidden(f){
+  if(!hideVisited)return false;
+  if(!searchHitLastVisit(f))return false;
+  if(searchHitNameMatchesQuery(f))return false;
+  return true;
+}
 function searchResultIcon(f,i){
   const t=searchPinTier(),sel=searchFocusIdx!=null&&Number(i)===Number(searchFocusIdx);
   if(t==='meow'){
     return window.L.icon({iconUrl:'assets/meow-map-pin-search.png?v=ui20261015ag',iconSize:[24,33],iconAnchor:[12,33],className:'meow-pin meow-pin-search'+(sel?' search-pin-active':'')});
   }
   const name=(f&&f.properties&&(f.properties.name||f.properties.street))||'Place';
-  const meta='never visited';
-  return window.L.divIcon({className:'restaurant-pin pin-'+t,html:`<div class="map-chip never-visited${sel?' selected':''}">${sel?'<i class="pin-burst" aria-hidden="true"></i>':''}<b>${esc(name)}</b>${meta?`<small>${esc(meta)}</small>`:''}</div>`,iconSize:null,iconAnchor:[0,0]});
+  const last=searchHitLastVisit(f);
+  const nv=!last?' never-visited':'';
+  let meta='never visited';
+  if(last)meta=relativeVisitLabel(last.date)||'visited';
+  return window.L.divIcon({className:'restaurant-pin pin-'+t,html:`<div class="map-chip${nv}${sel?' selected':''}">${sel?'<i class="pin-burst" aria-hidden="true"></i>':''}<b>${esc(name)}</b>${meta?`<small>${esc(meta)}</small>`:''}</div>`,iconSize:null,iconAnchor:[0,0]});
 }
 function drawSearchMarkers(){
   clearSearchMarkers();
   if(!map||!searchResults.length)return;
   searchResults.forEach((f,i)=>{
+    if(searchHitHidden(f))return;
     const c=f.geometry?.coordinates;if(!c||!Number.isFinite(c[0])||!Number.isFinite(c[1]))return;
     const name=f.properties?.name||'Result';
     const m=window.L.marker([c[1],c[0]],{icon:searchResultIcon(f,i),title:name,riseOnHover:true,zIndexOffset:600,bubblingMouseEvents:false}).addTo(map);
@@ -499,10 +546,19 @@ function placeHitHtml(f,i){
 function renderPlaceHits(output,features,opts={}){
   searchResults=(features||[]).filter(validPlace);
   if(!output)return;
+  const visible=searchResults.map((f,i)=>searchHitHidden(f)?null:i).filter(i=>i!=null);
   const head=document.querySelector('.search-sheet-head h2');
-  if(head)head.textContent=searchResults.length?`Nearby matches · ${searchResults.length}`:'Nearby matches';
+  if(head)head.textContent=visible.length?`Nearby matches · ${visible.length}`:'Nearby matches';
+  const cb=document.querySelector('[data-hide-visited]');
+  if(cb)cb.checked=hideVisited;
+  if(searchFocusIdx!=null&&(searchHitHidden(searchResults[searchFocusIdx])||!searchResults[searchFocusIdx]))searchFocusIdx=null;
   if(!searchResults.length){clearSearchMarkers();output.classList.remove('can-scroll');output.innerHTML='<div class="search-idle"><p>No nearby matches. Try another name.</p></div>'+manualFallback();return}
-  output.innerHTML=`<div class="place-hits">${searchResults.map(placeHitHtml).join('')}</div>`+manualFallback();
+  if(!visible.length){
+    clearSearchMarkers();output.classList.remove('can-scroll');
+    output.innerHTML=`<div class="search-idle"><p>${hideVisited?'No unvisited matches nearby. Turn off Hide visited to see places you’ve been.':'No nearby matches. Try another name.'}</p></div>`+manualFallback();
+    return;
+  }
+  output.innerHTML=`<div class="place-hits">${visible.map(i=>placeHitHtml(searchResults[i],i)).join('')}</div>`+manualFallback();
   const hits=output.querySelector('.place-hits');
   requestAnimationFrame(()=>{
     if(!hits||!output.isConnected)return;
@@ -570,7 +626,7 @@ async function fetchPlaceFeaturesLive(q,center,signal){
   }
 }
 function showSearchSheetResults(sheet,features,opts={}){
-  sheet.innerHTML=`<section class="search-sheet"><div class="handle" aria-hidden="true"></div><div class="search-sheet-head"><h2>Nearby matches</h2><button type="button" class="text-button" data-action="clear-search-sheet">Clear</button></div><div id="search-results" class="search-results place-results"></div></section>`;
+  sheet.innerHTML=`<section class="search-sheet"><div class="handle" aria-hidden="true"></div><div class="search-sheet-head"><h2>Nearby matches</h2><div class="search-sheet-tools"><label class="hide-visited-toggle"><input type="checkbox" data-hide-visited ${hideVisited?'checked':''}><span>Hide visited</span></label><button type="button" class="text-button" data-action="clear-search-sheet">Clear</button></div></div><div id="search-results" class="search-results place-results"></div></section>`;
   renderPlaceHits($('#search-results'),features,opts);
   bindSheetDismiss(sheet.querySelector('.search-sheet'),dismissSearchSheet);
 }
@@ -581,7 +637,7 @@ function wireMapSearch(){
   form.onsubmit=async e=>{
     e.preventDefault();clearTimeout(autocompleteTimer);
     const q=input.value.trim();if(q.length<2)return toast('Enter at least two characters.');
-    selected=null;
+    selected=null;lastSearchQuery=q;
     const sheet=$('#sheet');if(!sheet)return;
     // Same query + map-center key as last successful search → re-show cached sheet only (no Mapbox)
     const center=searchCenter();
@@ -622,6 +678,7 @@ function showSearch(context={}){
     const form=$('#search-form'),input=$('#search-query'),output=$('#search-results');
     form.onsubmit=async e=>{
       e.preventDefault();const q=input.value.trim();if(q.length<2)return toast('Enter at least two characters.');
+      lastSearchQuery=q;
       if(searchBusy){activeSearch?.abort();searchGeneration++;searchBusy=false}
       const generation=++searchGeneration,controller=new AbortController();activeSearch=controller;searchBusy=true;
       output.innerHTML='<p class="search-message loading" role="status">Searching nearby…</p>';
@@ -701,6 +758,15 @@ async function importBackup(e){const file=e.target.files[0];if(!file)return;try{
 function confirmAction(title,message,fn){openPanel(title,`<p>${message}</p><div class="form-actions"><button data-action="close-panel">Cancel</button><button class="primary" id="confirm-action">Confirm</button></div>`,{full:true});$('#confirm-action').onclick=()=>{if(!commit(fn))return;closePanel();render();toast('Done')}}
 function locate(){if(!navigator.geolocation)return toast('Location unavailable.');toast('Finding your location…');navigator.geolocation.getCurrentPosition(p=>{userLocation=[p.coords.latitude,p.coords.longitude];mapCenter=userLocation;mapZoom=15;if(map)map.setView(mapCenter,mapZoom);if(tab!=='map')tab='map';render();toast('Map centered')},()=>toast('Location unavailable or denied.'),{enableHighAccuracy:true,timeout:10000})}
 
+document.addEventListener('change',e=>{
+  const t=e.target;
+  if(t&&t.matches&&t.matches('[data-hide-visited]')){
+    hideVisited=!!t.checked;
+    try{localStorage.setItem(HIDE_VISITED_KEY,hideVisited?'1':'0')}catch{}
+    const out=$('#search-results');
+    if(out&&searchResults.length)renderPlaceHits(out,searchResults);
+  }
+});
 document.addEventListener('click',e=>{
   const b=e.target.closest('button,[data-detail],[data-visit-toggle],[data-hit-focus]');if(!b)return;const d=b.dataset;
   if(d.page==='prev'){listPage=Math.max(0,listPage-1);if(tab==='wishlist'){renderWishlist();enhanceIcons()}return}

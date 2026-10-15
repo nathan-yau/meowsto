@@ -178,6 +178,9 @@ header .avatar img,.profile-avatar img{width:100%;height:100%;object-fit:cover;d
 .search-sheet-head{margin-bottom:6px}
 .search-sheet-head h2{font:800 13px Nunito,sans-serif;letter-spacing:.04em;text-transform:uppercase;color:#8a7f72}
 .search-sheet-head .text-button{font:700 12px Nunito,sans-serif;color:#c06a55;text-decoration:none;padding:2px 6px}
+.search-sheet-tools{display:flex;align-items:center;gap:8px;flex:none}
+.hide-visited-toggle{display:inline-flex;align-items:center;gap:5px;font:700 11px Nunito,sans-serif;color:#6d655c;cursor:pointer;user-select:none;white-space:nowrap}
+.hide-visited-toggle input{width:14px;height:14px;margin:0;accent-color:#416c50;cursor:pointer}
 .search-sheet .search-results{position:relative;max-height:none;overflow:hidden}
 .search-sheet .place-hits{
   display:flex;flex-direction:column;gap:0;
