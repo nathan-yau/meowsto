@@ -107,6 +107,24 @@ function commit(change){
 }
 function toast(s){const t=$('#toast');t.textContent=s;t.classList.add('show');clearTimeout(searchTimer);searchTimer=setTimeout(()=>t.classList.remove('show'),4000)}
 function fmt(d){return d?d.slice(5).replace('-','/'):'—'}
+function relativeVisitLabel(dateStr){
+  if(!dateStr||!/^\d{4}-\d{2}-\d{2}$/.test(dateStr))return '';
+  const now=new Date(), visit=new Date(dateStr+'T12:00:00');
+  if(!Number.isFinite(visit.getTime()))return '';
+  const startToday=new Date(now.getFullYear(),now.getMonth(),now.getDate());
+  const startVisit=new Date(visit.getFullYear(),visit.getMonth(),visit.getDate());
+  const diffDays=Math.round((startToday-startVisit)/86400000);
+  if(diffDays<=0)return 'today';
+  if(diffDays===1)return 'yesterday';
+  if(diffDays<7)return 'this week';
+  if(diffDays<14)return 'last week';
+  if(now.getFullYear()===visit.getFullYear()&&now.getMonth()===visit.getMonth())return 'this month';
+  const months=(now.getFullYear()-visit.getFullYear())*12+(now.getMonth()-visit.getMonth());
+  if(months===1)return 'last month';
+  if(months<12)return months+' months ago';
+  if(months<24)return 'last year';
+  return Math.floor(months/12)+' years ago';
+}
 function tags(r){return `<div class="tags">${(r.tags||[]).map(t=>`<span class="tag">${esc(t)}</span>`).join('')}</div>`}
 function personalRating(r){const rated=visits(r.id).filter(v=>v.rating);return rated.length?Math.round(rated.reduce((sum,v)=>sum+v.rating,0)/rated.length*10)/10:r.rating}
 function rating(r){const value=personalRating(r);return value?`<div class="rating"><span class="star">★</span> ${value} <small>· your rating</small></div>`:''}
@@ -208,7 +226,7 @@ let exploreOn=false,exploreLayer=null,exploreTimer,exploreAbort,exploreResults=[
 function loadExplore(){clearTimeout(exploreTimer);exploreTimer=setTimeout(async()=>{if(!map||!exploreOn)return;if(map.getZoom()<14){showExplore([]);toast('Zoom in to explore nearby places');return}const b=map.getBounds(),bb=[b.getSouth(),b.getWest(),b.getNorth(),b.getEast()].map(x=>x.toFixed(3)).join(',');if(exploreCache[bb])return showExplore(exploreCache[bb]);exploreAbort?.abort();exploreAbort=new AbortController();try{const q=`[out:json][timeout:15];nwr["amenity"~"^(restaurant|fast_food)$"]["name"](${bb});out center 80;`;let j;for(const ep of['https://overpass-api.de/api/interpreter','https://overpass.private.coffee/api/interpreter','https://overpass.kumi.systems/api/interpreter']){try{const res=await fetch(ep,{method:'POST',body:'data='+encodeURIComponent(q),headers:{'Content-Type':'application/x-www-form-urlencoded'},signal:exploreAbort.signal});if(!res.ok)continue;j=await res.json();break}catch(e){if(e.name==='AbortError')throw e}}if(!j)throw Error('overpass');const list=j.elements.map(e=>({name:e.tags.name,lat:e.lat??e.center?.lat,lng:e.lon??e.center?.lon,amenity:e.tags.amenity,cuisine:e.tags.cuisine||'',address:[e.tags['addr:housenumber'],e.tags['addr:street']].filter(Boolean).join(' ')})).filter(x=>Number.isFinite(x.lat));exploreCache[bb]=list;showExplore(list)}catch(err){if(err.name!=='AbortError')toast('Explore data unavailable right now')}},500)}
 function showExplore(list){if(exploreLayer)exploreLayer.remove();exploreLayer=window.L.layerGroup().addTo(map);exploreResults=list;list.forEach((x,i)=>{window.L.marker([x.lat,x.lng],{title:x.name,icon:window.L.divIcon({className:'restaurant-pin explore-pin',html:`<div class="map-chip explore-chip"><b>${esc(x.name)}</b></div>`,iconSize:null,iconAnchor:[0,0]})}).bindPopup(`<div class="explore-pop"><b>${esc(x.name)}</b><small>${esc(x.amenity.replace('_',' '))}${x.cuisine?' · '+esc(x.cuisine.replace(/;/g,', ')):''}</small><button data-explore="${i}">♡ Save to wishlist</button></div>`).addTo(exploreLayer)})}
 function pinTier(){const z=map?map.getZoom():mapZoom;return z>=14?'full':z>=12?'mini':'meow'}
-function markerIcon(r){const t=pinTier(),sel=r.id===selected?' selected':'';if(t==='meow'){const sz=r.id===selected?[30,41]:[22,30];return window.L.icon({iconUrl:'assets/meow-map-pin.png?v=ui20261015x',iconSize:sz,iconAnchor:[sz[0]/2,sz[1]],className:'meow-pin'+sel})}const pr=personalRating(r),last=visits(r.id)[0];let meta='';if(t==='full'){const bits=[];if(pr)bits.push(`★ ${Number(pr).toFixed(1).replace(/\.0$/,'')}`);else if(r.wish)bits.push('♡');if(last)bits.push(`last ${fmt(last.date)}`);meta=bits.join(' · ')}return window.L.divIcon({className:'restaurant-pin pin-'+t,html:`<div class="map-chip${sel}"><b>${esc(r.name)}</b>${meta?`<small>${meta}</small>`:''}</div>`,iconSize:null,iconAnchor:[0,0]})}
+function markerIcon(r){const t=pinTier(),sel=r.id===selected?' selected':'';if(t==='meow'){const sz=r.id===selected?[30,41]:[22,30];return window.L.icon({iconUrl:'assets/meow-map-pin.png?v=ui20261015x',iconSize:sz,iconAnchor:[sz[0]/2,sz[1]],className:'meow-pin'+sel})}let meta='';if(t==='full'){const last=visits(r.id)[0];if(last)meta=relativeVisitLabel(last.date);else if(r.wish)meta='♡'}return window.L.divIcon({className:'restaurant-pin pin-'+t,html:`<div class="map-chip${sel}"><b>${esc(r.name)}</b>${meta?`<small>${esc(meta)}</small>`:''}</div>`,iconSize:null,iconAnchor:[0,0]})}
 function updateMarkerIcons(){markers.forEach(m=>m.setIcon(markerIcon(m._r)))}
 function selectPin(id){selected=selected===id?null:id;updateMarkerIcons();renderSheet();enhanceIcons()}
 function drawMarkers(){if(!map)return;markers.forEach(m=>m.remove());markers=[];if(exploreOn){loadExplore();bindMapEvents();return}state.restaurants.filter(r=>Number.isFinite(r.lat)&&Number.isFinite(r.lng)).forEach(r=>{const m=window.L.marker([r.lat,r.lng],{icon:markerIcon(r),title:r.name,riseOnHover:true}).addTo(map).on('click',e=>{window.L.DomEvent.stopPropagation(e);selectPin(r.id)});m._r=r;markers.push(m)});bindMapEvents()}
