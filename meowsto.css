@@ -135,20 +135,22 @@ header .avatar img,.profile-avatar img{width:100%;height:100%;object-fit:cover;d
 .search-sheet-head h2{font-size:20px;margin:0}
 .place-hits{display:flex;flex-direction:column;gap:6px}
 .place-hit{
-  display:flex;flex-direction:row;align-items:center;gap:8px;padding:8px 10px;
+  display:block;padding:8px 10px;
   border:2px solid var(--line);border-radius:14px;background:#fffcf5;cursor:pointer;
 }
-.place-hit-info{flex:1;min-width:0}
-.place-hit-info b{display:block;font-size:17px;line-height:1.15;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.place-hit-info{min-width:0}
+.place-hit-title{display:flex;align-items:center;gap:6px;min-width:0}
+.place-hit-title b{flex:1;min-width:0;font-size:16px;line-height:1.2;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 .place-hit-info small{display:block;margin-top:2px;font:12px/1.35 Nunito,sans-serif;color:#6d655c;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 .place-hit-info .hit-dist{font-weight:700;color:#416c50}
-.place-hit-actions{flex:none;display:flex;gap:4px;align-items:center}
+.place-hit-actions{flex:none;display:flex;gap:2px;align-items:center}
 .place-hit-actions .hit-icon{
-  width:30px;height:30px;min-width:30px;min-height:30px;padding:0;flex:none;
-  border-radius:50%;font-size:15px;line-height:1;display:grid;place-items:center;
-  box-shadow:none;
+  width:28px;height:28px;min-width:28px;min-height:28px;padding:0;flex:none;
+  border:none;background:transparent;border-radius:8px;line-height:0;
+  display:grid;place-items:center;box-shadow:none;cursor:pointer;
 }
-.place-hit-actions .hit-icon.primary{background:#ffb19b;border-color:#d68c74;color:#38271f}
+.place-hit-actions .hit-icon img{width:26px;height:26px;display:block;pointer-events:none;object-fit:contain}
+.place-hit-actions .hit-icon:active{transform:scale(.92)}
 .place-hit.hit-focus{border-color:#38271f;background:#fff4e4}
 .meow-pin-search{filter:drop-shadow(0 1px 2px rgba(26,58,74,.35))}
 .meow-pin-search.search-pin-pulse{animation:searchPinPulse .85s ease}
