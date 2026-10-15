@@ -183,15 +183,17 @@ function renderTimeline(){
 }
 
 function renderMap(){
-  $('#main').innerHTML=`<div class="map-wrap"><div class="map-toolbar"><button type="button" data-action="locate" aria-label="Go to my location">◎ Near me</button><button type="button" data-action="explore" class="explore-toggle${exploreOn?' active':''}" aria-pressed="${exploreOn}" aria-label="${exploreOn?'Exit explore mode':'Explore nearby restaurants'}">${exploreOn?'✕ Exit':'✧ Explore'}</button><button type="button" class="primary" data-action="search" aria-label="Add new restaurant">⊕ New</button></div><div id="map" aria-label="Restaurant map"></div>${exploreOn?'<div class="explore-banner">Explore mode · nearby restaurants from OpenStreetMap (not your pins)</div>':''}<div id="map-status" class="map-status" role="status" hidden></div></div><div id="sheet"></div>`;
+  $('#main').innerHTML=`<div class="map-wrap"><div class="map-toolbar"><button type="button" data-action="locate" aria-label="Go to my location">◎ Near me</button><button type="button" data-action="explore" class="explore-toggle${exploreOn?' active':''}" aria-pressed="${exploreOn}" aria-label="${exploreOn?'Exit explore mode':'Explore nearby restaurants'}">${exploreOn?'✕ Exit':'✧ Explore'}</button></div><form class="map-search-bar" id="map-search-form" role="search"><input id="map-search-query" type="search" enterkeyhint="search" placeholder="Search nearby restaurants" aria-label="Search nearby restaurants" autocomplete="off" maxlength="200"><button type="submit" class="map-search-go" aria-label="Search">→</button></form><div id="map" aria-label="Restaurant map"></div>${exploreOn?'<div class="explore-banner">Explore mode · nearby restaurants from OpenStreetMap (not your pins)</div>':''}<div id="map-status" class="map-status" role="status" hidden></div></div><div id="sheet"></div>`;
   if(typeof L==='undefined'||typeof window.L==='undefined'&&typeof leaflet==='undefined'){/* leaflet global is L which conflicts — use window check */}
-  if(typeof window.L==='undefined'){$('#map').innerHTML='<div class="failure">The map could not load. Check your connection.<br><button data-action="reload-map">Try again</button></div>'}
+  if(typeof window.L==='undefined'){$('#map').innerHTML='<div class="failure">The map could not load. Check your connection.<br><button data-action="reload-map">Try again</button></div>';wireMapSearch()}
   else{
     map=window.L.map('map',{zoomControl:false}).setView(mapCenter,mapZoom);
     baseLayer=createMapTiles(map);drawMarkers();
     if(userLocation)window.L.circleMarker(userLocation,{radius:8,color:'#fff',fillColor:'#548ac1',fillOpacity:1}).addTo(map);
   }
   renderSheet();
+  enhanceIcons();
+  wireMapSearch();
   if(map&&typeof ResizeObserver!=='undefined'){mapSizeObserver=new ResizeObserver(()=>{if(map)map.invalidateSize({animate:false,debounceMoveend:true})});mapSizeObserver.observe($('#map'))}
 }
 
@@ -322,13 +324,13 @@ function validPlace(f){
   const c=f?.geometry?.coordinates;return f?.geometry?.type==='Point'&&f.properties&&Array.isArray(c)&&Number.isFinite(c[0])&&Math.abs(c[0])<=180&&Number.isFinite(c[1])&&Math.abs(c[1])<=90
 }
 function placeSearchURL(query,center,nearMap=true){
-  const params=new URLSearchParams({q:query,limit:'5',lat:String(center[0]),lon:String(center[1]),zoom:'13',location_bias_scale:'0.1'});
+  const params=new URLSearchParams({q:query,limit:'3',lat:String(center[0]),lon:String(center[1]),zoom:'13',location_bias_scale:'0.2'});
   for(const type of ['amenity:restaurant','amenity:cafe','amenity:fast_food','amenity:food_court','amenity:bar','amenity:pub','amenity:ice_cream','shop:bakery'])params.append('osm_tag',type);
   if(nearMap)params.set('bbox',[Math.max(-180,center[1]-.45),Math.max(-90,center[0]-.27),Math.min(180,center[1]+.45),Math.min(90,center[0]+.27)].join(','));
   return 'https://photon.komoot.io/api/?'+params.toString();
 }
 function mapboxForwardURL(query,center,nearMap){
-  const params=new URLSearchParams({q:query,access_token:MAPBOX_TOKEN,language:'en',limit:'8',types:'poi'});
+  const params=new URLSearchParams({q:query,access_token:MAPBOX_TOKEN,language:'en',limit:'3',types:'poi'});
   if(nearMap&&Array.isArray(center)&&center.length>=2){
     params.set('proximity',`${center[1]},${center[0]}`);
     params.set('bbox',[Math.max(-180,center[1]-.45),Math.max(-90,center[0]-.27),Math.min(180,center[1]+.45),Math.min(90,center[0]+.27)].join(','));
@@ -348,85 +350,111 @@ function mapboxForwardFeatures(features){
     }};
   });
 }
-function manualFallback(){return `<details class="manual-fallback"><summary>Still can’t find the restaurant?</summary><p>Try a broader search. Or enter details manually.</p><button type="button" class="manual-last-resort" data-action="manual">Enter details manually</button></details>`}
-function suggestion(f,i){const p=f.properties,category=placeCategory(p);return `<button type="button" id="place-option-${i}" class="place-suggestion" role="option" aria-selected="false" data-result="${i}"><span class="suggestion-icon">${art(category.kind)}</span><span><b>${esc(p.name||p.street||'Place')}</b><small>${esc(placeAddress(p))}</small></span><span class="suggestion-arrow">↗</span></button>`}
-function renderSearchPage(output,saved){
-  const PAGE=4;const opts=[];
-  // saved already rendered as HTML parts separately — paginate searchResults
-  const start=searchResultPage*PAGE, slice=searchResults.slice(start,start+PAGE);
-  const pages=Math.max(1,Math.ceil(searchResults.length/PAGE));
-  let html=saved||'';
-  if(slice.length)html+=`<div class="page-list">${slice.map((f,i)=>suggestion(f,start+i)).join('')}</div>`;
-  else if(!saved)html+='<div class="search-idle"><h3>No matches just yet</h3><p>Try another spelling or search worldwide.</p></div>'+manualFallback();
-  if(searchResults.length>PAGE)html+=`<div class="pager"><button type="button" data-spage="prev" ${searchResultPage<=0?'disabled':''}>‹</button><span>${searchResultPage+1}/${pages}</span><button type="button" data-spage="next" ${searchResultPage>=pages-1?'disabled':''}>›</button></div>`;
-  output.innerHTML=html;
+function manualFallback(){return `<details class="manual-fallback"><summary>Can’t find it?</summary><p>Enter details manually.</p><button type="button" class="manual-last-resort" data-action="manual">Enter manually</button></details>`}
+function placeHitHtml(f,i){
+  const p=f.properties;
+  return `<article class="place-hit"><div class="place-hit-info"><b>${esc(p.name||p.street||'Place')}</b><small>${esc(placeAddress(p))}</small></div><div class="place-hit-actions"><button type="button" data-result-wish="${i}">♡ Wishlist</button><button type="button" class="primary" data-result-add="${i}">⊕ Add</button></div></article>`;
 }
-function showSearch(context={}){
-  cancelSearch();searchContext=context;searchResultPage=0;
-  openPanel(context.wish?'A little food daydream':'Find your next favorite',`
-    <form class="search-form place-search-form" id="search-form"><div class="place-search-input">${icon('search')}<input id="search-query" placeholder="Restaurant, café, or neighborhood" aria-label="Restaurant name and city" role="combobox" aria-autocomplete="list" aria-controls="search-results" aria-expanded="false" autocomplete="off" required minlength="2" maxlength="200"><button type="button" class="clear-search" id="clear-search" aria-label="Clear search" hidden>×</button></div><button class="search-submit" aria-label="Search restaurants">→</button></form>
-    <div class="search-area"><span>◎ <span id="search-scope-label">${context.fromPin?'Near selected map point':'Near your map'}</span></span><button type="button" id="search-scope">Search worldwide</button></div>
-    <div id="search-results" class="search-results place-results" role="listbox" aria-label="Restaurant suggestions"><div class="search-idle"><span>✧</span><h3>Where are we eating?</h3><p>Type a name, then tap search.</p></div></div>
-    <footer class="place-search-footer"><a id="google-search-link" target="_blank" rel="noopener" hidden>Search on Google Maps ↗</a><small>Place search by Mapbox · Photon fallback · © OpenStreetMap</small></footer>`,{full:true,cls:'place-panel search-panel'});
-  const input=$('#search-query'),form=$('#search-form'),output=$('#search-results');let activeChoice=-1,nearMap=true;
-  const searchKey=q=>{const center=context.center||userLocation||mapCenter;return 'food-search-v4-fwd:'+q.toLowerCase()+':'+nearMap+':'+center.map(n=>n.toFixed(2)).join(',')};
-  const memCache=window.__placeCache||(window.__placeCache=new Map());
-  const cachedSearch=q=>{const k=searchKey(q);if(memCache.has(k))return memCache.get(k);try{const v=JSON.parse(sessionStorage.getItem(k));if(v){memCache.set(k,v);return v}}catch{}return null};
-  // Typing only updates UI chrome — no network search until submit
-  input.oninput=()=>{
-    clearTimeout(autocompleteTimer);activeChoice=-1;
-    form.querySelector('.search-submit').disabled=false;form.querySelector('.search-submit').textContent='→';
-    const q=input.value.trim();$('#clear-search').hidden=!q;
-    const link=$('#google-search-link');link.hidden=!q;link.href='https://www.google.com/maps/search/?api=1&query='+encodeURIComponent(q);
-  };
-  $('#search-scope').onclick=()=>{nearMap=!nearMap;$('#search-scope-label').textContent=nearMap?(context.fromPin?'Near selected map point':'Near your map'):'Worldwide';$('#search-scope').textContent=nearMap?'Search worldwide':'Search near map'};
-  $('#clear-search').onclick=()=>{input.value='';input.dispatchEvent(new Event('input'));input.focus()};
+function renderPlaceHits(output,features){
+  searchResults=(features||[]).filter(validPlace).slice(0,3);
+  if(!output)return;
+  if(!searchResults.length){output.innerHTML='<div class="search-idle"><p>No nearby matches. Try another name.</p></div>'+manualFallback();return}
+  output.innerHTML=`<div class="place-hits">${searchResults.map(placeHitHtml).join('')}</div>`+manualFallback();
+}
+function searchCenter(){return searchContext.center||userLocation||mapCenter}
+async function fetchPlaceFeatures(q,signal){
+  const center=searchCenter();
+  try{
+    const res=await fetch(mapboxForwardURL(q,center,true),{signal});
+    if(!res.ok)throw Error('mapbox '+res.status);
+    const json=await res.json();
+    if(!Array.isArray(json.features))throw Error('mapbox invalid');
+    return mapboxForwardFeatures(json.features).slice(0,3);
+  }catch(mbErr){
+    if(mbErr?.name==='AbortError')throw mbErr;
+    const res=await fetch(placeSearchURL(q,center,true),{signal});
+    if(!res.ok)throw Error('Search unavailable');
+    const data=await res.json();
+    if(!Array.isArray(data.features))throw Error('Invalid');
+    return data.features.filter(validPlace).slice(0,3);
+  }
+}
+function wireMapSearch(){
+  const form=$('#map-search-form'),input=$('#map-search-query');
+  if(!form||!input||form.dataset.wired)return;
+  form.dataset.wired='1';
   form.onsubmit=async e=>{
-    e.preventDefault();clearTimeout(autocompleteTimer);if(searchBusy){activeSearch?.abort();searchGeneration++;searchBusy=false}
+    e.preventDefault();clearTimeout(autocompleteTimer);
     const q=input.value.trim();if(q.length<2)return toast('Enter at least two characters.');
-    const btn=form.querySelector('.search-submit'),generation=++searchGeneration;
-    const saved=state.restaurants.filter(r=>(r.name+' '+r.address).toLowerCase().includes(q.toLowerCase()));
-    const savedHtml=saved.slice(0,3).map((r,i)=>`<button class="place-suggestion" role="option" aria-selected="false" id="saved-option-${i}" data-detail="${r.id}"><span class="suggestion-icon">${art(r.kind)}</span><span><b>${esc(r.name)}</b><small>In your journal · ${esc(r.address)}</small></span><span>♡</span></button>`).join('');
-    output.innerHTML=savedHtml+'<p class="search-message loading" role="status">Finding good food…</p>';
-    searchBusy=true;lastSearchAt=Date.now();btn.disabled=true;btn.textContent='…';
-    const controller=new AbortController();activeSearch=controller;
+    selected=null;
+    const sheet=$('#sheet');if(!sheet)return;
+    sheet.innerHTML=`<section class="search-sheet"><div class="handle" aria-hidden="true"></div><p class="search-message loading" role="status">Searching nearby…</p></section>`;
+    if(searchBusy){activeSearch?.abort();searchGeneration++;searchBusy=false}
+    const generation=++searchGeneration,controller=new AbortController();activeSearch=controller;searchBusy=true;
     const timeout=setTimeout(()=>controller.abort(),9000);
     try{
-      const center=context.center||userLocation||mapCenter,cacheKey=searchKey(q);
-      let data=cachedSearch(q);
-      if(!data){
-        try{
-          const res=await fetch(mapboxForwardURL(q,center,nearMap),{signal:controller.signal});
-          if(!res.ok)throw Error('mapbox '+res.status);
-          const json=await res.json();
-          if(!Array.isArray(json.features))throw Error('mapbox invalid');
-          data={features:mapboxForwardFeatures(json.features),_provider:'mapbox'};
-          memCache.set(cacheKey,data);
-          try{sessionStorage.setItem(cacheKey,JSON.stringify(data))}catch{}
-        }catch(mbErr){
-          if(mbErr?.name==='AbortError')throw mbErr;
-          const res=await fetch(placeSearchURL(q,center,nearMap),{signal:controller.signal});
-          if(!res.ok)throw Error('Search unavailable');
-          data=await res.json();
-          if(!Array.isArray(data.features))throw Error('Invalid');
-          data={...data,_provider:'photon'};
-          memCache.set(cacheKey,data);
-          try{sessionStorage.setItem(cacheKey,JSON.stringify(data))}catch{}
-        }
-      }
-      if(generation!==searchGeneration||!output.isConnected)return;
-      searchResults=data.features.filter(validPlace);searchResultPage=0;activeChoice=-1;
-      renderSearchPage(output,savedHtml);
+      const features=await fetchPlaceFeatures(q,controller.signal);
+      if(generation!==searchGeneration||!sheet.isConnected)return;
+      sheet.innerHTML=`<section class="search-sheet"><div class="handle" aria-hidden="true"></div><div class="search-sheet-head"><h2>Nearby matches</h2><button type="button" class="text-button" data-action="clear-search-sheet">Clear</button></div><div id="search-results" class="search-results place-results"></div></section>`;
+      renderPlaceHits($('#search-results'),features);
     }catch{
-      if(generation!==searchGeneration||!output.isConnected)return;
-      output.innerHTML=savedHtml+'<div class="search-idle" role="status"><h3>Connection hiccup</h3><p>Retry or check Google Maps.</p><button type="button" id="retry-place-search">Try again</button></div>'+(saved.length?'':manualFallback());
+      if(generation!==searchGeneration||!sheet.isConnected)return;
+      sheet.innerHTML=`<section class="search-sheet"><div class="handle" aria-hidden="true"></div><div class="search-idle" role="status"><h3>Connection hiccup</h3><p>Try again in a moment.</p><button type="button" id="retry-place-search">Try again</button></div>${manualFallback()}</section>`;
       $('#retry-place-search')?.addEventListener('click',()=>form.requestSubmit());
     }finally{
       clearTimeout(timeout);
-      if(generation===searchGeneration){const link=$('#google-search-link');if(link){link.hidden=false;link.href='https://www.google.com/maps/search/?api=1&query='+encodeURIComponent(q)}activeSearch=null;searchBusy=false;btn.disabled=false;btn.textContent='→'}
+      if(generation===searchGeneration){activeSearch=null;searchBusy=false}
     }
   };
 }
+function showSearch(context={}){
+  cancelSearch();searchContext=context;searchResultPage=0;
+  // Prefer map search bar; keep a slim panel only when editing a place mid-form
+  if(context.editId){
+    openPanel('Find a place',`
+      <form class="search-form place-search-form compact" id="search-form"><div class="place-search-input"><input id="search-query" placeholder="Restaurant nearby" aria-label="Search restaurants" autocomplete="off" required minlength="2" maxlength="200"></div><button class="search-submit" aria-label="Search">→</button></form>
+      <div id="search-results" class="search-results place-results"><div class="search-idle"><p>Type a name, then tap search. Top 3 nearby.</p></div></div>
+      <footer class="place-search-footer"><small>Mapbox · Photon fallback</small></footer>`,{cls:'search-panel compact-search'});
+    const form=$('#search-form'),input=$('#search-query'),output=$('#search-results');
+    form.onsubmit=async e=>{
+      e.preventDefault();const q=input.value.trim();if(q.length<2)return toast('Enter at least two characters.');
+      if(searchBusy){activeSearch?.abort();searchGeneration++;searchBusy=false}
+      const generation=++searchGeneration,controller=new AbortController();activeSearch=controller;searchBusy=true;
+      output.innerHTML='<p class="search-message loading" role="status">Searching nearby…</p>';
+      const timeout=setTimeout(()=>controller.abort(),9000);
+      try{
+        const features=await fetchPlaceFeatures(q,controller.signal);
+        if(generation!==searchGeneration||!output.isConnected)return;
+        renderPlaceHits(output,features);
+      }catch{
+        if(generation!==searchGeneration||!output.isConnected)return;
+        output.innerHTML='<div class="search-idle" role="status"><p>Couldn’t search. Try again.</p><button type="button" id="retry-place-search">Try again</button></div>'+manualFallback();
+        $('#retry-place-search')?.addEventListener('click',()=>form.requestSubmit());
+      }finally{clearTimeout(timeout);if(generation===searchGeneration){activeSearch=null;searchBusy=false}}
+    };
+    setTimeout(()=>input?.focus(),50);
+    return;
+  }
+  closePanel();
+  if(tab!=='map'){tab='map';render()}
+  else if(!$('#map-search-form'))render();
+  else wireMapSearch();
+  setTimeout(()=>{const input=$('#map-search-query');if(input){input.focus();if(context.wish)toast('Search, then tap Wishlist on a result')}},60);
+}
+function openFromSearchFeature(f,mode){
+  const p=f.properties,coords=f.geometry.coordinates;
+  const sourceId=p.sourceId||(p.osm_type&&p.osm_id?`${p.osm_type}:${p.osm_id}`:null)||(p.mapbox_id?`mapbox:${p.mapbox_id}`:null);
+  const wantWish=mode==='wish'||(mode!=='add'&&(searchContext.wish||tab==='wishlist'));
+  const existing=state.restaurants.find(r=>sourceId&&r.sourceId===sourceId||r.name===(p.name||p.street)&&r.lat===coords[1]&&r.lng===coords[0]);
+  if(existing&&existing.id!==searchContext.editId){
+    if(wantWish&&!existing.wish&&!commit(()=>{rest(existing.id).wish=true;rest(existing.id).u=Date.now()}))return;
+    if(pendingVisit){pendingVisit=false;return visitForm(existing.id)}
+    if(wantWish){toast(existing.wish?'Already on wishlist':'Saved to wishlist');closePanel();render();return}
+    return restaurantDetail(existing.id);
+  }
+  return restaurantForm(searchContext.editId||null,{...searchContext.draft,name:p.name||p.street||'New restaurant',address:placeAddress(p),lat:coords[1],lng:coords[0],wish:wantWish,sourceId,...placeCategory(p)});
+}
+
 function placeCategory(p){
   const cats=(p.poi_category||[]).join(' ').toLowerCase();
   const type=String(p.osm_value||'').toLowerCase(),name=String(p.name||'').toLowerCase();
@@ -488,12 +516,12 @@ document.addEventListener('click',e=>{
   if(d.explore!=null){const x=exploreResults[+d.explore];if(x){map?.closePopup();restaurantForm(null,{name:x.name,address:x.address,lat:x.lat,lng:x.lng,wish:true,kind:x.amenity==='cafe'?'cafe':'shop'})}return}
   if(d.save){if(!commit(()=>{const x=rest(d.save);x.wish=!x.wish;x.u=Date.now()}))return;if(!$('#panel').hidden)restaurantDetail(d.save);render();toast(rest(d.save).wish?'Saved to wishlist':'Removed from wishlist');return}
   if(d.note){const r=rest(d.note);openPanel('My note',`<form id="note-form"><textarea aria-label="My note" maxlength="2000">${esc(r.note)}</textarea><div class="form-actions"><button class="primary">Save note</button></div></form>`,{full:true});$('#note-form').onsubmit=e=>{e.preventDefault();if(!commit(()=>{rest(d.note).note=e.target.querySelector('textarea').value;rest(d.note).u=Date.now()}))return;closePanel();render();toast('Note saved')};return}
-  if(d.result!==undefined){
-    const f=searchResults[Number(d.result)];if(!f)return;
-    return openFromSearchFeature(f);
-  }
+  if(d.resultWish!==undefined){const f=searchResults[Number(d.resultWish)];if(!f)return;return openFromSearchFeature(f,'wish')}
+  if(d.resultAdd!==undefined){const f=searchResults[Number(d.resultAdd)];if(!f)return;return openFromSearchFeature(f,'add')}
+  if(d.result!==undefined){const f=searchResults[Number(d.result)];if(!f)return;return openFromSearchFeature(f)}
   switch(d.action){
     case'close':case'close-panel':pendingVisit=false;closePanel();break;
+    case'clear-search-sheet':searchResults=[];if($('#sheet'))renderSheet();break;
     case'add':pendingVisit=false;showSearch();break;
     case'manual':restaurantForm(searchContext.editId||null,{...searchContext.draft,name:$('#search-query')?.value.trim()||'',wish:searchContext.wish??tab==='wishlist'});break;
     case'explore':exploreOn=!exploreOn;if(!exploreOn&&exploreLayer){exploreLayer.remove();exploreLayer=null}selected=null;render();toast(exploreOn?'Explore on: nearby places':'Explore off: your pins');break;

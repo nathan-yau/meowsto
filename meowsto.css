@@ -105,3 +105,43 @@ header .avatar img,.profile-avatar img{width:100%;height:100%;object-fit:cover;d
   .visit-date{width:42px;font-size:16px}
   .detail-sheet.sheet-compact .sheet-head h2{font-size:22px}
 }
+
+/* Map search bar (replaces New button) */
+.map-search-bar{
+  position:absolute;z-index:500;top:52px;left:10px;right:10px;
+  display:flex;gap:6px;pointer-events:auto;
+  background:#fffaf1ee;border:1.5px solid #38271f;border-radius:16px;
+  padding:4px 4px 4px 12px;box-shadow:0 3px 12px #38271f18;
+  backdrop-filter:blur(8px);
+}
+.map-search-bar input{
+  flex:1;min-width:0;border:0;background:transparent;outline:none;
+  font:600 14px Nunito,sans-serif;padding:8px 0;color:var(--ink);
+}
+.map-search-bar input::placeholder{color:#8a7f72;font-weight:500}
+.map-search-go{
+  flex:none;width:40px;min-width:40px;height:36px;padding:0;border-radius:12px;
+  border:1.5px solid #d68c74;background:#ffb19b;font-size:18px;box-shadow:none;
+}
+.map-toolbar button{flex:0 1 auto}
+@media(max-width:600px){
+  .map-search-bar{top:48px;left:8px;right:8px}
+  .map-search-bar input{font-size:13px}
+}
+/* Compact search results (max 3) */
+.search-sheet{padding:12px 14px calc(10px + env(safe-area-inset-bottom,0px));background:var(--cream);border-radius:22px 22px 0 0;border-top:2px solid var(--ink)}
+.search-sheet .handle{width:40px;height:4px;margin:0 auto 10px;background:#c4bbb0;border-radius:4px}
+.search-sheet-head{display:flex;align-items:center;justify-content:space-between;gap:8px;margin-bottom:8px}
+.search-sheet-head h2{font-size:20px;margin:0}
+.place-hits{display:flex;flex-direction:column;gap:8px}
+.place-hit{
+  display:flex;flex-direction:column;gap:8px;padding:10px 12px;
+  border:2px solid var(--line);border-radius:16px;background:#fffcf5;
+}
+.place-hit-info b{display:block;font-size:20px;line-height:1.15}
+.place-hit-info small{display:block;margin-top:2px;font:13px/1.35 Nunito,sans-serif;color:#6d655c}
+.place-hit-actions{display:flex;gap:8px}
+.place-hit-actions button{flex:1;min-height:38px;padding:6px 8px;font-size:14px;border-radius:12px}
+.panel.compact-search .panel-body{padding-top:8px}
+.panel.compact-search .place-search-form{margin-top:4px}
+.panel.compact-search .search-idle{padding:12px 4px;text-align:center;color:var(--muted);font-size:14px}

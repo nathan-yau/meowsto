@@ -86,3 +86,5 @@ dialog { max-height: calc(100dvh - 24px - env(safe-area-inset-top, 0px) - env(sa
 .view-timeline > .content { min-height: 0; }
 .view-timeline .timeline-list { flex: 1 1 0; min-height: 0; max-height: none; }
 .filters { overflow: hidden !important; flex-wrap: wrap; }
+
+.view-map .map-search-bar { pointer-events: auto; }
