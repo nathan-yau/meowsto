@@ -46,3 +46,11 @@ header .avatar img,.profile-avatar img{width:100%;height:100%;object-fit:cover;d
 @media(max-width:360px){
   .map-toolbar button{font-size:13px;padding:5px 4px}
 }
+
+/* Text-only list cards (no food-tile / art) */
+.restaurant.no-tile{align-items:flex-start}
+.restaurant.no-tile .info{padding-right:8px}
+.latest.no-art{display:block}
+.visit-card.no-art{align-items:flex-start}
+.visit-card.no-art .visit-time{display:block;margin-bottom:4px}
+.milestones .circle:empty{background:var(--cream)}
