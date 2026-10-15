@@ -228,7 +228,7 @@ function loadExplore(){clearTimeout(exploreTimer);exploreTimer=setTimeout(async(
 function showExplore(list){if(exploreLayer)exploreLayer.remove();exploreLayer=window.L.layerGroup().addTo(map);exploreResults=list;list.forEach((x,i)=>{window.L.marker([x.lat,x.lng],{title:x.name,icon:window.L.divIcon({className:'restaurant-pin explore-pin',html:`<div class="map-chip explore-chip"><b>${esc(x.name)}</b></div>`,iconSize:null,iconAnchor:[0,0]})}).bindPopup(`<div class="explore-pop"><b>${esc(x.name)}</b><small>${esc(x.amenity.replace('_',' '))}${x.cuisine?' · '+esc(x.cuisine.replace(/;/g,', ')):''}</small><button data-explore="${i}">♡ Save to wishlist</button></div>`).addTo(exploreLayer)})}
 function pinTier(){const z=map?map.getZoom():mapZoom;return z>=14?'full':z>=12?'mini':'meow'}
 function markerIcon(r){const t=pinTier(),sel=r.id===selected?' selected':'';if(t==='meow'){const sz=r.id===selected?[30,41]:[22,30];return window.L.icon({iconUrl:'assets/meow-map-pin.png?v=ui20261015x',iconSize:sz,iconAnchor:[sz[0]/2,sz[1]],className:'meow-pin'+sel})}const last=visits(r.id)[0],nv=!last?' never-visited':'';let meta='';if(t==='full'){if(last)meta=relativeVisitLabel(last.date);else meta=r.wish?'♡ never visited':'never visited'}return window.L.divIcon({className:'restaurant-pin pin-'+t,html:`<div class="map-chip${sel}${nv}">${sel?'<i class="pin-burst" aria-hidden="true"></i>':''}<b>${esc(r.name)}</b>${meta?`<small>${esc(meta)}</small>`:''}</div>`,iconSize:null,iconAnchor:[0,0]})}
-function updateMarkerIcons(){markers.forEach(m=>m.setIcon(markerIcon(m._r)))}
+function updateMarkerIcons(){markers.forEach(m=>m.setIcon(markerIcon(m._r)));searchMarkers.forEach((m,i)=>{if(m&&searchResults[i])m.setIcon(searchResultIcon(searchResults[i],i))})}
 function selectPin(id){
   selected=selected===id?null:id;
   updateMarkerIcons();renderSheet();enhanceIcons();
@@ -240,15 +240,24 @@ function selectPin(id){
     }
   }
 }
+let searchFocusIdx=null;
 function clearSearchMarkers(){searchMarkers.forEach(m=>m&&m.remove());searchMarkers=[]}
-function searchResultIcon(){return window.L.icon({iconUrl:'assets/meow-map-pin-search.png?v=ui20261015ag',iconSize:[24,33],iconAnchor:[12,33],className:'meow-pin meow-pin-search'})}
+function searchResultIcon(f,i){
+  const t=pinTier(),sel=searchFocusIdx!=null&&Number(i)===Number(searchFocusIdx);
+  if(t==='meow'){
+    return window.L.icon({iconUrl:'assets/meow-map-pin-search.png?v=ui20261015ag',iconSize:[24,33],iconAnchor:[12,33],className:'meow-pin meow-pin-search'+(sel?' search-pin-active':'')});
+  }
+  const name=(f&&f.properties&&(f.properties.name||f.properties.street))||'Place';
+  const meta=t==='full'?'never visited':'';
+  return window.L.divIcon({className:'restaurant-pin pin-'+t,html:`<div class="map-chip never-visited${sel?' selected':''}">${sel?'<i class="pin-burst" aria-hidden="true"></i>':''}<b>${esc(name)}</b>${meta?`<small>${esc(meta)}</small>`:''}</div>`,iconSize:null,iconAnchor:[0,0]});
+}
 function drawSearchMarkers(){
   clearSearchMarkers();
   if(!map||!searchResults.length)return;
   searchResults.forEach((f,i)=>{
     const c=f.geometry?.coordinates;if(!c||!Number.isFinite(c[0])||!Number.isFinite(c[1]))return;
     const name=f.properties?.name||'Result';
-    const m=window.L.marker([c[1],c[0]],{icon:searchResultIcon(),title:name,riseOnHover:true,zIndexOffset:600,bubblingMouseEvents:false}).addTo(map);
+    const m=window.L.marker([c[1],c[0]],{icon:searchResultIcon(f,i),title:name,riseOnHover:true,zIndexOffset:600,bubblingMouseEvents:false}).addTo(map);
     m.on('click',e=>{window.L.DomEvent.stopPropagation(e);openSearchHitFromPin(i)});
     searchMarkers[i]=m;
   });
@@ -478,9 +487,8 @@ function focusSearchHit(i,opts={}){
   const el=document.querySelector(`.place-hit[data-hit="${i}"]`);
   el?.classList.add('hit-focus');
   el?.scrollIntoView({block:'nearest',behavior:'smooth'});
-  const m=searchMarkers[Number(i)];
-  // highlight via filter-only class (never touches transform/scale/size, which Leaflet owns)
-  searchMarkers.forEach((mk,j)=>{const n=mk?.getElement?.();if(n)n.classList.toggle('search-pin-active',j===Number(i))});
+  searchFocusIdx=Number(i);
+  searchMarkers.forEach((mk,j)=>{if(mk&&searchResults[j])mk.setIcon(searchResultIcon(searchResults[j],j))});
 }
 function placeHitHtml(f,i){
   const p=f.properties,dist=hitDistanceLabel(f),addr=placeAddress(p);
@@ -637,7 +645,7 @@ function showSearch(context={}){
   setTimeout(()=>{const input=$('#map-search-query');if(input){input.focus();if(context.wish)toast('Search, then tap Wishlist on a result')}},60);
 }
 function openFromSearchFeature(f,mode){
-  clearSearchMarkers();searchResults=[];
+  clearSearchMarkers();searchResults=[];searchFocusIdx=null;
   const p=f.properties,coords=f.geometry.coordinates;
   const sourceId=p.sourceId||(p.osm_type&&p.osm_id?`${p.osm_type}:${p.osm_id}`:null)||(p.mapbox_id?`mapbox:${p.mapbox_id}`:null);
   const wantWish=mode==='wish'||(mode!=='add'&&(searchContext.wish||tab==='wishlist'));
@@ -697,7 +705,7 @@ document.addEventListener('click',e=>{
   if(d.page==='prev'){listPage=Math.max(0,listPage-1);if(tab==='wishlist'){renderWishlist();enhanceIcons()}return}
   if(d.page==='next'){listPage++;if(tab==='wishlist'){renderWishlist();enhanceIcons()}return}
 
-  if(d.tab){if(d.tab!=='timeline')expandedVisitId=null;if(d.tab!=='map'){searchResults=[];clearSearchMarkers()}tab=d.tab;closePanel();render();return}
+  if(d.tab){if(d.tab!=='timeline')expandedVisitId=null;if(d.tab!=='map'){searchResults=[];searchFocusIdx=null;clearSearchMarkers()}tab=d.tab;closePanel();render();return}
   if(d.filter){filter=d.filter;listPage=0;render();return}
   if(d.detail)return restaurantDetail(d.detail);
   if(d.edit)return restaurantForm(d.edit);
@@ -717,7 +725,7 @@ document.addEventListener('click',e=>{
   if(d.result!==undefined){const f=searchResults[Number(d.result)];if(!f)return;return openFromSearchFeature(f)}
   switch(d.action){
     case'close':case'close-panel':pendingVisit=false;closePanel();break;
-    case'clear-search-sheet':searchResults=[];clearSearchMarkers();if($('#sheet'))renderSheet();break;
+    case'clear-search-sheet':searchResults=[];searchFocusIdx=null;clearSearchMarkers();if($('#sheet'))renderSheet();break;
     case'add':pendingVisit=false;showSearch();break;
     case'manual':restaurantForm(searchContext.editId||null,{...searchContext.draft,name:$('#search-query')?.value.trim()||'',wish:searchContext.wish??tab==='wishlist'});break;
     case'explore':exploreOn=!exploreOn;if(!exploreOn&&exploreLayer){exploreLayer.remove();exploreLayer=null}selected=null;render();toast(exploreOn?'Explore on: nearby places':'Explore off: your pins');break;
