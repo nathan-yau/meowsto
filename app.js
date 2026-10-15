@@ -164,7 +164,7 @@ function renderTimeline(){
 }
 
 function renderMap(){
-  $('#main').innerHTML=`<div class="map-wrap"><div class="map-toolbar"><button data-action="locate">◎ My location</button><button class="primary" data-action="search">⊕ New Restaurant</button></div><div id="map" aria-label="Restaurant map"></div><div id="map-status" class="map-status" role="status" hidden></div></div><div id="sheet"></div>`;
+  $('#main').innerHTML=`<div class="map-wrap"><div class="map-toolbar"><button data-action="locate">◎ My location</button><button data-action="explore" class="explore-toggle${exploreOn?' active':''}" aria-pressed="${exploreOn}">${exploreOn?'✕ Exit Explore':'✧ Explore nearby'}</button><button class="primary" data-action="search">⊕ New Restaurant</button></div><div id="map" aria-label="Restaurant map"></div>${exploreOn?'<div class="explore-banner">Explore mode · nearby places from OpenStreetMap (not your pins)</div>':''}<div id="map-status" class="map-status" role="status" hidden></div></div><div id="sheet"></div>`;
   if(typeof L==='undefined'||typeof window.L==='undefined'&&typeof leaflet==='undefined'){/* leaflet global is L which conflicts — use window check */}
   if(typeof window.L==='undefined'){$('#map').innerHTML='<div class="failure">The map could not load. Check your connection.<br><button data-action="reload-map">Try again</button></div>'}
   else{
@@ -202,11 +202,15 @@ function createMapTiles(target,statusSelector='#map-status'){
   load();
   return {redraw:load};
 }
+let exploreOn=false,exploreLayer=null,exploreTimer,exploreAbort,exploreResults=[],exploreCache={};
+function loadExplore(){clearTimeout(exploreTimer);exploreTimer=setTimeout(async()=>{if(!map||!exploreOn)return;if(map.getZoom()<14){showExplore([]);toast('Zoom in to explore nearby places');return}const b=map.getBounds(),bb=[b.getSouth(),b.getWest(),b.getNorth(),b.getEast()].map(x=>x.toFixed(3)).join(',');if(exploreCache[bb])return showExplore(exploreCache[bb]);exploreAbort?.abort();exploreAbort=new AbortController();try{const q=`[out:json][timeout:15];nwr["amenity"~"^(restaurant|cafe|fast_food|bar|pub|ice_cream|food_court)$"]["name"](${bb});out center 80;`;const res=await fetch('https://overpass-api.de/api/interpreter',{method:'POST',body:'data='+encodeURIComponent(q),headers:{'Content-Type':'application/x-www-form-urlencoded'},signal:exploreAbort.signal});const j=await res.json();const list=j.elements.map(e=>({name:e.tags.name,lat:e.lat??e.center?.lat,lng:e.lon??e.center?.lon,amenity:e.tags.amenity,cuisine:e.tags.cuisine||'',address:[e.tags['addr:housenumber'],e.tags['addr:street']].filter(Boolean).join(' ')})).filter(x=>Number.isFinite(x.lat));exploreCache[bb]=list;showExplore(list)}catch(err){if(err.name!=='AbortError')toast('Explore data unavailable right now')}},500)}
+function showExplore(list){if(exploreLayer)exploreLayer.remove();exploreLayer=window.L.layerGroup().addTo(map);exploreResults=list;list.forEach((x,i)=>{window.L.marker([x.lat,x.lng],{title:x.name,icon:window.L.divIcon({className:'restaurant-pin explore-pin',html:`<div class="map-chip explore-chip"><b>${esc(x.name)}</b></div>`,iconSize:null,iconAnchor:[0,0]})}).bindPopup(`<div class="explore-pop"><b>${esc(x.name)}</b><small>${esc(x.amenity.replace('_',' '))}${x.cuisine?' · '+esc(x.cuisine.replace(/;/g,', ')):''}</small><button data-explore="${i}">♡ Save to wishlist</button></div>`).addTo(exploreLayer)})}
 function pinTier(){const z=map?map.getZoom():mapZoom;return z>=14?'full':z>=12?'mini':'meow'}
-function markerIcon(r){const t=pinTier(),sel=r.id===selected?' selected':'';if(t==='meow'){const sz=r.id===selected?[30,41]:[22,30];return window.L.icon({iconUrl:'assets/meow-map-pin.png?v=ui20261015u',iconSize:sz,iconAnchor:[sz[0]/2,sz[1]],className:'meow-pin'+sel})}const pr=personalRating(r),rt=pr?`★ ${Number(pr).toFixed(1).replace(/\.0$/,'')}`:(r.wish?'♡':'');return window.L.divIcon({className:'restaurant-pin pin-'+t,html:`<div class="map-chip${sel}"><b>${esc(r.name)}</b>${rt&&t==='full'?`<small>${rt}</small>`:''}</div>`,iconSize:null,iconAnchor:[0,0]})}
+function markerIcon(r){const t=pinTier(),sel=r.id===selected?' selected':'';if(t==='meow'){const sz=r.id===selected?[30,41]:[22,30];return window.L.icon({iconUrl:'assets/meow-map-pin.png?v=ui20261015v',iconSize:sz,iconAnchor:[sz[0]/2,sz[1]],className:'meow-pin'+sel})}const pr=personalRating(r),rt=pr?`★ ${Number(pr).toFixed(1).replace(/\.0$/,'')}`:(r.wish?'♡':'');return window.L.divIcon({className:'restaurant-pin pin-'+t,html:`<div class="map-chip${sel}"><b>${esc(r.name)}</b>${rt&&t==='full'?`<small>${rt}</small>`:''}</div>`,iconSize:null,iconAnchor:[0,0]})}
 function updateMarkerIcons(){markers.forEach(m=>m.setIcon(markerIcon(m._r)))}
 function selectPin(id){selected=selected===id?null:id;updateMarkerIcons();renderSheet();enhanceIcons()}
-function drawMarkers(){if(!map)return;markers.forEach(m=>m.remove());markers=[];state.restaurants.filter(r=>Number.isFinite(r.lat)&&Number.isFinite(r.lng)).forEach(r=>{const m=window.L.marker([r.lat,r.lng],{icon:markerIcon(r),title:r.name,riseOnHover:true}).addTo(map).on('click',e=>{window.L.DomEvent.stopPropagation(e);selectPin(r.id)});m._r=r;markers.push(m)});if(!map._meowZoom){map._meowZoom=1;let last=pinTier();map.on('zoomend',()=>{mapZoom=map.getZoom();const t=pinTier();if(t!==last){last=t;updateMarkerIcons()}});map.on('moveend',()=>{const c=map.getCenter();mapCenter=[c.lat,c.lng]});map.on('click',()=>{if(selected){selected=null;updateMarkerIcons();renderSheet();enhanceIcons()}})}}
+function drawMarkers(){if(!map)return;markers.forEach(m=>m.remove());markers=[];if(exploreOn){loadExplore();bindMapEvents();return}state.restaurants.filter(r=>Number.isFinite(r.lat)&&Number.isFinite(r.lng)).forEach(r=>{const m=window.L.marker([r.lat,r.lng],{icon:markerIcon(r),title:r.name,riseOnHover:true}).addTo(map).on('click',e=>{window.L.DomEvent.stopPropagation(e);selectPin(r.id)});m._r=r;markers.push(m)});bindMapEvents()}
+function bindMapEvents(){if(!map._meowZoom){map._meowZoom=1;let last=pinTier();map.on('zoomend',()=>{mapZoom=map.getZoom();const t=pinTier();if(t!==last){last=t;updateMarkerIcons()}});map.on('moveend',()=>{const c=map.getCenter();mapCenter=[c.lat,c.lng];if(exploreOn)loadExplore()});map.on('click',()=>{if(selected){selected=null;updateMarkerIcons();renderSheet();enhanceIcons()}})}}
 function distance(r){if(!userLocation||!Number.isFinite(r.lat))return '';const rad=x=>x*Math.PI/180,dlat=rad(r.lat-userLocation[0]),dlng=rad(r.lng-userLocation[1]),a=Math.sin(dlat/2)**2+Math.cos(rad(r.lat))*Math.cos(rad(userLocation[0]))*Math.sin(dlng/2)**2;let km=6371*2*Math.atan2(Math.sqrt(a),Math.sqrt(1-a));return `${km<1?Math.round(km*1000)+' m':km.toFixed(1)+' km'} · `}
 function renderSheet(){
   const el=$('#sheet');if(!el)return;
@@ -308,7 +312,7 @@ function showSearch(context={}){
     if(q.length<3){output.innerHTML='<div class="search-idle"><span>✧</span><p>Type at least 3 letters.</p></div>';return}
     output.innerHTML='<p class="search-message" role="status">Looking…</p>';
     if(cachedSearch(q)){form.requestSubmit();return}
-    autocompleteTimer=setTimeout(()=>{if(form.isConnected)form.requestSubmit()},Math.max(150,220-(Date.now()-lastSearchAt)));
+    autocompleteTimer=setTimeout(()=>{if(form.isConnected)form.requestSubmit()},Math.max(450,600-(Date.now()-lastSearchAt)));
   };
   $('#search-scope').onclick=()=>{nearMap=!nearMap;$('#search-scope-label').textContent=nearMap?(context.fromPin?'Near selected map point':'Near your map'):'Worldwide';$('#search-scope').textContent=nearMap?'Search worldwide':'Search near map';input.oninput()};
   $('#clear-search').onclick=()=>{input.value='';input.dispatchEvent(new Event('input'));input.focus()};
@@ -382,6 +386,7 @@ document.addEventListener('click',e=>{
   if(d.editvisit)return visitForm(null,d.editvisit);
   if(d.deletevisit)return confirmAction('Delete this visit?','This visit and its photos will be removed.',()=>{state.del=state.del||{};state.del['v:'+d.deletevisit]=Date.now();state.visits=state.visits.filter(v=>v.id!==d.deletevisit)});
   if(d.delete)return confirmAction('Delete restaurant?','This restaurant and all its visits will be removed.',()=>{state.del=state.del||{};state.del['r:'+d.delete]=Date.now();state.restaurants=state.restaurants.filter(r=>r.id!==d.delete);state.visits=state.visits.filter(v=>v.restaurantId!==d.delete)});
+  if(d.explore!=null){const x=exploreResults[+d.explore];if(x){map?.closePopup();restaurantForm(null,{name:x.name,address:x.address,lat:x.lat,lng:x.lng,wish:true,kind:x.amenity==='cafe'?'cafe':'shop'})}return}
   if(d.save){if(!commit(()=>{const x=rest(d.save);x.wish=!x.wish;x.u=Date.now()}))return;if(!$('#panel').hidden)restaurantDetail(d.save);render();toast(rest(d.save).wish?'Saved to wishlist':'Removed from wishlist');return}
   if(d.note){const r=rest(d.note);openPanel('My note',`<form id="note-form"><textarea aria-label="My note" maxlength="2000">${esc(r.note)}</textarea><div class="form-actions"><button class="primary">Save note</button></div></form>`,{full:true});$('#note-form').onsubmit=e=>{e.preventDefault();if(!commit(()=>{rest(d.note).note=e.target.querySelector('textarea').value;rest(d.note).u=Date.now()}))return;closePanel();render();toast('Note saved')};return}
   if(d.result!==undefined){
@@ -394,6 +399,7 @@ document.addEventListener('click',e=>{
     case'close':case'close-panel':pendingVisit=false;closePanel();break;
     case'add':pendingVisit=false;showSearch();break;
     case'manual':restaurantForm(searchContext.editId||null,{...searchContext.draft,name:$('#search-query')?.value.trim()||'',wish:searchContext.wish??tab==='wishlist'});break;
+    case'explore':exploreOn=!exploreOn;if(!exploreOn&&exploreLayer){exploreLayer.remove();exploreLayer=null}selected=null;render();toast(exploreOn?'Explore on: nearby places':'Explore off: your pins');break;
     case'add-wish':case'search-wish':pendingVisit=false;showSearch({wish:true});break;
     case'visit':visitForm();break;
     case'search-current':{const form=$('#restaurant-form'),f=new FormData(form);showSearch({wish:f.has('wish'),afterVisit:pendingVisit,editId:form.dataset.editId,draft:{note:f.get('note'),rating:f.get('rating')?Number(f.get('rating')):null}});break;}
