@@ -171,7 +171,7 @@ function openModal(title,html){openPanel(title,html,{full:true,cls:'entry-panel'
 
 function enhanceIcons(){
   $$('.tabs button').forEach(b=>{const key=b.dataset.tab;b.innerHTML=icon({map:'map',timeline:'calendar',wishlist:'heart'}[key])+`<span>${key[0].toUpperCase()+key.slice(1)}</span>`});
-  $$('.save').forEach(b=>{b.classList.toggle('saved',!!rest(b.dataset.save)?.wish);b.innerHTML=icon('bookmark')});
+  $$('.save').forEach(b=>paintSaveBtn(b));
   
   $$('#bnav [data-tab]').forEach(b=>b.classList.toggle('active',b.dataset.tab===tab));
 }
@@ -192,10 +192,13 @@ function pagerHtml(pages,total,label){if(total<=PAGE_SIZE)return '';return `<div
 function card(r){const vv=visits(r.id);return `<article class="restaurant no-tile"><div class="info" role="button" tabindex="0" data-detail="${r.id}"><h3>${esc(r.name)}</h3>${rating(r)}<p class="visit-meta">♜ ${vv.length} visit${vv.length===1?'':'s'}${vv[0]?` · last ${fmt(vv[0].date)}`:''}</p><p class="address">♧ ${esc(r.address||'Location not added')}</p>${tags(r)}<p class="note">▤ ${esc(r.note||'Add a little note…')}</p></div><div class="right-meta"><button class="save" data-save="${r.id}" aria-label="${r.wish?'Remove from':'Add to'} wishlist">${r.wish?'▮':'♧'}</button></div><button class="chevron" data-detail="${r.id}" aria-label="Open ${esc(r.name)}">›</button></article>`}
 
 let wishKeep=new Set(),wishKeepTab=null;
-const HEART_ON='assets/icon-wish-meow.png?v=ui20261015cn',HEART_OFF='assets/icon-wish-meow-off.png?v=ui20261015cn';
+const HEART_ON='assets/icon-wish-meow.png?v=ui20261015co',HEART_OFF='assets/icon-wish-meow-off.png?v=ui20261015co';
 const CUISINE_LABEL={ramen:'Ramen',sushi:'Sushi',japanese:'Japanese',cafe:'Cafe',matcha:'Matcha',tea:'Tea',boba:'Boba',dessert:'Dessert',bakery:'Bakery',burger:'Burger',pasta:'Italian',pizza:'Pizza',steak:'Steak',chinese:'Chinese',korean:'Korean',thai:'Thai',indian:'Indian',hongkong:'Hong Kong',singaporean:'Singaporean',mideast:'Middle Eastern',shop:'Restaurant'};
 function cuisineOf(r){const k=foodKey(r);if(k.startsWith('icon/')){const d=k.split('/')[1]||'';return {key:k,label:d.split('-').map(w=>w[0]?.toUpperCase()+w.slice(1)).join(' ')||tlCat(r)}}return {key:k,label:CUISINE_LABEL[k]||tlCat(r)}}
 function areaOf(r){const parts=String(r.address||'').split(',').map(x=>x.trim()).filter(x=>x&&!/^[A-Z]\d[A-Z]\s?\d[A-Z]\d$/i.test(x)&&!/^(BC|British Columbia|Canada|ON|Ontario|AB|WA|USA)(\s+[A-Z]\d[A-Z].*)?$/i.test(x));if(!parts.length)return '';if(parts.length>=3)return parts[1];if(parts.length===2&&/^\d/.test(parts[0]))return parts[1];return parts[0]}
+// ui20261015cn: meow heart replaces the old bookmark on detail/place sheets
+function saveHeart(on){return `<img class="save-heart" src="${on?HEART_ON:HEART_OFF}" alt="" width="30" height="30">`}
+function paintSaveBtn(b){const on=!!rest(b.dataset.save)?.wish;b.classList.toggle('saved',on);b.setAttribute('aria-pressed',on);b.setAttribute('aria-label',(on?'Remove from':'Add to')+' wishlist');b.innerHTML=saveHeart(on)}
 function wishCard(r){const c=cuisineOf(r),area=areaOf(r),val=personalRating(r),on=!!r.wish,tg=(r.tags||[]).filter(t=>t&&t!=='demo');
   return `<article class="wl-card${on?'':' wl-off'}"><div class="wl-main" role="button" tabindex="0" data-detail="${r.id}"><span class="wl-food tl-bg-${foodBg(c.key)}"><img src="${foodSrc(c.key)}" alt="" loading="lazy"></span><div class="wl-body"><h3 class="wl-name">${esc(r.name)}</h3><p class="wl-meta">${val?`<span class="wl-star">★</span><b>${val}</b><i>·</i>`:''}<span class="wl-cui">${esc(c.label)}</span>${area?`<i>·</i><span class="wl-pin" aria-hidden="true"></span><span class="wl-area">${esc(area)}</span>`:''}</p></div>${tg.length?`<div class="wl-tags">${tg.map(t=>`<span class="wl-tag">${vibeIcon(t)}<span>${esc(t)}</span></span>`).join('')}</div>`:''}</div><button type="button" class="wl-heart${on?' on':''}" data-wl-heart="${r.id}" aria-pressed="${on}" aria-label="${on?'Remove from':'Add to'} wishlist"><img src="${on?HEART_ON:HEART_OFF}" alt="" width="28" height="28"></button></article>`}
 // ui20261015cm: Wishlist cuisine chips use the icon cuisine folders (site/icon/*), mapped exactly like the card icon:
@@ -471,7 +474,7 @@ function renderSheet(){
         <p class="sheet-sub">${pr?`<span class="sheet-star">★</span> <b>${pr}</b> <span class="sheet-loc">${icon('pin')}</span>`:`<span class="sheet-loc">${icon('pin')}</span>`}${distance(r)}${esc(r.address||'Pinned location')}</p>
         ${tags(r)}
       </div>
-      <button type="button" class="save" data-save="${r.id}" aria-label="Toggle wishlist">${r.wish?'▮':'♧'}</button>
+      <button type="button" class="save${r.wish?' saved':''}" data-save="${r.id}" aria-pressed="${!!r.wish}" aria-label="${r.wish?'Remove from':'Add to'} wishlist">${saveHeart(r.wish)}</button>
     </div>
     <p class="sheet-stats">${icon('users')} ${vv.length} visit${vv.length===1?'':'s'}${vv[0]?` · last ${relativeVisitLabel(vv[0].date)||vv[0].date}`:''}</p>
     <div class="sheet-actions">
@@ -1141,7 +1144,7 @@ document.addEventListener('click',e=>{
   if(d.deletevisit)return confirmAction('Delete this visit?','This visit and its photos will be removed.',()=>{state.del=state.del||{};state.del['v:'+d.deletevisit]=Date.now();state.visits=state.visits.filter(v=>v.id!==d.deletevisit);if(expandedVisitId===d.deletevisit)expandedVisitId=null});
   if(d.delete)return confirmAction('Delete restaurant?','This restaurant and all its visits will be removed.',()=>{state.del=state.del||{};state.del['r:'+d.delete]=Date.now();state.restaurants=state.restaurants.filter(r=>r.id!==d.delete);state.visits=state.visits.filter(v=>v.restaurantId!==d.delete)});
   if(d.explore!=null){const x=exploreResults[+d.explore];if(x){map?.closePopup();savePlaceToWishlist({name:x.name,address:x.address||'',lat:x.lat,lng:x.lng,kind:x.amenity==='cafe'?'cafe':'shop',tags:[]})}return}
-  if(d.save){if(!commit(()=>{const x=rest(d.save);x.wish=!x.wish;x.u=Date.now()}))return;if(!$('#panel').hidden)restaurantDetail(d.save);render();toast(rest(d.save).wish?'Saved to wishlist':'Removed from wishlist');return}
+  if(d.save){if(!commit(()=>{const x=rest(d.save);x.wish=!x.wish;x.u=Date.now()}))return;if(!$('#panel').hidden)restaurantDetail(d.save);refreshAfterSync();$$('.save').forEach(paintSaveBtn);toast(rest(d.save).wish?'Saved to wishlist':'Removed from wishlist');return}
   if(d.note){const r=rest(d.note);openPanel('My note',`<form id="note-form"><textarea aria-label="My note" maxlength="2000">${esc(r.note)}</textarea><div class="form-actions"><button class="primary">Save note</button></div></form>`,{full:true});$('#note-form').onsubmit=e=>{e.preventDefault();if(!commit(()=>{rest(d.note).note=e.target.querySelector('textarea').value;rest(d.note).u=Date.now()}))return;closePanel();render();toast('Note saved')};return}
   if(d.hitFocus!==undefined){focusSearchHit(d.hitFocus);return}
   if(d.resultWish!==undefined){return wishlistSearchHit(Number(d.resultWish))}
