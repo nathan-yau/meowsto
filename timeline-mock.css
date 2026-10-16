@@ -260,3 +260,14 @@
 .view-map .search-sheet .manual-fallback summary{min-height:0;padding:4px 6px;font-size:12px}
 .view-map .search-sheet .search-sheet-head .text-button{min-height:0!important;padding:2px 6px!important;line-height:1.2}
 .view-map .search-sheet .handle{padding:4px 0 2px!important;margin-bottom:2px!important}
+/* ui20261015bz: no excess bottom gap on Timeline/Map (bottom nav already pads safe-area) */
+#main.view-timeline,#main.view-map{padding-bottom:0!important;margin-bottom:0!important}
+#main.view-timeline>.content{padding-bottom:0!important;margin-bottom:0!important}
+#main.view-timeline .timeline-list{padding-bottom:4px!important;margin-bottom:0!important}
+#main.view-timeline .tl-row:last-child{margin-bottom:0}
+#main.view-map .map-wrap{margin-bottom:0!important}
+#main.view-map #sheet:empty{display:none}
+/* Search again sits inline in toolbar between Near me and Explore */
+.map-toolbar .search-again{position:static!important;top:auto!important;left:auto!important;transform:none!important;margin:0 auto!important;flex:0 0 auto!important;min-height:40px!important;padding:6px 12px!important;font:800 14px Nunito,sans-serif!important;white-space:nowrap}
+.map-toolbar .search-again:active{transform:translateY(1px)!important}
+.map-toolbar:has(.search-again:not([hidden])){gap:6px}
