@@ -512,3 +512,13 @@ header h1.app-name,.lockcard h1,.lockcard .lock-title{font-family:var(--font-tit
 .panel.profile-sheet .panel-inner{border-color:#e3dccd!important}.pf-head{gap:10px!important}.pf-av,.pf-av>*:not(.pf-cam){width:48px!important;height:48px!important}.pf-av>*:not(.pf-cam){font-size:21px!important}.pf-lock{padding:6px 10px!important;font-size:12.5px!important}
 .panel.profile-sheet .panel-inner{box-shadow:0 -4px 18px #38271f14!important}
 .pf-av>img,.pf-av>.avatar-initial{display:grid!important;place-items:center;background:#8fae86!important;color:#fff!important;font-weight:800;border:2px solid #b9cfae;object-fit:cover;box-sizing:border-box}
+/* ui20261015dh: place sheet — round icon tools beside heart, two pills */
+#sheet .detail-sheet .sheet-head{display:flex;align-items:flex-start;gap:8px}
+#sheet .detail-sheet .sheet-head .info{flex:1 1 auto;min-width:0}
+#sheet .detail-sheet .sheet-head h2{white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+#sheet .detail-sheet .sheet-tools{display:flex;align-items:center;gap:6px;flex:none}
+#sheet .detail-sheet .sheet-ic{width:32px;height:32px;min-width:32px;min-height:0;padding:0!important;border-radius:50%!important;border:1.5px solid #e3dccd!important;background:#fffdf6!important;color:#5b8a63!important;display:inline-grid;place-items:center;box-shadow:none!important;text-decoration:none}
+#sheet .detail-sheet .sheet-ic svg{width:16px;height:16px;fill:none;stroke:currentColor;stroke-width:2;stroke-linecap:round;stroke-linejoin:round}
+#sheet .detail-sheet .sheet-tools .save{position:static!important;flex:none}
+#sheet .detail-sheet .sheet-actions2{display:flex!important;gap:8px!important;flex-wrap:nowrap!important}
+#sheet .detail-sheet .sheet-actions2 button{flex:1 1 0!important;min-width:0;height:36px!important;min-height:36px!important;padding:0 12px!important;border-radius:999px!important;font-size:15px!important;white-space:nowrap}

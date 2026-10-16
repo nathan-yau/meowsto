@@ -196,7 +196,7 @@ function pagerHtml(pages,total,label){if(total<=PAGE_SIZE)return '';return `<div
 function card(r){const vv=visits(r.id);return `<article class="restaurant no-tile"><div class="info" role="button" tabindex="0" data-detail="${r.id}"><h3>${esc(r.name)}</h3>${rating(r)}<p class="visit-meta">♜ ${vv.length} visit${vv.length===1?'':'s'}${vv[0]?` · last ${fmt(vv[0].date)}`:''}</p><p class="address">♧ ${esc(r.address||'Location not added')}</p>${tags(r)}<p class="note">▤ ${esc(r.note||'Add a little note…')}</p></div><div class="right-meta"><button class="save" data-save="${r.id}" aria-label="${r.wish?'Remove from':'Add to'} wishlist">${r.wish?'▮':'♧'}</button></div><button class="chevron" data-detail="${r.id}" aria-label="Open ${esc(r.name)}">›</button></article>`}
 
 let wishKeep=new Set(),wishKeepTab=null;
-const HEART_ON='assets/icon-wish-meow.png?v=ui20261015dg',HEART_OFF='assets/icon-wish-meow-off.png?v=ui20261015dg';
+const HEART_ON='assets/icon-wish-meow.png?v=ui20261015dh',HEART_OFF='assets/icon-wish-meow-off.png?v=ui20261015dh';
 const CUISINE_LABEL={ramen:'Ramen',sushi:'Sushi',japanese:'Japanese',cafe:'Cafe',matcha:'Matcha',tea:'Tea',boba:'Boba',dessert:'Dessert',bakery:'Bakery',burger:'Burger',pasta:'Italian',pizza:'Pizza',steak:'Steak',chinese:'Chinese',korean:'Korean',thai:'Thai',indian:'Indian',hongkong:'Hong Kong',singaporean:'Singaporean',mideast:'Middle Eastern',shop:'Restaurant'};
 function cuisineOf(r){const k=foodKey(r);if(k.startsWith('icon/')){const d=k.split('/')[1]||'';return {key:k,label:d.split('-').map(w=>w[0]?.toUpperCase()+w.slice(1)).join(' ')||tlCat(r)}}return {key:k,label:CUISINE_LABEL[k]||tlCat(r)}}
 function areaOf(r){const parts=String(r.address||'').split(',').map(x=>x.trim()).filter(x=>x&&!/^[A-Z]\d[A-Z]\s?\d[A-Z]\d$/i.test(x)&&!/^(BC|British Columbia|Canada|ON|Ontario|AB|WA|USA)(\s+[A-Z]\d[A-Z].*)?$/i.test(x));if(!parts.length)return '';if(parts.length>=3)return parts[1];if(parts.length===2&&/^\d/.test(parts[0]))return parts[1];return parts[0]}
@@ -378,11 +378,11 @@ function pinTier(){const z=map?map.getZoom():mapZoom;return z>=14?'full':z>=12?'
 function searchPinTier(){const z=map?map.getZoom():mapZoom;return z>=16?'full':'meow'}
 // ui20261015cy: three meow marker styles (visited · wishlist · search/explore), all switching pin↔label with searchPinTier() (label at zoom ≥ 16)
 function markerIcon(r){const isSel=r.id===selected||(r.id===searchLinkId&&searchFocusIdx!=null&&searchResults.length>0);const t=searchPinTier(),sel=isSel?' selected':'';const last=visits(r.id)[0],wishy=!!r.wish&&!last;
-  if(t==='meow'){const sz=isSel?[30,41]:[24,33];return window.L.icon({iconUrl:wishy?'assets/meow-map-pin-wish.png?v=ui20261015dg':'assets/meow-map-pin.png?v=ui20261015x',iconSize:sz,iconAnchor:[sz[0]/2,sz[1]],className:'meow-pin '+(wishy?'meow-pin-wish':'meow-pin-visited')+sel})}
+  if(t==='meow'){const sz=isSel?[30,41]:[24,33];return window.L.icon({iconUrl:wishy?'assets/meow-map-pin-wish.png?v=ui20261015dh':'assets/meow-map-pin.png?v=ui20261015x',iconSize:sz,iconAnchor:[sz[0]/2,sz[1]],className:'meow-pin '+(wishy?'meow-pin-wish':'meow-pin-visited')+sel})}
   const meta=last?(mapChipRelativeLabel(last.date)||'visited'):(r.wish?'on your wishlist':'never visited');
   return window.L.divIcon({className:'restaurant-pin pin-full',html:`<div class="map-chip ${wishy?'chip-wish':'chip-visited'}${sel}">${sel?'<i class="pin-burst" aria-hidden="true"></i>':''}<b>${wishy?'<img class="chip-heart" src="'+HEART_ON+'" alt="">':''}${esc(r.name)}</b>${meta?`<small>${esc(meta)}</small>`:''}</div>`,iconSize:null,iconAnchor:[0,0]})}
 function updateMarkerIcons(){markers.forEach(m=>m.setIcon(markerIcon(m._r)));searchMarkers.forEach((m,i)=>{if(m&&searchResults[i])m.setIcon(searchResultIcon(searchResults[i],i))});if(exploreLayer)exploreLayer.eachLayer(m=>{if(m&&m._explore)m.setIcon(exploreResultIcon(m._explore))})}
-// ui20261015dg: Wishlist card → Map tab, pin drawn (clear hide-visited/explore that could hide it), centred above sheet, place sheet open
+// ui20261015dh: Wishlist card → Map tab, pin drawn (clear hide-visited/explore that could hide it), centred above sheet, place sheet open
 function openOnMap(id){const r=rest(id);if(!r)return;if(!Number.isFinite(r.lat)||!Number.isFinite(r.lng)){toast('No location saved for this place');return}
   if(hideVisited&&visits(id).length)hideVisited=false;if(exploreOn){exploreOn=false;if(exploreLayer){try{exploreLayer.remove()}catch{}exploreLayer=null}}
   searchResults=[];searchFocusIdx=null;closePanel();wlSheetClose?.();tab='map';selected=null;render();
@@ -495,14 +495,13 @@ function renderSheet(){
         <p class="sheet-sub">${pr?`<span class="sheet-star">★</span> <b>${pr}</b> <span class="sheet-loc">${icon('pin')}</span>`:`<span class="sheet-loc">${icon('pin')}</span>`}${distance(r)}${esc(r.address||'Pinned location')}</p>
         ${tags(r)}
       </div>
+      <div class="sheet-tools"><a class="sheet-ic sheet-nav" href="${esc(navURL(r))}" target="_blank" rel="noopener" aria-label="Directions in Google Maps"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="6" cy="19" r="2.2"/><circle cx="18" cy="5" r="2.2"/><path d="M8.2 19H15a3.5 3.5 0 0 0 0-7H9a3.5 3.5 0 0 1 0-7h6.8"/></svg></a><button type="button" class="sheet-ic" data-note="${r.id}" aria-label="Add a note"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 20h4L19 9l-4-4L4 16Z"/><path d="m13.5 6.5 4 4"/></svg></button>
       <button type="button" class="save${r.wish?' saved':''}" data-save="${r.id}" aria-pressed="${!!r.wish}" aria-label="${r.wish?'Remove from':'Add to'} wishlist">${saveHeart(r.wish)}</button>
-    </div>
+    </div></div>
     <p class="sheet-stats">${icon('users')} ${vv.length} visit${vv.length===1?'':'s'}${vv[0]?` · last ${relativeVisitLabel(vv[0].date)||vv[0].date}`:''}</p>
-    <div class="sheet-actions">
-      <button type="button" class="secondary" data-addvisit="${r.id}">${icon('plus')} Visit</button>
-      <button type="button" data-note="${r.id}">${icon('note')} Note</button>
-      <button type="button" class="primary" data-detail="${r.id}">Details ›</button>
-      <a class="sheet-nav" href="${esc(navURL(r))}" target="_blank" rel="noopener" aria-label="Directions in Google Maps">${icon('pin')} Go</a>
+    <div class="sheet-actions sheet-actions2">
+      <button type="button" class="primary" data-addvisit="${r.id}">${icon('plus')} Visit</button>
+      <button type="button" class="secondary" data-detail="${r.id}">Details ›</button>
     </div>
   </section>`;
   bindSheetDismiss(el.querySelector('.detail-sheet'), ()=>{
@@ -1291,5 +1290,5 @@ fit();addEventListener('resize',fit);addEventListener('orientationchange',()=>se
 // ui20261015ck: compact Wishlist cards, single scrollable tag row.
 // ui20261015cj: removed zoom-in gate from runMapPlaceSearch; search works at any zoom.
 
-// ui20261015dg: temporary tap debug overlay, only with ?debugtap=1
+// ui20261015dh: temporary tap debug overlay, only with ?debugtap=1
 (function(){if(!/[?&]debugtap=1\b/.test(location.search))return;const box=document.createElement('div');box.id='debugtap';box.style.cssText='position:fixed;left:6px;right:6px;bottom:calc(6px + env(safe-area-inset-bottom,0px));z-index:2147483646;background:rgba(20,20,20,.82);color:#fff;font:11px/1.35 ui-monospace,Menlo,monospace;padding:6px 8px;border-radius:8px;pointer-events:none;white-space:pre-wrap;word-break:break-all';const pr=document.createElement('div');pr.style.cssText='position:fixed;top:env(safe-area-inset-top,0px);height:1px;width:1px;visibility:hidden';document.documentElement.appendChild(pr);const dot=document.createElement('div');dot.style.cssText='position:fixed;width:14px;height:14px;margin:-7px 0 0 -7px;border-radius:50%;background:#f00a;z-index:2147483646;pointer-events:none;display:none';const d=e=>e?e.tagName.toLowerCase()+(e.id?'#'+e.id:'')+(typeof e.className==='string'&&e.className.trim()?'.'+e.className.trim().split(/\s+/).slice(0,3).join('.'):''):'-';let last='(tap anywhere)';function info(){const vv=window.visualViewport,de=document.documentElement,app=document.querySelector('.app');return 'tap: '+last+'\ninnerH '+innerHeight+' vvH '+(vv?Math.round(vv.height)+' vvTop '+Math.round(vv.offsetTop):'-')+' screenH '+screen.height+'\n--shell-h '+(getComputedStyle(de).getPropertyValue('--shell-h').trim()||'-')+' shell-fit '+de.classList.contains('shell-fit')+' safeTop '+Math.round(pr.getBoundingClientRect().top)+'\napp '+(app?Math.round(app.getBoundingClientRect().top)+'..'+Math.round(app.getBoundingClientRect().bottom)+' scrollTop '+app.scrollTop:'-')+' bodyScroll '+document.body.scrollTop+' winY '+scrollY}function up(){box.textContent=info()}addEventListener('pointerdown',e=>{const t=document.elementFromPoint(e.clientX,e.clientY);const btn=t&&t.closest('button,a,[data-tab]');last=Math.round(e.clientX)+','+Math.round(e.clientY)+' '+d(t)+(btn&&btn!==t?' < '+d(btn):'');dot.style.left=e.clientX+'px';dot.style.top=e.clientY+'px';dot.style.display='block';up()},true);addEventListener('resize',up);if(window.visualViewport)visualViewport.addEventListener('resize',up);function mount(){document.body.appendChild(box);document.body.appendChild(dot);up()}document.body?mount():addEventListener('DOMContentLoaded',mount)})();
