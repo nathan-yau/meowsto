@@ -192,7 +192,7 @@ function pagerHtml(pages,total,label){if(total<=PAGE_SIZE)return '';return `<div
 function card(r){const vv=visits(r.id);return `<article class="restaurant no-tile"><div class="info" role="button" tabindex="0" data-detail="${r.id}"><h3>${esc(r.name)}</h3>${rating(r)}<p class="visit-meta">♜ ${vv.length} visit${vv.length===1?'':'s'}${vv[0]?` · last ${fmt(vv[0].date)}`:''}</p><p class="address">♧ ${esc(r.address||'Location not added')}</p>${tags(r)}<p class="note">▤ ${esc(r.note||'Add a little note…')}</p></div><div class="right-meta"><button class="save" data-save="${r.id}" aria-label="${r.wish?'Remove from':'Add to'} wishlist">${r.wish?'▮':'♧'}</button></div><button class="chevron" data-detail="${r.id}" aria-label="Open ${esc(r.name)}">›</button></article>`}
 
 let wishKeep=new Set(),wishKeepTab=null;
-const HEART_ON='assets/icon-wish-meow.png?v=ui20261015cm',HEART_OFF='assets/icon-wish-meow-off.png?v=ui20261015cm';
+const HEART_ON='assets/icon-wish-meow.png?v=ui20261015cn',HEART_OFF='assets/icon-wish-meow-off.png?v=ui20261015cn';
 const CUISINE_LABEL={ramen:'Ramen',sushi:'Sushi',japanese:'Japanese',cafe:'Cafe',matcha:'Matcha',tea:'Tea',boba:'Boba',dessert:'Dessert',bakery:'Bakery',burger:'Burger',pasta:'Italian',pizza:'Pizza',steak:'Steak',chinese:'Chinese',korean:'Korean',thai:'Thai',indian:'Indian',hongkong:'Hong Kong',singaporean:'Singaporean',mideast:'Middle Eastern',shop:'Restaurant'};
 function cuisineOf(r){const k=foodKey(r);if(k.startsWith('icon/')){const d=k.split('/')[1]||'';return {key:k,label:d.split('-').map(w=>w[0]?.toUpperCase()+w.slice(1)).join(' ')||tlCat(r)}}return {key:k,label:CUISINE_LABEL[k]||tlCat(r)}}
 function areaOf(r){const parts=String(r.address||'').split(',').map(x=>x.trim()).filter(x=>x&&!/^[A-Z]\d[A-Z]\s?\d[A-Z]\d$/i.test(x)&&!/^(BC|British Columbia|Canada|ON|Ontario|AB|WA|USA)(\s+[A-Z]\d[A-Z].*)?$/i.test(x));if(!parts.length)return '';if(parts.length>=3)return parts[1];if(parts.length===2&&/^\d/.test(parts[0]))return parts[1];return parts[0]}
@@ -449,7 +449,11 @@ function drawSearchMarkers(){
     searchMarkers[i]=m;
   });
 }
-function drawMarkers(){if(!map)return;markers.forEach(m=>m.remove());markers=[];if(exploreOn){clearSearchMarkers();const stale=!exploreLayer||exploreLayer._map!==map;loadExplore(stale||!Object.keys(exploreCache).length);bindMapEvents();return}state.restaurants.filter(r=>Number.isFinite(r.lat)&&Number.isFinite(r.lng)&&!(hideVisited&&visits(r.id).length)).forEach(r=>{const m=window.L.marker([r.lat,r.lng],{icon:markerIcon(r),title:r.name,riseOnHover:true,bubblingMouseEvents:false}).addTo(map).on('click',e=>{window.L.DomEvent.stopPropagation(e);selectPin(r.id)});m._r=r;markers.push(m)});drawSearchMarkers();bindMapEvents()}
+// ui20261015cn: a place that only exists because it was wishlisted (from search) and is now unsaved, with no visits,
+// is not one of "your" places any more → no map label; the plain search pin shows instead.
+function wishOnly(r){return !!r.viaWish||(!!r.sourceId&&!r.note&&r.rating==null&&!(r.photos||[]).length)}
+function onMap(r){return !!r.wish||visits(r.id).length>0||!wishOnly(r)}
+function drawMarkers(){if(!map)return;markers.forEach(m=>m.remove());markers=[];if(exploreOn){clearSearchMarkers();const stale=!exploreLayer||exploreLayer._map!==map;loadExplore(stale||!Object.keys(exploreCache).length);bindMapEvents();return}state.restaurants.filter(r=>Number.isFinite(r.lat)&&Number.isFinite(r.lng)&&onMap(r)&&!(hideVisited&&visits(r.id).length)).forEach(r=>{const m=window.L.marker([r.lat,r.lng],{icon:markerIcon(r),title:r.name,riseOnHover:true,bubblingMouseEvents:false}).addTo(map).on('click',e=>{window.L.DomEvent.stopPropagation(e);selectPin(r.id)});m._r=r;markers.push(m)});drawSearchMarkers();bindMapEvents()}
 function bindMapEvents(){if(!map._meowZoom){map._meowZoom=1;let last=pinTier(),lastS=searchPinTier();map.on('zoomend',()=>{mapZoom=map.getZoom();const t=pinTier(),s=searchPinTier();if(t!==last||s!==lastS){last=t;lastS=s;updateMarkerIcons()}});map.on('moveend',()=>{const c=map.getCenter();mapCenter=[c.lat,c.lng];syncSearchAgain()});map.on('click',()=>{if(selected){selected=null;updateMarkerIcons();renderSheet();enhanceIcons()}})}}
 function distance(r){if(!userLocation||!Number.isFinite(r.lat))return '';const rad=x=>x*Math.PI/180,dlat=rad(r.lat-userLocation[0]),dlng=rad(r.lng-userLocation[1]),a=Math.sin(dlat/2)**2+Math.cos(rad(r.lat))*Math.cos(rad(userLocation[0]))*Math.sin(dlng/2)**2;let km=6371*2*Math.atan2(Math.sqrt(a),Math.sqrt(1-a));return `${km<1?Math.round(km*1000)+' m':km.toFixed(1)+' km'} · `}
 function renderSheet(){
@@ -1005,7 +1009,7 @@ function savePlaceToWishlist(draft){
     toast('Saved to wishlist');closePanel();render();return existing.id;
   }
   const now=Date.now(),id=uid();
-  if(!commit(()=>{state.restaurants.push({id,name:draft.name,address:draft.address||'',kind:draft.kind||'shop',tags:draft.tags||[],rating:null,lat:Number.isFinite(draft.lat)?draft.lat:null,lng:Number.isFinite(draft.lng)?draft.lng:null,sourceId:draft.sourceId||null,note:'',wish:true,added:today(),demo:false,u:now})}))return;
+  if(!commit(()=>{state.restaurants.push({id,name:draft.name,address:draft.address||'',kind:draft.kind||'shop',tags:draft.tags||[],rating:null,lat:Number.isFinite(draft.lat)?draft.lat:null,lng:Number.isFinite(draft.lng)?draft.lng:null,sourceId:draft.sourceId||null,note:'',wish:true,viaWish:true,added:today(),demo:false,u:now})}))return;
   toast('Saved to wishlist');closePanel();render();return id;
 }
 function draftFromSearchFeature(f){
@@ -1024,7 +1028,7 @@ function wishlistSearchHit(i){
   const f=searchResults[i];if(!f)return;
   const draft=draftFromSearchFeature(f);
   const existing=matchRestaurantByDraft(draft);
-  if(existing?.wish){markSearchWishHit(i,true);toast('Already on wishlist');return}
+  if(existing?.wish){if(!commit(()=>{const x=rest(existing.id);x.wish=false;x.u=Date.now()}))return;markSearchWishHit(i,false);toast('Removed from wishlist');if(map)drawMarkers();return}
   if(existing){
     if(!commit(()=>{rest(existing.id).wish=true;rest(existing.id).u=Date.now()}))return;
   }else{
