@@ -553,3 +553,8 @@ header h1.app-name,.lockcard h1,.lockcard .lock-title{font-family:var(--font-tit
 .view-map .search-sheet .place-hit-actions [data-result-add] img{width:26px!important;height:26px!important}
 /* ui20261015dq: real spacer row under the tabs (no tab padding/margin; frame sizing untouched) */
 .app>.tab-spacer{display:block;flex:0 0 10px;height:10px;min-height:10px;pointer-events:none;background:transparent}
+/* ui20261015dr: profile sheet hugs content — one bottom padding only (was 8 inner + 16 body + 8+safe-area content stacked) */
+.panel.profile-sheet .panel-inner{padding-bottom:0!important;height:auto!important;min-height:0!important}
+.panel.profile-sheet .panel-body{padding-bottom:0!important;flex:0 1 auto!important;min-height:0!important}
+.panel.profile-sheet .pf-lite{flex:0 0 auto!important;padding-bottom:max(12px,env(safe-area-inset-bottom,0px))!important}
+.panel.profile-sheet .pf-more>*:last-child{margin-bottom:0!important}
