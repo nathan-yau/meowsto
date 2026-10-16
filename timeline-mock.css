@@ -562,3 +562,7 @@ header h1.app-name,.lockcard h1,.lockcard .lock-title{font-family:var(--font-tit
 html body .sheet-expanded,html body .panel.profile-sheet .panel-inner.sheet-expanded{display:flex!important;flex-direction:column!important;height:var(--sx-h)!important;max-height:var(--sx-h)!important;min-height:0!important;background:var(--mm-cream,#fffbf3)}
 html body .sheet-expanded>.search-results,html body .sheet-expanded>.panel-body,html body .panel.profile-sheet .panel-inner.sheet-expanded>.panel-body{max-height:none!important;flex:1 1 auto!important;min-height:0!important}
 html body .sheet-expanded>.handle,html body .sheet-expanded>.search-sheet-head,html body .sheet-expanded>.sheet-head,html body .sheet-expanded>.panel-head{flex:0 0 auto!important}
+/* ui20261015du: timeline meta on one line with ellipsis */
+.tl-card-body{min-width:0!important}
+.tl-meta{white-space:nowrap!important;overflow:hidden!important;text-overflow:ellipsis!important;max-width:100%}
+.search-sheet-head .search-more{font:600 12px Nunito,sans-serif;color:#81796e;text-transform:none;letter-spacing:0;margin-left:4px}

@@ -196,7 +196,7 @@ function pagerHtml(pages,total,label){if(total<=PAGE_SIZE)return '';return `<div
 function card(r){const vv=visits(r.id);return `<article class="restaurant no-tile"><div class="info" role="button" tabindex="0" data-detail="${r.id}"><h3>${esc(r.name)}</h3>${rating(r)}<p class="visit-meta">♜ ${vv.length} visit${vv.length===1?'':'s'}${vv[0]?` · last ${fmt(vv[0].date)}`:''}</p><p class="address">♧ ${esc(r.address||'Location not added')}</p>${tags(r)}<p class="note">▤ ${esc(r.note||'Add a little note…')}</p></div><div class="right-meta"><button class="save" data-save="${r.id}" aria-label="${r.wish?'Remove from':'Add to'} wishlist">${r.wish?'▮':'♧'}</button></div><button class="chevron" data-detail="${r.id}" aria-label="Open ${esc(r.name)}">›</button></article>`}
 
 let wishKeep=new Set(),wishKeepTab=null;
-const HEART_ON='assets/icon-wish-meow.png?v=ui20261015dt',HEART_OFF='assets/icon-wish-meow-off.png?v=ui20261015dt';
+const HEART_ON='assets/icon-wish-meow.png?v=ui20261015du',HEART_OFF='assets/icon-wish-meow-off.png?v=ui20261015du';
 const CUISINE_LABEL={ramen:'Ramen',sushi:'Sushi',japanese:'Japanese',cafe:'Cafe',matcha:'Matcha',tea:'Tea',boba:'Boba',dessert:'Dessert',bakery:'Bakery',burger:'Burger',pasta:'Italian',pizza:'Pizza',steak:'Steak',chinese:'Chinese',korean:'Korean',thai:'Thai',indian:'Indian',hongkong:'Hong Kong',singaporean:'Singaporean',mideast:'Middle Eastern',shop:'Restaurant'};
 function cuisineOf(r){const k=foodKey(r);if(k.startsWith('icon/')){const d=k.split('/')[1]||'';return {key:k,label:d.split('-').map(w=>w[0]?.toUpperCase()+w.slice(1)).join(' ')||tlCat(r)}}return {key:k,label:CUISINE_LABEL[k]||tlCat(r)}}
 function areaOf(r){const parts=String(r.address||'').split(',').map(x=>x.trim()).filter(x=>x&&!/^[A-Z]\d[A-Z]\s?\d[A-Z]\d$/i.test(x)&&!/^(BC|British Columbia|Canada|ON|Ontario|AB|WA|USA)(\s+[A-Z]\d[A-Z].*)?$/i.test(x));if(!parts.length)return '';if(parts.length>=3)return parts[1];if(parts.length===2&&/^\d/.test(parts[0]))return parts[1];return parts[0]}
@@ -260,9 +260,11 @@ let ICON_SETS=null;const iconSets=()=>ICON_SETS||(ICON_SETS=fetch('icon/index.js
 const SET_FOR={chinese:'chinese',hongkong:'hong-kong',japanese:'japanese',sushi:'japanese',ramen:'japanese',matcha:'japanese',korean:'korean',thai:'thai',indian:'indian',singaporean:'singaporean',mideast:'middle-eastern',tea:'drinks',boba:'drinks',cafe:'drinks',burger:'western',pasta:'western',pizza:'western',steak:'western'};
 function vibeIcon(t){t=t.toLowerCase();if(/sweet|cute|sparkle|vibe/.test(t))return icon('sparkle');if(/friend|solo|date|group|people/.test(t))return icon('users');if(/comfort|cozy|love|heart/.test(t))return icon('heart');return `<svg class="ui-icon leaf-ico" viewBox="0 0 24 24" aria-hidden="true"><path d="M5 19C5 10 11 5 20 4c0 9-5 15-14 15Z"/><path d="M5 19 13 11"/></svg>`}
 function vibeTags(list,max=3){list=(list||[]).filter(t=>t&&t!=='demo').slice(0,max);return list.length?`<div class="tl-tags">${list.map(t=>`<span class="tl-tag">${vibeIcon(t)}${esc(t)}</span>`).join('')}</div>`:''}
-function tlCat(r){return (r?.tags||[]).find(t=>t!=='demo')||(r?.kind&&r.kind!=='shop'?r.kind[0].toUpperCase()+r.kind.slice(1):'Restaurant')}
+// ui20261015du: friendly kind label — icon/<cuisine>/<file> → 'Hong Kong' etc.; never show a path
+function kindLabel(k){k=String(k||'').trim();if(!k||k==='shop')return '';if(k.includes('/')){const parts=k.split('/').filter(Boolean);if(parts[0].toLowerCase()==='icon')parts.shift();const d=(parts[0]||'');if(!d||/^[0-9a-f]{12,}$/i.test(d))return '';return d.split(/[-_ ]+/).filter(Boolean).map(w=>w[0].toUpperCase()+w.slice(1).toLowerCase()).join(' ')}return k[0].toUpperCase()+k.slice(1)}
+function tlCat(r){return (r?.tags||[]).find(t=>t!=='demo')||kindLabel(r?.kind)||'Restaurant'}
 function tlCardHtml(v,open,cls,attr){const x=rest(v.restaurantId);const vt=[...new Set([...(v.tags||[]),...(x?.tags||[]).slice(1)])];return `<div class="tl-card${cls?' '+cls:''}${open?' expanded':''}" ${attr} role="button" tabindex="0" aria-expanded="${open?'true':'false'}"><div class="tl-card-main">${foodImg(x)}<div class="tl-card-body"><h3>${esc(x?.name||'Restaurant')}</h3><p class="tl-meta">${v.rating?'<span class="star">★</span> ':''}${v.rating?v.rating+' · ':''}${esc(tlCat(x))} · ${esc(v.meal||'')}</p></div><span class="tl-chev" aria-hidden="true">${open?'⌄':'›'}</span></div>${open?vibeTags(vt)+visitExpandHtml(v):''}</div>`}
-// ui20261015dt: 'Did you go?' pending entries (state.pendingGo), recorded on every Go tap; never counted as visits
+// ui20261015du: 'Did you go?' pending entries (state.pendingGo), recorded on every Go tap; never counted as visits
 function mealFromHour(h){return h<11?'Breakfast':h<15?'Lunch':h<17?'Snack':'Dinner'}
 function pendList(){return Array.isArray(state.pendingGo)?state.pendingGo:[]}
 function mixPending(all){const ps=pendList().map(p=>({...p,_pend:true}));if(!ps.length)return all;const k=x=>x.date+(x.time||'');return [...all,...ps].sort((a,b)=>sort==='oldest'?k(a).localeCompare(k(b)):k(b).localeCompare(k(a)))}
@@ -334,7 +336,7 @@ function createMapTiles(target,statusSelector='#map-status'){
   load();
   return {redraw:load};
 }
-// ui20261015dt: Explore is one-shot (no on/off mode); exploreSeq invalidates stale responses
+// ui20261015du: Explore is one-shot (no on/off mode); exploreSeq invalidates stale responses
 let exploreLayer=null,exploreTimer,exploreAbort,exploreResults=[],exploreSeq=0;
 let areaSearchMode=null,areaSearchCenter=null; // 'explore'|'places' — enables Search again after pan
 function markAreaSearch(mode){areaSearchMode=mode;if(map){const c=map.getCenter();areaSearchCenter=[c.lat,c.lng]}else areaSearchCenter=mapCenter.slice();hideSearchAgain()}
@@ -346,7 +348,7 @@ function exploreProxyURL(){return (DATA_ORIGIN||'')+'/api/overpass'}
 function overpassEndpoints(){return ['https://overpass.kumi.systems/api/interpreter','https://maps.mail.ru/osm/tools/overpass/api/interpreter','https://overpass.private.coffee/api/interpreter','https://lz4.overpass-api.de/api/interpreter','https://overpass-api.de/api/interpreter',exploreProxyURL()]}
 function parseOverpassElements(j){return (j?.elements||[]).map(e=>({name:e.tags?.name,lat:e.lat??e.center?.lat,lng:e.lon??e.center?.lon,amenity:e.tags?.amenity||e.tags?.shop||'',cuisine:e.tags?.cuisine||'',address:[e.tags?.['addr:housenumber'],e.tags?.['addr:street']].filter(Boolean).join(' ')})).filter(x=>x.name&&Number.isFinite(x.lat)&&Number.isFinite(x.lng)&&FOOD_OSM.test(x.amenity))}
 async function fetchExploreOverpass(bb,signal){const q=`[out:json][timeout:15];(nwr["amenity"~"^(restaurant|fast_food|cafe|food_court|ice_cream)$"]["name"](${bb});nwr["amenity"~"^(pub|bar|biergarten)$"]["food"="yes"]["name"](${bb});nwr["amenity"="pub"]["kitchen_hours"]["name"](${bb});nwr["shop"~"^(bakery|pastry|confectionery|ice_cream|bubble_tea)$"]["name"](${bb}););out center 80;`;const body='data='+encodeURIComponent(q);const t0=Date.now();for(const ep of overpassEndpoints()){if(Date.now()-t0>24000)break;const local=new AbortController();const onAbort=()=>local.abort();signal?.addEventListener('abort',onAbort,{once:true});const timer=setTimeout(()=>local.abort(),9000);try{const res=await fetch(ep,{method:'POST',body,headers:{'Content-Type':'application/x-www-form-urlencoded'},signal:local.signal});if(!res.ok)continue;const j=await res.json();if(j&&Array.isArray(j.elements)){const list=parseOverpassElements(j);if(list.length)return list}}catch(e){if(signal?.aborted)throw e;/* try next mirror */}finally{clearTimeout(timer);signal?.removeEventListener('abort',onAbort)}}return null}
-// ui20261015dt: Mapbox Search Box /category fallback (limit max 25 per call; comma-joined ids accepted). 3 parallel calls merged by mapbox_id.
+// ui20261015du: Mapbox Search Box /category fallback (limit max 25 per call; comma-joined ids accepted). 3 parallel calls merged by mapbox_id.
 const MB_CAT_SETS=['restaurant,cafe,coffee,fast_food,food_court,bakery,ice_cream,dessert_shop,bubble_tea,teahouse','restaurant','cafe,coffee,bakery,dessert_shop,bubble_tea,teahouse,ice_cream'];
 function mapboxCategoryURL(cats,b,c){const p=new URLSearchParams({access_token:MAPBOX_TOKEN,language:'en',limit:'25',proximity:`${c.lng.toFixed(5)},${c.lat.toFixed(5)}`,bbox:[b.getWest(),b.getSouth(),b.getEast(),b.getNorth()].map(x=>x.toFixed(5)).join(',')});return 'https://api.mapbox.com/search/searchbox/v1/category/'+cats+'?'+p.toString()}
 async function fetchExploreMapboxCategory(signal){if(!map)return null;const b=map.getBounds(),c=map.getCenter();
@@ -385,7 +387,7 @@ function loadExplore(){
     }
   },0);
 }
-// ui20261015dt: Explore reuses the Nearby results sheet + blue search pins (no separate explore layer)
+// ui20261015du: Explore reuses the Nearby results sheet + blue search pins (no separate explore layer)
 function showExplore(list){
   if(!map||!map.getContainer()?.isConnected)return;
   if(exploreLayer){try{exploreLayer.remove()}catch{}exploreLayer=null}
@@ -398,11 +400,11 @@ function showExplore(list){
 function pinTier(){const z=map?map.getZoom():mapZoom;return z>=14?'full':z>=12?'mini':'meow'}
 function searchPinTier(){const z=map?map.getZoom():mapZoom;return z>=16?'full':'meow'}
 // ui20261015cy: three meow marker styles (visited · wishlist · search/explore), all switching pin↔label with searchPinTier() (label at zoom ≥ 16)
-// ui20261015dt: visited/wishlist markers are always meow pins (selected = enlarged); details live in the sheet
+// ui20261015du: visited/wishlist markers are always meow pins (selected = enlarged); details live in the sheet
 function markerIcon(r){const isSel=r.id===selected||(r.id===searchLinkId&&searchFocusIdx!=null&&searchResults.length>0);const wishy=!!r.wish&&!visits(r.id)[0];const sz=isSel?[30,41]:[24,33];
   return window.L.icon({iconUrl:wishy?'assets/meow-map-pin-wish.png?v=ui20261015dk':'assets/meow-map-pin.png?v=ui20261015x',iconSize:sz,iconAnchor:[sz[0]/2,sz[1]],className:'meow-pin '+(wishy?'meow-pin-wish':'meow-pin-visited')+(isSel?' selected':'')})}
 function updateMarkerIcons(){markers.forEach(m=>m.setIcon(markerIcon(m._r)));searchMarkers.forEach((m,i)=>{if(m&&searchResults[i])m.setIcon(searchResultIcon(searchResults[i],i))});if(exploreLayer)exploreLayer.eachLayer(m=>{if(m&&m._explore)m.setIcon(exploreResultIcon(m._explore))})}
-// ui20261015dt: Wishlist card → Map tab, pin drawn (clear hide-visited/explore that could hide it), centred above sheet, place sheet open
+// ui20261015du: Wishlist card → Map tab, pin drawn (clear hide-visited/explore that could hide it), centred above sheet, place sheet open
 function openOnMap(id){const r=rest(id);if(!r)return;if(!Number.isFinite(r.lat)||!Number.isFinite(r.lng)){toast('No location saved for this place');return}
   if(hideVisited&&visits(id).length)hideVisited=false;exploreSeq++;clearTimeout(exploreTimer);exploreAbort?.abort();
   searchResults=[];searchFocusIdx=null;closePanel();wlSheetClose?.();tab='map';selected=null;render();
@@ -464,7 +466,7 @@ function searchHitHidden(f){
   return true;
 }
 function searchResultIcon(f,i){
-  const sel=searchFocusIdx!=null&&Number(i)===Number(searchFocusIdx),t=sel?'full':'meow'; // ui20261015dt: result pins stay pins; only the selected one shows its label
+  const sel=searchFocusIdx!=null&&Number(i)===Number(searchFocusIdx),t=sel?'full':'meow'; // ui20261015du: result pins stay pins; only the selected one shows its label
   if(t==='meow'){
     return window.L.icon({iconUrl:'assets/meow-map-pin-search.png?v=ui20261015cb',iconSize:[24,33],iconAnchor:[12,33],className:'meow-pin meow-pin-search'+(sel?' search-pin-active':'')});
   }
@@ -794,7 +796,7 @@ function dismissSearchSheet(){
   const sheet=$('#sheet');if(sheet)renderSheet();
   syncHideVisitedChip();
 }
-// ui20261015dt: one shared animated sheet close (translateY + 220ms), used by drag, handle tap and Cancel
+// ui20261015du: one shared animated sheet close (translateY + 220ms), used by drag, handle tap and Cancel
 function sheetCloseAnim(root,cb){if(!root){cb&&cb();return}if(root.dataset.closing)return;root.dataset.closing='1';root.style.transition='transform .22s ease,opacity .22s ease';requestAnimationFrame(()=>{root.style.transform=`translateY(${root.offsetHeight+40}px)`;root.style.opacity='0'});setTimeout(()=>{root.style.transition='';root.style.transform='';root.style.opacity='';delete root.dataset.closing;cb&&cb()},230)}
 function closePanelAnimated(){const inner=document.querySelector('#panel:not([hidden]) .panel-inner');if(!inner)return closePanel();sheetCloseAnim(inner,()=>{pendingVisit=false;closePanel()})}
 function sheetViewH(){const de=document.documentElement;if(de.classList.contains('shell-fit')){const v=parseFloat(getComputedStyle(de).getPropertyValue('--shell-h'));if(v>0)return v}return Math.round(window.visualViewport?.height||innerHeight)}
@@ -804,7 +806,7 @@ function bindSheetDismiss(root,onDismiss){
   root.dataset.dismissBound='1';
   const grips=[root.querySelector('.handle'),root.querySelector('.search-sheet-head,.sheet-head,.panel-head,.wl-ts-head')].filter(Boolean);
   if(!grips.length)return;
-  // ui20261015dt: 1:1 drag. Up (if natural < 50% of visible height) grows the sheet to ≤50%, snaps natural|50% on release.
+  // ui20261015du: 1:1 drag. Up (if natural < 50% of visible height) grows the sheet to ≤50%, snaps natural|50% on release.
   // Down from expanded → natural; further down translates; close if translate >60px or flick >0.4px/ms; no tap-to-close.
   let startY=0,dy=0,dragging=false,pid=null,lastY=0,lastT=0,vel=0,nat=0,maxH=0,base=0,curH=0;
   const setH=h=>{if(h>nat+0.5){root.style.setProperty('--sx-h',h+'px');root.classList.add('sheet-expanded')}else{root.style.removeProperty('--sx-h');root.classList.remove('sheet-expanded')}curH=Math.max(h,nat)};
@@ -877,7 +879,7 @@ function placeHitHtml(f,i){
   const p=f.properties,dist=hitDistanceLabel(f),addr=placeAddress(p);
   const meta=`${dist?`<span class="hit-dist">${esc(dist)}</span>${addr?' · ':''}`:''}${esc(addr)}`;
   const wished=!!matchRestaurantByDraft(draftFromSearchFeature(f))?.wish;
-  return `<article class="place-hit" data-hit="${i}" data-hit-focus="${i}" role="button" tabindex="0"><div class="place-hit-info"><div class="place-hit-title"><button type="button" class="hit-icon hit-wish-lead${wished?' wish-on':''}" data-result-wish="${i}" aria-label="${wished?'Saved to wishlist':'Save to wishlist'}" title="${wished?'Saved':'Wishlist'}"><img src="${wished?HEART_ON:HEART_OFF}" alt="" width="26" height="26" decoding="async"></button><b>${esc(p.name||p.street||'Place')}</b><div class="place-hit-actions"><a class="hit-go" href="${esc(navURL(draftFromSearchFeature(f)))}" target="_blank" rel="noopener" aria-label="Directions to ${esc(p.name||'place')} in Google Maps"><img src="assets/icon-go-meow.png?v=ui20261015dn" alt="" width="26" height="26" decoding="async"></a><button type="button" class="hit-icon" data-result-add="${i}" aria-label="Add restaurant" title="Add"><img src="assets/icon-add-meow.png?v=ui20261015dt" alt="" width="26" height="26" decoding="async"></button></div></div><small>${meta}</small></div></article>`;
+  return `<article class="place-hit" data-hit="${i}" data-hit-focus="${i}" role="button" tabindex="0"><div class="place-hit-info"><div class="place-hit-title"><button type="button" class="hit-icon hit-wish-lead${wished?' wish-on':''}" data-result-wish="${i}" aria-label="${wished?'Saved to wishlist':'Save to wishlist'}" title="${wished?'Saved':'Wishlist'}"><img src="${wished?HEART_ON:HEART_OFF}" alt="" width="26" height="26" decoding="async"></button><b>${esc(p.name||p.street||'Place')}</b><div class="place-hit-actions"><a class="hit-go" href="${esc(navURL(draftFromSearchFeature(f)))}" target="_blank" rel="noopener" aria-label="Directions to ${esc(p.name||'place')} in Google Maps"><img src="assets/icon-go-meow.png?v=ui20261015dn" alt="" width="26" height="26" decoding="async"></a><button type="button" class="hit-icon" data-result-add="${i}" aria-label="Add restaurant" title="Add"><img src="assets/icon-add-meow.png?v=ui20261015du" alt="" width="26" height="26" decoding="async"></button></div></div><small>${meta}</small></div></article>`;
 }
 function renderPlaceHits(output,features,opts={}){
   searchResults=(features||[]).filter(validPlace);
@@ -903,7 +905,7 @@ function renderPlaceHits(output,features,opts={}){
     if(row){
       const rh=row.getBoundingClientRect().height||48;
       hits.style.setProperty('--place-hit-h',rh+'px');
-      hits.style.maxHeight='';output.style.maxHeight=Math.round(rh*3.5)+'px'; // ui20261015dt: rows + Can't find it scroll together
+      hits.style.maxHeight='';output.style.maxHeight=Math.round(rh*3.5)+'px'; // ui20261015du: rows + Can't find it scroll together
     }
     output.classList.toggle('can-scroll',output.scrollHeight>output.clientHeight+4);
   });
@@ -966,6 +968,36 @@ async function fetchPlaceFeaturesLive(q,center,signal){
     return data.features.filter(validPlace).filter(isFoodFeature);
   }
 }
+// ui20261015du: partial-name rescue. Only when Mapbox /forward has no name match: Mapbox /suggest (+/retrieve for matching names) and Photon,
+// 3s timeout each, appended after first results (never blocks them). Overpass name-regex skipped: mirrors too slow/unreliable for 3s.
+function normName(x){return String(x||'').toLowerCase().normalize('NFKD').replace(/[\u0300-\u036f]/g,'').replace(/[^\p{L}\p{N}]+/gu,' ').trim()}
+function nameMatchRank(name,q){const n=normName(name),t=normName(q);if(!n||!t)return 3;if(n===t)return 0;if(n.startsWith(t))return 1;if(n.includes(t))return 2;return 3}
+async function fetchT(url,ms,signal){const c=new AbortController();const on=()=>c.abort();signal?.addEventListener('abort',on,{once:true});const t=setTimeout(()=>c.abort(),ms);try{const r=await fetch(url,{signal:c.signal});if(!r.ok)throw Error(String(r.status));return await r.json()}finally{clearTimeout(t);signal?.removeEventListener('abort',on)}}
+async function fetchSuggestMatches(q,center,signal){
+  const tok=(crypto.randomUUID?.()||String(Date.now())+Math.random().toString(16).slice(2));
+  const p=new URLSearchParams({q,access_token:MAPBOX_TOKEN,session_token:tok,language:'en',limit:'10',types:'poi',poi_category:MAPBOX_FOOD_CATS,proximity:`${center[1]},${center[0]}`});
+  const t0=performance.now();const j=await fetchT('https://api.mapbox.com/search/searchbox/v1/suggest?'+p,3000,signal);
+  const hits=(j.suggestions||[]).filter(x=>x.mapbox_id&&nameMatchRank(x.name,q)<3&&(x.distance==null||x.distance<30000)).slice(0,4);
+  const left=Math.max(500,3000-(performance.now()-t0));
+  const feats=await Promise.all(hits.map(x=>fetchT(`https://api.mapbox.com/search/searchbox/v1/retrieve/${encodeURIComponent(x.mapbox_id)}?`+new URLSearchParams({access_token:MAPBOX_TOKEN,session_token:tok}),left,signal).then(r=>r.features||[]).catch(()=>[])));
+  return mapboxForwardFeatures(feats.flat());
+}
+async function fetchPhotonMatches(q,center,signal){const j=await fetchT(placeSearchURL(q,center,true),3000,signal);return (j.features||[]).filter(validPlace).filter(isFoodFeature).filter(f=>nameMatchRank(f.properties?.name,q)<3)}
+function mergeRankFeatures(list,q,center){const out=[];const dist=f=>{const c=f.geometry.coordinates;const dy=(c[1]-center[0])*111e3,dx=(c[0]-center[1])*111e3*Math.cos(center[0]*Math.PI/180);return Math.hypot(dx,dy)};
+  for(const f of list){const n=normName(f.properties?.name);if(out.some(g=>(f.properties?.sourceId&&g.properties?.sourceId===f.properties.sourceId)||(normName(g.properties?.name).slice(0,12)===n.slice(0,12)&&(()=>{const a=f.geometry.coordinates,b=g.geometry.coordinates;return Math.hypot((a[0]-b[0])*72e3,(a[1]-b[1])*111e3)<200})())))continue;out.push(f)}
+  return out.map((f,i)=>({f,r:nameMatchRank(f.properties?.name,q),d:dist(f),i})).map(x=>({...x,k:x.r<=1?0:x.r===2?1:2})).sort((a,b)=>(a.k-b.k)||(a.k<2?a.d-b.d:a.i-b.i)).map(x=>x.f)}
+async function supplementSearch(q,center,first,generation,sheet,opts){
+  const head=sheet.querySelector('.search-sheet-head h2');let hint=null;if(head){hint=document.createElement('small');hint.className='search-more';hint.textContent=' searching more…';head.appendChild(hint)}
+  const signal=activeSearch?.signal;
+  const rs=await Promise.allSettled([fetchSuggestMatches(q,center,signal),fetchPhotonMatches(q,center,signal)]);
+  window.__searchT2=performance.now();window.__searchExtra=rs.map(r=>r.status==='fulfilled'?r.value.length:'x');
+  if(generation!==searchGeneration||!sheet.isConnected||lastSearchQuery!==q){hint?.remove();return}
+  const extra=rs.flatMap(r=>r.status==='fulfilled'?r.value:[]);
+  if(!extra.length){hint?.remove();return}
+  const merged=mergeRankFeatures([...extra,...first],q,center);
+  searchCachePut(searchCacheKey(q,center),merged);
+  showSearchSheetResults(sheet,merged,{...opts,noFit:true});
+}
 function showSearchSheetResults(sheet,features,opts={}){
   sheet.innerHTML=`<section class="search-sheet"><div class="handle" aria-hidden="true"></div><div class="search-sheet-head"><h2>Nearby matches</h2><div class="search-sheet-tools"><button type="button" class="text-button" data-action="clear-search-sheet">Clear</button></div></div><div id="search-results" class="search-results place-results"></div></section>`;
   renderPlaceHits($('#search-results'),features,opts);
@@ -1004,8 +1036,10 @@ async function runMapPlaceSearch(q,opts={}){
   try{
     const features=await fetchPlaceFeatures(q,controller.signal);
     if(generation!==searchGeneration||!sheet.isConnected)return;
+    window.__searchT1=performance.now();
     showSearchSheetResults(sheet,features,opts);
     markAreaSearch('places');
+    if(!features.some(f=>nameMatchRank(f.properties?.name,q)<3))supplementSearch(q,center,features,generation,sheet,opts);
   }catch{
     if(generation!==searchGeneration||!sheet.isConnected)return;
     sheet.innerHTML=`<section class="search-sheet"><div class="handle" aria-hidden="true"></div><div class="search-idle" role="status"><h3>Connection hiccup</h3><p>Try again in a moment.</p><button type="button" id="retry-place-search">Try again</button></div>${manualFallback()}</section>`;
@@ -1193,7 +1227,7 @@ document.addEventListener('change',e=>{
 let wlTagScrollAt=0;document.addEventListener('scroll',e=>{if(e.target.classList?.contains('wl-tags')||e.target.classList?.contains('tl-tags'))wlTagScrollAt=Date.now()},true);
 document.addEventListener('click',e=>{
   if(Date.now()-wlTagScrollAt<350&&e.target.closest?.('.wl-tags,.tl-tags')){e.preventDefault();e.stopPropagation();return}
-  if(e.target.closest('a.hit-go,a.sheet-nav'))return; // ui20261015dt: directions links open externally, never select the row
+  if(e.target.closest('a.hit-go,a.sheet-nav'))return; // ui20261015du: directions links open externally, never select the row
   const b=e.target.closest('button,[data-detail],[data-visit-toggle],[data-latest-toggle],[data-hit-focus],[data-wl-open]');if(!b)return;const d=b.dataset;
   if(d.page==='prev'){listPage=Math.max(0,listPage-1);if(tab==='wishlist'){renderWishlist();enhanceIcons()}return}
   if(d.page==='next'){listPage++;if(tab==='wishlist'){renderWishlist();enhanceIcons()}return}
@@ -1325,8 +1359,8 @@ fit();addEventListener('resize',fit);addEventListener('orientationchange',()=>se
 // ui20261015ck: compact Wishlist cards, single scrollable tag row.
 // ui20261015cj: removed zoom-in gate from runMapPlaceSearch; search works at any zoom.
 
-// ui20261015dt: temporary tap debug overlay, only with ?debugtap=1
+// ui20261015du: temporary tap debug overlay, only with ?debugtap=1
 (function(){if(!/[?&]debugtap=1\b/.test(location.search))return;const box=document.createElement('div');box.id='debugtap';box.style.cssText='position:fixed;left:6px;right:6px;bottom:calc(6px + env(safe-area-inset-bottom,0px));z-index:2147483646;background:rgba(20,20,20,.82);color:#fff;font:11px/1.35 ui-monospace,Menlo,monospace;padding:6px 8px;border-radius:8px;pointer-events:none;white-space:pre-wrap;word-break:break-all';const pr=document.createElement('div');pr.style.cssText='position:fixed;top:env(safe-area-inset-top,0px);height:1px;width:1px;visibility:hidden';document.documentElement.appendChild(pr);const dot=document.createElement('div');dot.style.cssText='position:fixed;width:14px;height:14px;margin:-7px 0 0 -7px;border-radius:50%;background:#f00a;z-index:2147483646;pointer-events:none;display:none';const d=e=>e?e.tagName.toLowerCase()+(e.id?'#'+e.id:'')+(typeof e.className==='string'&&e.className.trim()?'.'+e.className.trim().split(/\s+/).slice(0,3).join('.'):''):'-';let last='(tap anywhere)';function info(){const vv=window.visualViewport,de=document.documentElement,app=document.querySelector('.app');return 'tap: '+last+'\ninnerH '+innerHeight+' vvH '+(vv?Math.round(vv.height)+' vvTop '+Math.round(vv.offsetTop):'-')+' screenH '+screen.height+'\n--shell-h '+(getComputedStyle(de).getPropertyValue('--shell-h').trim()||'-')+' shell-fit '+de.classList.contains('shell-fit')+' safeTop '+Math.round(pr.getBoundingClientRect().top)+'\napp '+(app?Math.round(app.getBoundingClientRect().top)+'..'+Math.round(app.getBoundingClientRect().bottom)+' scrollTop '+app.scrollTop:'-')+' bodyScroll '+document.body.scrollTop+' winY '+scrollY}function up(){box.textContent=info()}addEventListener('pointerdown',e=>{const t=document.elementFromPoint(e.clientX,e.clientY);const btn=t&&t.closest('button,a,[data-tab]');last=Math.round(e.clientX)+','+Math.round(e.clientY)+' '+d(t)+(btn&&btn!==t?' < '+d(btn):'');dot.style.left=e.clientX+'px';dot.style.top=e.clientY+'px';dot.style.display='block';up()},true);addEventListener('resize',up);if(window.visualViewport)visualViewport.addEventListener('resize',up);function mount(){document.body.appendChild(box);document.body.appendChild(dot);up()}document.body?mount():addEventListener('DOMContentLoaded',mount)})();
 
-// ui20261015dt: panel sheet drag/handle close
+// ui20261015du: panel sheet drag/handle close
 (function(){const go=()=>{const i=document.querySelector('#panel .panel-inner');if(i)bindSheetDismiss(i,()=>{pendingVisit=false;closePanel()})};document.readyState==='loading'?addEventListener('DOMContentLoaded',go):go()})();
