@@ -9,7 +9,7 @@ header .app-tagline .leaf{display:inline-flex}
 header .avatar{width:50px!important;height:50px!important;flex:none;border:3px solid #cfe0c4!important;box-shadow:none!important}
 header .avatar .avatar-initial{font-size:22px}
 /* Nav pills */
-.tabs{gap:8px!important;padding:4px 14px 14px!important}
+.tabs{gap:8px!important;padding:4px 14px 0!important}
 .tabs button{height:36px!important;min-height:36px!important;padding:0 10px!important;line-height:1!important;border-radius:999px!important;border:2px solid var(--mm-line)!important;background:var(--mm-cream)!important;font:800 16px Nunito,sans-serif!important;color:var(--mm-ink)!important;box-shadow:none!important;transform:none!important;display:inline-flex!important;align-items:center;justify-content:center;gap:6px}
 .tabs .ui-icon{width:18px!important;height:18px!important}
 .tabs button.active,.tabs button.active[data-tab=wishlist]{background:var(--mm-sage)!important;border-color:var(--mm-sage-d)!important;color:#fff!important}
