@@ -201,9 +201,9 @@ function renderWishlist(){
 
 const FOOD_ICONS=['ramen','sushi','japanese','cafe','matcha','tea','boba','dessert','bakery','burger','pasta','pizza','steak','chinese','korean','thai','indian','hongkong','singaporean','mideast','shop'];
 function foodKey(r){if(typeof r?.kind==='string'&&r.kind.startsWith('icon/'))return r.kind;if(r?.kind&&!['shop','cafe'].includes(r.kind)&&FOOD_ICONS.includes(r.kind))return r.kind;const blob=((r?.kind||'')+' '+(r?.tags||[]).join(' ')+' '+(r?.name||'')).toLowerCase();const rules=[[/ramen|noodle|udon|soba/,'ramen'],[/sushi|sashimi|omakase/,'sushi'],[/matcha/,'matcha'],[/boba|bubble/,'boba'],[/\btea\b/,'tea'],[/cafe|café|coffee|espresso/,'cafe'],[/dessert|ice cream|sweet|gelato|cake/,'dessert'],[/bakery|bread|pastry|croissant/,'bakery'],[/burger/,'burger'],[/pizza/,'pizza'],[/pasta|italian/,'pasta'],[/steak|grill|bbq/,'steak'],[/hong ?kong|dim sum|cantonese|cha chaan/,'hongkong'],[/chinese|sichuan|szechuan|dumpling/,'chinese'],[/korean|bibimbap|kbbq/,'korean'],[/thai/,'thai'],[/indian|curry/,'indian'],[/singapore|malay|hainan/,'singaporean'],[/middle ?east|turkish|lebanese|kebab|falafel|mediterranean/,'mideast'],[/japanese|izakaya/,'japanese']];for(const[re,k]of rules)if(re.test(blob))return k;return FOOD_ICONS.includes(r?.kind)?r.kind:'shop'}
-const foodSrc=k=>k.startsWith('icon/')?`${k}.png`:`food/${k}.png?v=ui20261015bu`;const foodBg=k=>k.startsWith('icon/')?'set':k;
+const foodSrc=k=>k.startsWith('icon/')?`${k}.png`:`food/${k}.png?v=ui20261015bv`;const foodBg=k=>k.startsWith('icon/')?'set':k;
 function foodImg(r,cls='tl-food'){const k=foodKey(r);return `<span class="${cls} tl-bg-${foodBg(k)}"><img src="${foodSrc(k)}" alt="" loading="lazy"></span>`}
-let ICON_SETS=null;const iconSets=()=>ICON_SETS||(ICON_SETS=fetch('icon/index.json?v=ui20261015bu').then(r=>r.json()).catch(()=>({})));
+let ICON_SETS=null;const iconSets=()=>ICON_SETS||(ICON_SETS=fetch('icon/index.json?v=ui20261015bv').then(r=>r.json()).catch(()=>({})));
 const SET_FOR={chinese:'chinese',hongkong:'hong-kong',japanese:'japanese',sushi:'japanese',ramen:'japanese',matcha:'japanese',korean:'korean',thai:'thai',indian:'indian',singaporean:'singaporean',mideast:'middle-eastern',tea:'drinks',boba:'drinks',cafe:'drinks',burger:'western',pasta:'western',pizza:'western',steak:'western'};
 function vibeIcon(t){t=t.toLowerCase();if(/sweet|cute|sparkle|vibe/.test(t))return icon('sparkle');if(/friend|solo|date|group|people/.test(t))return icon('users');if(/comfort|cozy|love|heart/.test(t))return icon('heart');return `<svg class="ui-icon leaf-ico" viewBox="0 0 24 24" aria-hidden="true"><path d="M5 19C5 10 11 5 20 4c0 9-5 15-14 15Z"/><path d="M5 19 13 11"/></svg>`}
 function vibeTags(list,max=3){list=(list||[]).filter(t=>t&&t!=='demo').slice(0,max);return list.length?`<div class="tl-tags">${list.map(t=>`<span class="tl-tag">${vibeIcon(t)}${esc(t)}</span>`).join('')}</div>`:''}
@@ -434,7 +434,7 @@ function visitForm(restaurantId,visitId,seedDraft){
   const MEALS=['Breakfast','Brunch','Lunch','Dinner','Cafe','Dessert','Snack'];
   const dOff=n=>{const d=new Date();d.setDate(d.getDate()-n);return d.toISOString().slice(0,10)};
   const recent=[...new Set([...state.visits].sort((a,b)=>(b.date+b.time).localeCompare(a.date+a.time)).map(x=>x.restaurantId))].map(rest).filter(Boolean).slice(0,6);
-  openPanel(visitId?'Edit visit':'Log a visit',`<form id="visit-form" class="vs-sheet"><div class="vs-place" id="vs-place"></div><div class="vs-search"><div class="vs-search-row"><span class="vs-ico" aria-hidden="true">${icon('search')}</span><input id="vs-q" type="search" placeholder="Search a place nearby" aria-label="Search a place" autocomplete="off" maxlength="200" enterkeyhint="search"><button type="button" class="vs-go" id="vs-go" aria-label="Search">→</button></div><div id="vs-hits" class="vs-hits"></div>${recent.length?`<div class="vs-chips vs-recent">${recent.map(r=>`<button type="button" class="vs-chip" data-vs-rest="${r.id}">${esc(r.name)}</button>`).join('')}</div>`:''}</div><div class="vs-body" id="vs-body"><div class="vs-when vs-card"><div class="vs-chips" id="vs-dates"></div><div class="vs-mealrow"><div class="vs-chips" id="vs-meals"></div><div class="vs-stars" id="vs-stars" role="radiogroup" aria-label="Rating">${[1,2,3,4,5].map(n=>`<button type="button" role="radio" data-star="${n}" aria-label="${n} star${n>1?'s':''}">★</button>`).join('')}</div></div></div><section class="vs-card"><div class="vs-label">Tags</div><div class="vs-tagbox"><div class="vs-tagchips" id="vs-tagchips"></div><div class="vs-tagadd"><input id="vs-tags" class="vs-tags" placeholder="Add a tag" aria-label="Add a tag" maxlength="30" autocomplete="off" enterkeyhint="done"><button type="button" class="vs-tagbtn" id="vs-tagbtn">+ Add</button></div></div></section><section class="vs-card"><div class="vs-label vs-icon-head">Icon <button type="button" class="vs-setbtn" id="vs-setbtn" aria-label="Switch icon set">⇄ <span id="vs-setname">Food</span></button></div><div class="vs-icons" id="vs-icons"></div><div class="vs-sets" id="vs-sets"></div></section><div class="vs-actions"><button type="submit" class="primary">${visitId?'Save':'Log it'}</button></div></div></form>`,{cls:'visit-sheet'});
+  openPanel(visitId?'Edit visit':'Log a visit',`<form id="visit-form" class="vs-sheet"><div class="vs-place" id="vs-place"></div><div class="vs-search"><div class="vs-search-row"><span class="vs-ico" aria-hidden="true">${icon('search')}</span><input id="vs-q" type="search" placeholder="Search a place nearby" aria-label="Search a place" autocomplete="off" maxlength="200" enterkeyhint="search"><button type="button" class="vs-go" id="vs-go" aria-label="Search">→</button></div><div id="vs-hits" class="vs-hits"></div>${recent.length?`<div class="vs-chips vs-recent">${recent.map(r=>`<button type="button" class="vs-chip" data-vs-rest="${r.id}">${esc(r.name)}</button>`).join('')}</div>`:''}</div><div class="vs-body" id="vs-body"><div class="vs-when vs-card"><div class="vs-chips" id="vs-dates"></div><div class="vs-mealrow"><div class="vs-mealroll" id="vs-meals" role="listbox" aria-label="Meal" tabindex="0"></div><div class="vs-stars" id="vs-stars" role="radiogroup" aria-label="Rating">${[1,2,3,4,5].map(n=>`<button type="button" role="radio" data-star="${n}" aria-label="${n} star${n>1?'s':''}">★</button>`).join('')}</div></div></div><section class="vs-card"><div class="vs-label">Tags</div><div class="vs-tagbox"><div class="vs-tagchips" id="vs-tagchips"></div><div class="vs-tagadd"><input id="vs-tags" class="vs-tags" placeholder="Add a tag" aria-label="Add a tag" maxlength="30" autocomplete="off" enterkeyhint="done"><button type="button" class="vs-tagbtn" id="vs-tagbtn">+ Add</button></div></div></section><section class="vs-card"><div class="vs-label vs-icon-head">Icon <button type="button" class="vs-setbtn" id="vs-setbtn" aria-label="Switch icon set">⇄ <span id="vs-setname">Food</span></button></div><div class="vs-icons" id="vs-icons"></div><div class="vs-sets" id="vs-sets"></div></section><div class="vs-actions"><button type="submit" class="primary">${visitId?'Save':'Log it'}</button></div></div></form>`,{cls:'visit-sheet'});
   const $f=$('#visit-form');
   const paint=()=>{
     const p=place||draft;
@@ -444,7 +444,7 @@ function visitForm(restaurantId,visitId,seedDraft){
     $('#vs-change')?.addEventListener('click',()=>{place=null;draft=null;paint();$('#vs-q').focus()});
     {const td=dOff(0),dl=new Date(date+'T12:00').toLocaleDateString(undefined,{weekday:'short',month:'short',day:'numeric'});const nb=(n,t,a)=>`<button type="button" class="vs-step" data-vs-step="${n}" aria-label="${a}"${n>0&&date>=td?' disabled':''}>${t}</button>`;
     $('#vs-dates').innerHTML=`<div class="vs-stepper">${nb(-7,'«','Back a week')}${nb(-1,'‹','Previous day')}<label class="vs-curdate"><span>${esc(dl)}</span>${date===td?'<i class="vs-today">Today</i>':''}<input type="date" id="vs-date" value="${date}" max="${td}" aria-label="Pick date"></label>${nb(1,'›','Next day')}${nb(7,'»','Forward a week')}</div>`}
-    $('#vs-meals').innerHTML=MEALS.map(m=>`<button type="button" class="vs-chip${meal===m?' on':''}" data-vs-meal="${m}">${m}</button>`).join('');
+    {const box=$('#vs-meals'),idx=Math.max(0,MEALS.indexOf(meal));box.innerHTML=MEALS.map(m=>`<button type="button" role="option" class="vs-mealopt${m===meal?' on':''}" data-vs-meal="${m}" aria-selected="${m===meal}">${m}</button>`).join('');requestAnimationFrame(()=>{const opt=box.children[idx];if(opt)box.scrollTop=opt.offsetTop-(box.clientHeight-opt.offsetHeight)/2})}
     $f.querySelectorAll('[data-star]').forEach(b=>{const n=+b.dataset.star;b.classList.toggle('on',n<=ratingVal);b.setAttribute('aria-checked',n===ratingVal)});
     paintIcons();
   };
@@ -479,6 +479,11 @@ function visitForm(restaurantId,visitId,seedDraft){
     else if(d.vsSet){iconSet=d.vsSet;setsOpen=false;paintIcons()}
   });
   $f.addEventListener('change',e=>{if(e.target.id==='vs-date'&&e.target.value){date=e.target.value;paint()}});
+  const mealBox=$('#vs-meals');let mealScrollT;
+  const syncMealScroll=()=>{if(!mealBox||!mealBox.isConnected)return;const mid=mealBox.scrollTop+mealBox.clientHeight/2;let best=null,bestD=1e9;[...mealBox.children].forEach(o=>{const c=o.offsetTop+o.offsetHeight/2,d=Math.abs(c-mid);if(d<bestD){bestD=d;best=o}});if(!best)return;const m=best.dataset.vsMeal;if(m&&m!==meal)meal=m;[...mealBox.children].forEach(o=>{const on=o===best;o.classList.toggle('on',on);o.setAttribute('aria-selected',on)})};
+  mealBox.addEventListener('scroll',()=>{clearTimeout(mealScrollT);mealScrollT=setTimeout(syncMealScroll,70)},{passive:true});
+  mealBox.addEventListener('scrollend',syncMealScroll);
+  mealBox.addEventListener('keydown',e=>{if(e.key!=='ArrowDown'&&e.key!=='ArrowUp')return;e.preventDefault();const i=MEALS.indexOf(meal),n=e.key==='ArrowDown'?Math.min(MEALS.length-1,i+1):Math.max(0,i-1);if(n!==i){meal=MEALS[n];paint()}});
   paint();if(!place)setTimeout(()=>$('#vs-q')?.focus(),60);
   $f.onsubmit=e=>{e.preventDefault();
     if(!place&&!draft)return toast('Pick a place first.');
@@ -703,7 +708,8 @@ function focusSearchHit(i,opts={}){
 function placeHitHtml(f,i){
   const p=f.properties,dist=hitDistanceLabel(f),addr=placeAddress(p);
   const meta=`${dist?`<span class="hit-dist">${esc(dist)}</span>${addr?' · ':''}`:''}${esc(addr)}`;
-  return `<article class="place-hit" data-hit="${i}" data-hit-focus="${i}" role="button" tabindex="0"><div class="place-hit-info"><div class="place-hit-title"><b>${esc(p.name||p.street||'Place')}</b><div class="place-hit-actions"><button type="button" class="hit-icon" data-result-wish="${i}" aria-label="Save to wishlist" title="Wishlist"><img src="assets/icon-wish-meow.png?v=ui20261015ar" alt="" width="26" height="26" decoding="async"></button><button type="button" class="hit-icon" data-result-add="${i}" aria-label="Add restaurant" title="Add"><img src="assets/icon-add-meow.png?v=ui20261015ar" alt="" width="26" height="26" decoding="async"></button></div></div><small>${meta}</small></div></article>`;
+  const wished=!!matchRestaurantByDraft(draftFromSearchFeature(f))?.wish;
+  return `<article class="place-hit" data-hit="${i}" data-hit-focus="${i}" role="button" tabindex="0"><div class="place-hit-info"><div class="place-hit-title"><b>${esc(p.name||p.street||'Place')}</b><div class="place-hit-actions"><button type="button" class="hit-icon${wished?' wish-on':''}" data-result-wish="${i}" aria-label="${wished?'Saved to wishlist':'Save to wishlist'}" title="${wished?'Saved':'Wishlist'}"><img src="assets/icon-wish-meow.png?v=ui20261015ar" alt="" width="26" height="26" decoding="async"></button><button type="button" class="hit-icon" data-result-add="${i}" aria-label="Add restaurant" title="Add"><img src="assets/icon-add-meow.png?v=ui20261015ar" alt="" width="26" height="26" decoding="async"></button></div></div><small>${meta}</small></div></article>`;
 }
 function renderPlaceHits(output,features,opts={}){
   searchResults=(features||[]).filter(validPlace);
@@ -909,6 +915,28 @@ function draftFromSearchFeature(f){
   const sourceId=p.sourceId||(p.osm_type&&p.osm_id?`${p.osm_type}:${p.osm_id}`:null)||(p.mapbox_id?`mapbox:${p.mapbox_id}`:null);
   return {name:p.name||p.street||'New restaurant',address:placeAddress(p),lat:coords[1],lng:coords[0],sourceId,...placeCategory(p)};
 }
+function markSearchWishHit(i,on){
+  const btn=document.querySelector(`button[data-result-wish="${i}"]`);
+  if(!btn)return;
+  btn.classList.toggle('wish-on',!!on);
+  btn.setAttribute('aria-label',on?'Saved to wishlist':'Save to wishlist');
+  btn.title=on?'Saved':'Wishlist';
+}
+function wishlistSearchHit(i){
+  const f=searchResults[i];if(!f)return;
+  const draft=draftFromSearchFeature(f);
+  const existing=matchRestaurantByDraft(draft);
+  if(existing?.wish){markSearchWishHit(i,true);toast('Already on wishlist');return}
+  if(existing){
+    if(!commit(()=>{rest(existing.id).wish=true;rest(existing.id).u=Date.now()}))return;
+  }else{
+    const now=Date.now(),id=uid();
+    if(!commit(()=>{state.restaurants.push({id,name:draft.name,address:draft.address||'',kind:draft.kind||'shop',tags:draft.tags||[],rating:null,lat:Number.isFinite(draft.lat)?draft.lat:null,lng:Number.isFinite(draft.lng)?draft.lng:null,sourceId:draft.sourceId||null,note:'',wish:true,added:today(),demo:false,u:now})}))return;
+  }
+  markSearchWishHit(i,true);
+  toast('Saved to wishlist');
+  if(map)drawMarkers();
+}
 function openFromSearchFeature(f,mode){
   clearSearchMarkers();searchResults=[];searchFocusIdx=null;syncHideVisitedChip();
   const draft=draftFromSearchFeature(f);
@@ -1004,7 +1032,7 @@ document.addEventListener('click',e=>{
   if(d.save){if(!commit(()=>{const x=rest(d.save);x.wish=!x.wish;x.u=Date.now()}))return;if(!$('#panel').hidden)restaurantDetail(d.save);render();toast(rest(d.save).wish?'Saved to wishlist':'Removed from wishlist');return}
   if(d.note){const r=rest(d.note);openPanel('My note',`<form id="note-form"><textarea aria-label="My note" maxlength="2000">${esc(r.note)}</textarea><div class="form-actions"><button class="primary">Save note</button></div></form>`,{full:true});$('#note-form').onsubmit=e=>{e.preventDefault();if(!commit(()=>{rest(d.note).note=e.target.querySelector('textarea').value;rest(d.note).u=Date.now()}))return;closePanel();render();toast('Note saved')};return}
   if(d.hitFocus!==undefined){focusSearchHit(d.hitFocus);return}
-  if(d.resultWish!==undefined){const f=searchResults[Number(d.resultWish)];if(!f)return;return openFromSearchFeature(f,'wish')}
+  if(d.resultWish!==undefined){return wishlistSearchHit(Number(d.resultWish))}
   if(d.resultAdd!==undefined){const f=searchResults[Number(d.resultAdd)];if(!f)return;return openFromSearchFeature(f,'add')}
   if(d.result!==undefined){const f=searchResults[Number(d.result)];if(!f)return;return openFromSearchFeature(f)}
   switch(d.action){

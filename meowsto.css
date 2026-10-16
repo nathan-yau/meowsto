@@ -230,3 +230,11 @@ header .avatar img,.profile-avatar img{width:100%;height:100%;object-fit:cover;d
 }
 .map-hide-visited[hidden]{display:none!important}
 @media(max-width:600px){.map-hide-visited{top:90px;left:8px}}
+
+/* ui20261015bv: filled/active wishlist heart on search hits */
+.place-hit-actions .hit-icon.wish-on{
+  background:#ffe3e8;border-radius:999px;
+  box-shadow:inset 0 0 0 1.5px #38271f;
+}
+.place-hit-actions .hit-icon.wish-on img{transform:scale(1.06);filter:saturate(1.25) brightness(1.02)}
+.search-results .place-hit .place-hit-actions .hit-icon.wish-on{background:#ffe3e8}
