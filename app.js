@@ -862,9 +862,6 @@ function showSearchSheetResults(sheet,features,opts={}){
 async function runMapPlaceSearch(q,opts={}){
   q=String(q||'').trim();
   if(q.length<2)return toast('Enter at least two characters.');
-  const z=map?map.getZoom():mapZoom;
-  // Near me / Search again (force) skip zoom gate; typed search bar still requires z>=14
-  if(!(z>=14)&&!opts.centerOnUser&&!opts.force)return toast('Zoom in closer to search nearby');
   clearTimeout(autocompleteTimer);
   selected=null;lastSearchQuery=q;
   const input=$('#map-search-query');
@@ -1195,3 +1192,4 @@ $('#uf').onsubmit=async e=>{
 (function(){const de=document.documentElement;const sa=()=>navigator.standalone===true||matchMedia('(display-mode: standalone)').matches||matchMedia('(display-mode: fullscreen)').matches;
 function fit(){if(!sa()){de.classList.remove('shell-fit');return}const land=matchMedia('(orientation: landscape)').matches;const sh=land?Math.min(screen.width,screen.height):Math.max(screen.width,screen.height);const ih=window.innerHeight;const h=(sh>ih&&sh-ih<140)?sh:ih;de.style.setProperty('--shell-h',h+'px');de.classList.add('shell-fit');if(typeof map!=='undefined'&&map&&map.invalidateSize)setTimeout(()=>{try{map.invalidateSize()}catch{}},50)}
 fit();addEventListener('resize',fit);addEventListener('orientationchange',()=>setTimeout(fit,250));window.__fitShell=fit})();
+// ui20261015ch: removed zoom-in gate from runMapPlaceSearch; search works at any zoom.
