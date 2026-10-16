@@ -528,3 +528,7 @@ header h1.app-name,.lockcard h1,.lockcard .lock-title{font-family:var(--font-tit
 .view-map .search-sheet .search-results{overflow-y:auto!important;overscroll-behavior:contain;-webkit-overflow-scrolling:touch;padding-bottom:8px}
 .view-map .search-sheet .search-results .place-hits{max-height:none!important;overflow:visible!important}
 .view-map .search-sheet .manual-fallback{margin:6px 2px 0!important}
+/* ui20261015dl: Go (directions) round icon in result rows */
+.place-hit-actions .hit-go{width:28px;height:28px;min-width:28px;border-radius:50%;border:1.5px solid #e3dccd;background:#fffdf6;color:#5b8a63;display:inline-grid;place-items:center;flex:none;text-decoration:none}
+.place-hit-actions .hit-go svg{width:14px;height:14px;fill:none;stroke:currentColor;stroke-width:2.2;stroke-linecap:round;stroke-linejoin:round}
+.view-map .search-sheet .place-hit-actions{display:flex;align-items:center;gap:6px;flex:none}
