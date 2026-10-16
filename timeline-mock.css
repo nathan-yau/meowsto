@@ -254,12 +254,7 @@
 #main.view-map #sheet{margin:0!important;padding:0!important}
 #main.view-map #sheet:empty{display:none!important;height:0!important;min-height:0!important}
 .view-map main,.view-timeline main{padding-bottom:0!important}
-/* Search again sits inline in toolbar between Near me and Explore */
 .map-toolbar{display:flex!important;align-items:center;justify-content:space-between}
-.map-toolbar .search-again{position:static!important;top:auto!important;left:auto!important;transform:none!important;margin:0 auto!important;flex:0 0 auto!important;order:0;min-height:40px!important;padding:6px 12px!important;font:800 14px Nunito,sans-serif!important;white-space:nowrap;z-index:1}
-.map-toolbar .search-again:active{transform:translateY(1px)!important}
-.map-toolbar .search-again[hidden]{display:none!important}
-.map-toolbar:has(.search-again:not([hidden])){gap:6px}
 /* ui20261015cb: kill top gap under tabs on Map/Timeline — header meets content flush */
 .tabs{padding-bottom:0!important;margin-bottom:0!important}
 #main.view-map,#main.view-timeline{padding-top:0!important;margin-top:0!important}
