@@ -45,3 +45,10 @@ html,body{background:#ebf4e9!important}
 .app{padding-top:0!important;background:#ebf4e9!important}
 html body .app>header,html body header{background:#ebf4e9!important;padding-top:calc(16px + env(safe-area-inset-top,0px))!important;margin-top:0!important}
 #lockscr{padding-top:max(20px,calc(env(safe-area-inset-top,0px) + 12px))!important}
+/* ui20261015ce: iOS standalone + black-translucent: 100dvh/100vh resolve short of the physical screen (status-bar height),
+   leaving a band below the app on Map/Timeline. Pin the shell to the real screen edges instead of using vh units. */
+html,body{height:100%!important;min-height:100%!important;margin:0!important;padding:0!important}
+body{position:fixed!important;inset:0!important}
+html body .app{position:fixed!important;top:0!important;bottom:0!important;left:0!important;right:0!important;height:auto!important;min-height:0!important;max-height:none!important;margin:0 auto!important;padding-bottom:0!important}
+#main.view-map,#main.view-timeline{flex:1 1 auto!important;margin-bottom:0!important;padding-bottom:0!important}
+#main.view-map .map-wrap{flex:1 1 auto!important}
