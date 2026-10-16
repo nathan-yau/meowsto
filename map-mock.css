@@ -75,6 +75,8 @@ header .avatar .avatar-initial{font-size:22px}
 .map-chip.never-visited:not(.selected):before{background:#8a7a6c!important}
 
 /* ui20261015br: re-search after pan (Explore / Near me / map search) */
+/* ui20261015bs: pan/fit above bottom sheet (Near me + blue search pins) */
+/* ui20261015bt: visit stars row; add→visit-sheet; wishlist one-tap */
 .search-again{position:absolute;top:112px;left:50%;transform:translateX(-50%);z-index:550;pointer-events:auto;border:2.5px solid var(--mm-ink,#38271f);border-radius:999px;background:var(--mm-cream,#fffaf1);color:var(--mm-ink,#38271f);font:800 14px Nunito,sans-serif;padding:8px 16px;box-shadow:0 3px 12px #38271f22;white-space:nowrap}
 .search-again:active{transform:translateX(-50%) translateY(1px);box-shadow:0 1px 6px #38271f18}
 .map-wrap:has(.explore-banner) .search-again{top:148px}

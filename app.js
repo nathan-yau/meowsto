@@ -201,9 +201,9 @@ function renderWishlist(){
 
 const FOOD_ICONS=['ramen','sushi','japanese','cafe','matcha','tea','boba','dessert','bakery','burger','pasta','pizza','steak','chinese','korean','thai','indian','hongkong','singaporean','mideast','shop'];
 function foodKey(r){if(typeof r?.kind==='string'&&r.kind.startsWith('icon/'))return r.kind;if(r?.kind&&!['shop','cafe'].includes(r.kind)&&FOOD_ICONS.includes(r.kind))return r.kind;const blob=((r?.kind||'')+' '+(r?.tags||[]).join(' ')+' '+(r?.name||'')).toLowerCase();const rules=[[/ramen|noodle|udon|soba/,'ramen'],[/sushi|sashimi|omakase/,'sushi'],[/matcha/,'matcha'],[/boba|bubble/,'boba'],[/\btea\b/,'tea'],[/cafe|café|coffee|espresso/,'cafe'],[/dessert|ice cream|sweet|gelato|cake/,'dessert'],[/bakery|bread|pastry|croissant/,'bakery'],[/burger/,'burger'],[/pizza/,'pizza'],[/pasta|italian/,'pasta'],[/steak|grill|bbq/,'steak'],[/hong ?kong|dim sum|cantonese|cha chaan/,'hongkong'],[/chinese|sichuan|szechuan|dumpling/,'chinese'],[/korean|bibimbap|kbbq/,'korean'],[/thai/,'thai'],[/indian|curry/,'indian'],[/singapore|malay|hainan/,'singaporean'],[/middle ?east|turkish|lebanese|kebab|falafel|mediterranean/,'mideast'],[/japanese|izakaya/,'japanese']];for(const[re,k]of rules)if(re.test(blob))return k;return FOOD_ICONS.includes(r?.kind)?r.kind:'shop'}
-const foodSrc=k=>k.startsWith('icon/')?`${k}.png`:`food/${k}.png?v=ui20261015br`;const foodBg=k=>k.startsWith('icon/')?'set':k;
+const foodSrc=k=>k.startsWith('icon/')?`${k}.png`:`food/${k}.png?v=ui20261015bt`;const foodBg=k=>k.startsWith('icon/')?'set':k;
 function foodImg(r,cls='tl-food'){const k=foodKey(r);return `<span class="${cls} tl-bg-${foodBg(k)}"><img src="${foodSrc(k)}" alt="" loading="lazy"></span>`}
-let ICON_SETS=null;const iconSets=()=>ICON_SETS||(ICON_SETS=fetch('icon/index.json?v=ui20261015br').then(r=>r.json()).catch(()=>({})));
+let ICON_SETS=null;const iconSets=()=>ICON_SETS||(ICON_SETS=fetch('icon/index.json?v=ui20261015bt').then(r=>r.json()).catch(()=>({})));
 const SET_FOR={chinese:'chinese',hongkong:'hong-kong',japanese:'japanese',sushi:'japanese',ramen:'japanese',matcha:'japanese',korean:'korean',thai:'thai',indian:'indian',singaporean:'singaporean',mideast:'middle-eastern',tea:'drinks',boba:'drinks',cafe:'drinks',burger:'western',pasta:'western',pizza:'western',steak:'western'};
 function vibeIcon(t){t=t.toLowerCase();if(/sweet|cute|sparkle|vibe/.test(t))return icon('sparkle');if(/friend|solo|date|group|people/.test(t))return icon('users');if(/comfort|cozy|love|heart/.test(t))return icon('heart');return `<svg class="ui-icon leaf-ico" viewBox="0 0 24 24" aria-hidden="true"><path d="M5 19C5 10 11 5 20 4c0 9-5 15-14 15Z"/><path d="M5 19 13 11"/></svg>`}
 function vibeTags(list,max=3){list=(list||[]).filter(t=>t&&t!=='demo').slice(0,max);return list.length?`<div class="tl-tags">${list.map(t=>`<span class="tl-tag">${vibeIcon(t)}${esc(t)}</span>`).join('')}</div>`:''}
@@ -426,14 +426,15 @@ function restaurantForm(id,defaults={}){
   $('#restaurant-form').onsubmit=e=>{e.preventDefault();const f=new FormData(e.target);let lat=f.get('lat'),lng=f.get('lng');if(lat==null||lat==='')lat=(r.lat==null||r.lat===undefined)?'':String(r.lat);if(lng==null||lng==='')lng=(r.lng==null||r.lng===undefined)?'':String(r.lng);if((lat==='')!==(lng===''))return toast('Enter both latitude and longitude, or leave both empty.');const now=Date.now();const item={...r,id:id||uid(),name:f.get('name').trim(),address:f.get('address').trim(),kind:f.get('kind'),rating:f.get('rating')?Number(f.get('rating')):null,lat:lat===''?null:Number(lat),lng:lng===''?null:Number(lng),tags:String(f.get('tags')||r.tags&&r.tags.join(', ')||'').split(',').map(t=>t.trim()).filter(Boolean),note:f.get('note')!=null?String(f.get('note')).trim():(r.note||''),wish:f.has('wish'),added:r.added||today(),demo:false,u:now};if(!item.name)return toast('Please enter a restaurant name.');if(!commit(()=>{if(id)state.restaurants=state.restaurants.map(x=>x.id===id?item:x);else state.restaurants.push(item)}))return;selected=item.id;if(Number.isFinite(item.lat)){mapCenter=[item.lat,item.lng];mapZoom=16;if(map)map.setView(mapCenter,mapZoom)}closePanel();render();if(pendingVisit){pendingVisit=false;visitForm(item.id)}else toast('Restaurant saved!')};
 }
 
-function visitForm(restaurantId,visitId){
+function visitForm(restaurantId,visitId,seedDraft){
   const old=state.visits.find(v=>v.id===visitId);
   const v=old||{restaurantId:restaurantId||selected||null,date:today(),time:new Date().toTimeString().slice(0,5),meal:(h=>h<11?'Breakfast':h<15?'Lunch':h<17?'Snack':'Dinner')(new Date().getHours()),rating:null,note:'',photos:[]};
   let place=rest(v.restaurantId)?{...rest(v.restaurantId)}:null,draft=null,iconKey=place?foodKey(place):'shop',iconTouched=false,ratingVal=v.rating?Math.round(v.rating):0,meal=v.meal,date=v.date,hits=[];
+  if(!place&&seedDraft&&seedDraft.name){draft={...seedDraft};iconKey=foodKey(draft)}
   const MEALS=['Breakfast','Brunch','Lunch','Dinner','Cafe','Dessert','Snack'];
   const dOff=n=>{const d=new Date();d.setDate(d.getDate()-n);return d.toISOString().slice(0,10)};
   const recent=[...new Set([...state.visits].sort((a,b)=>(b.date+b.time).localeCompare(a.date+a.time)).map(x=>x.restaurantId))].map(rest).filter(Boolean).slice(0,6);
-  openPanel(visitId?'Edit visit':'Log a visit',`<form id="visit-form" class="vs-sheet"><div class="vs-place" id="vs-place"></div><div class="vs-search"><div class="vs-search-row"><span class="vs-ico" aria-hidden="true">${icon('search')}</span><input id="vs-q" type="search" placeholder="Search a place nearby" aria-label="Search a place" autocomplete="off" maxlength="200" enterkeyhint="search"><button type="button" class="vs-go" id="vs-go" aria-label="Search">→</button></div><div id="vs-hits" class="vs-hits"></div>${recent.length?`<div class="vs-chips vs-recent">${recent.map(r=>`<button type="button" class="vs-chip" data-vs-rest="${r.id}">${esc(r.name)}</button>`).join('')}</div>`:''}</div><div class="vs-body" id="vs-body"><div class="vs-when vs-card"><div class="vs-chips" id="vs-dates"></div><div class="vs-mealrow"><div class="vs-chips" id="vs-meals"></div><div class="vs-stars" id="vs-stars" role="radiogroup" aria-label="Rating">${[1,2,3,4,5].map(n=>`<button type="button" role="radio" data-star="${n}" aria-label="${n} star${n>1?'s':''}">★</button>`).join('')}</div></div></div><section class="vs-card"><div class="vs-label">Tags</div><div class="vs-tagbox"><div class="vs-tagchips" id="vs-tagchips"></div><div class="vs-tagadd"><input id="vs-tags" class="vs-tags" placeholder="Add a tag" aria-label="Add a tag" maxlength="30" autocomplete="off" enterkeyhint="done"><button type="button" class="vs-tagbtn" id="vs-tagbtn">+ Add</button></div></div></section><section class="vs-card"><div class="vs-label vs-icon-head">Icon <button type="button" class="vs-setbtn" id="vs-setbtn" aria-label="Switch icon set">⇄ <span id="vs-setname">Food</span></button></div><div class="vs-icons" id="vs-icons"></div><div class="vs-sets" id="vs-sets"></div></section><div class="vs-actions"><button type="submit" class="primary">${visitId?'Save':'Log it'}</button></div></div></form>`,{cls:'visit-sheet'});
+  openPanel(visitId?'Edit visit':'Log a visit',`<form id="visit-form" class="vs-sheet"><div class="vs-place" id="vs-place"></div><div class="vs-search"><div class="vs-search-row"><span class="vs-ico" aria-hidden="true">${icon('search')}</span><input id="vs-q" type="search" placeholder="Search a place nearby" aria-label="Search a place" autocomplete="off" maxlength="200" enterkeyhint="search"><button type="button" class="vs-go" id="vs-go" aria-label="Search">→</button></div><div id="vs-hits" class="vs-hits"></div>${recent.length?`<div class="vs-chips vs-recent">${recent.map(r=>`<button type="button" class="vs-chip" data-vs-rest="${r.id}">${esc(r.name)}</button>`).join('')}</div>`:''}</div><div class="vs-body" id="vs-body"><div class="vs-when vs-card"><div class="vs-chips" id="vs-dates"></div><div class="vs-stars" id="vs-stars" role="radiogroup" aria-label="Rating">${[1,2,3,4,5].map(n=>`<button type="button" role="radio" data-star="${n}" aria-label="${n} star${n>1?'s':''}">★</button>`).join('')}</div><div class="vs-chips" id="vs-meals"></div></div><section class="vs-card"><div class="vs-label">Tags</div><div class="vs-tagbox"><div class="vs-tagchips" id="vs-tagchips"></div><div class="vs-tagadd"><input id="vs-tags" class="vs-tags" placeholder="Add a tag" aria-label="Add a tag" maxlength="30" autocomplete="off" enterkeyhint="done"><button type="button" class="vs-tagbtn" id="vs-tagbtn">+ Add</button></div></div></section><section class="vs-card"><div class="vs-label vs-icon-head">Icon <button type="button" class="vs-setbtn" id="vs-setbtn" aria-label="Switch icon set">⇄ <span id="vs-setname">Food</span></button></div><div class="vs-icons" id="vs-icons"></div><div class="vs-sets" id="vs-sets"></div></section><div class="vs-actions"><button type="submit" class="primary">${visitId?'Save':'Log it'}</button></div></div></form>`,{cls:'visit-sheet'});
   const $f=$('#visit-form');
   const paint=()=>{
     const p=place||draft;
@@ -551,9 +552,8 @@ function sheetCoverPx(){
   const s=$('#sheet')?.querySelector('.search-sheet,.detail-sheet');
   return s?Math.round(s.getBoundingClientRect().height):0;
 }
-function centerMapAboveSheet(lat,lng,zoom){
-  if(!map||!Number.isFinite(lat)||!Number.isFinite(lng))return;
-  const z=zoom!=null?zoom:Math.max(map.getZoom(),16);
+function visibleMapEdges(){
+  if(!map)return null;
   const mc=map.getContainer().getBoundingClientRect();
   let top=mc.top,bottom=mc.bottom;
   const sb=document.querySelector('.map-search-bar');
@@ -562,14 +562,70 @@ function centerMapAboveSheet(lat,lng,zoom){
   if(hv){const r=hv.getBoundingClientRect();if(r.height&&r.bottom>top&&r.bottom<bottom)top=r.bottom}
   const s=$('#sheet')?.querySelector('.search-sheet,.detail-sheet');
   if(s){const r=s.getBoundingClientRect();if(r.height&&r.top<bottom&&r.top>top)bottom=r.top}
+  return {mc,top,bottom};
+}
+function centerMapAboveSheet(lat,lng,zoom){
+  if(!map||!Number.isFinite(lat)||!Number.isFinite(lng))return;
+  const z=zoom!=null?zoom:Math.max(map.getZoom(),16);
+  const e=visibleMapEdges();if(!e)return;
   // visible-area midpoint relative to raw container centre (in px)
-  const dy=((top+bottom)/2-mc.top)-mc.height/2;
+  const dy=((e.top+e.bottom)/2-e.mc.top)-e.mc.height/2;
   const target=map.unproject(map.project([lat,lng],z).subtract([0,dy]),z);
   map.setView(target,z,{animate:true});
 }
 function pinVisibleAboveSheet(lat,lng){
-  const pt=map.latLngToContainerPoint([lat,lng]),sz=map.getSize(),cover=sheetCoverPx()||0;
-  return pt.x>20&&pt.x<sz.x-20&&pt.y>90&&pt.y<sz.y-cover-10;
+  if(!map||!Number.isFinite(lat)||!Number.isFinite(lng))return false;
+  const e=visibleMapEdges();if(!e)return false;
+  const pt=map.latLngToContainerPoint([lat,lng]);
+  const topPad=Math.max(90,e.top-e.mc.top+8),botPad=Math.max(10,e.mc.bottom-e.bottom+10);
+  const sz=map.getSize();
+  return pt.x>20&&pt.x<sz.x-20&&pt.y>topPad&&pt.y<sz.y-botPad;
+}
+function searchPinLatLngs(){
+  const out=[];
+  (searchResults||[]).forEach(f=>{
+    if(searchHitHidden(f))return;
+    const c=f?.geometry?.coordinates;
+    if(!Array.isArray(c)||!Number.isFinite(c[0])||!Number.isFinite(c[1]))return;
+    out.push([c[1],c[0]]);
+  });
+  return out;
+}
+function fitLatLngsAboveSheet(latlngs,opts={}){
+  if(!map||!latlngs||!latlngs.length)return;
+  const e=visibleMapEdges();if(!e)return;
+  if(latlngs.length===1){
+    centerMapAboveSheet(latlngs[0][0],latlngs[0][1],opts.zoom!=null?opts.zoom:map.getZoom());
+    return;
+  }
+  const padT=Math.max(12,Math.round(e.top-e.mc.top)+10);
+  const padB=Math.max(16,Math.round(e.mc.bottom-e.bottom)+14);
+  const b=window.L.latLngBounds(latlngs.map(([lat,lng])=>[lat,lng]));
+  map.fitBounds(b,{
+    paddingTopLeft:[20,padT],
+    paddingBottomRight:[20,padB],
+    maxZoom:opts.maxZoom!=null?opts.maxZoom:Math.max(map.getZoom(),16),
+    animate:true
+  });
+}
+function afterSheetLayout(fn){
+  requestAnimationFrame(()=>requestAnimationFrame(()=>{try{fn&&fn()}catch{}}));
+}
+/** Keep focus (e.g. user after Near me) and/or blue search pins in the visible mid above the sheet. */
+function ensureMapTargetsAboveSheet(opts={}){
+  afterSheetLayout(()=>{
+    if(!map)return;
+    const pins=opts.pins||searchPinLatLngs();
+    // When every blue pin would sit under the overlay (or off the visible band), pan/fit above it.
+    if(pins.length&&!pins.some(([lat,lng])=>pinVisibleAboveSheet(lat,lng))){
+      fitLatLngsAboveSheet(pins,{maxZoom:opts.maxZoom!=null?opts.maxZoom:Math.max(map.getZoom(),15)});
+      return;
+    }
+    const focus=opts.focus;
+    if(focus&&Number.isFinite(focus[0])&&Number.isFinite(focus[1])&&!pinVisibleAboveSheet(focus[0],focus[1])){
+      centerMapAboveSheet(focus[0],focus[1],opts.zoom!=null?opts.zoom:map.getZoom());
+    }
+  });
 }
 function dismissSearchSheet(){
   // keep searchResults + blue pins; only Clear / new search / leaving map tab removes them
@@ -737,6 +793,11 @@ function showSearchSheetResults(sheet,features,opts={}){
   renderPlaceHits($('#search-results'),features,opts);
   bindSheetDismiss(sheet.querySelector('.search-sheet'),dismissSearchSheet);
   syncHideVisitedChip();
+  ensureMapTargetsAboveSheet({
+    focus:opts.centerOnUser&&userLocation?userLocation:null,
+    pins:searchPinLatLngs(),
+    maxZoom:Math.max(map?map.getZoom():mapZoom,15)
+  });
 }
 async function runMapPlaceSearch(q,opts={}){
   q=String(q||'').trim();
@@ -753,20 +814,21 @@ async function runMapPlaceSearch(q,opts={}){
   const cacheKey=searchCacheKey(q,center);
   const cached=opts.force||String(q||'').trim().toLowerCase()==='demo'?null:searchCacheGet(cacheKey);
   if(cached){
-    showSearchSheetResults(sheet,cached);
+    showSearchSheetResults(sheet,cached,opts);
     markAreaSearch('places');
     return;
   }
   sheet.innerHTML=`<section class="search-sheet"><div class="handle" aria-hidden="true"></div><p class="search-message loading" role="status">Searching nearby…</p></section>`;
   bindSheetDismiss(sheet.querySelector('.search-sheet'),dismissSearchSheet);
   syncHideVisitedChip();
+  if(opts.centerOnUser&&userLocation)afterSheetLayout(()=>centerMapAboveSheet(userLocation[0],userLocation[1],map?map.getZoom():mapZoom));
   if(searchBusy){activeSearch?.abort();searchGeneration++;searchBusy=false}
   const generation=++searchGeneration,controller=new AbortController();activeSearch=controller;searchBusy=true;
   const timeout=setTimeout(()=>controller.abort(),9000);
   try{
     const features=await fetchPlaceFeatures(q,controller.signal);
     if(generation!==searchGeneration||!sheet.isConnected)return;
-    showSearchSheetResults(sheet,features);
+    showSearchSheetResults(sheet,features,opts);
     markAreaSearch('places');
   }catch{
     if(generation!==searchGeneration||!sheet.isConnected)return;
@@ -822,19 +884,58 @@ function showSearch(context={}){
   else wireMapSearch();
   setTimeout(()=>{const input=$('#map-search-query');if(input){input.focus();if(context.wish)toast('Search, then tap Wishlist on a result')}},60);
 }
-function openFromSearchFeature(f,mode){
-  clearSearchMarkers();searchResults=[];searchFocusIdx=null;syncHideVisitedChip();
+function matchRestaurantByDraft(draft){
+  if(!draft)return null;
+  if(draft.sourceId){const byId=state.restaurants.find(r=>r.sourceId===draft.sourceId);if(byId)return byId}
+  if(draft.name!=null&&Number.isFinite(draft.lat)&&Number.isFinite(draft.lng)){
+    return state.restaurants.find(r=>r.name===draft.name&&r.lat===draft.lat&&r.lng===draft.lng)||null;
+  }
+  return null;
+}
+function savePlaceToWishlist(draft){
+  if(!draft||!draft.name)return toast('No place to save.');
+  const existing=matchRestaurantByDraft(draft);
+  if(existing){
+    if(existing.wish){toast('Already on wishlist');closePanel();return existing.id}
+    if(!commit(()=>{rest(existing.id).wish=true;rest(existing.id).u=Date.now()}))return;
+    toast('Saved to wishlist');closePanel();render();return existing.id;
+  }
+  const now=Date.now(),id=uid();
+  if(!commit(()=>{state.restaurants.push({id,name:draft.name,address:draft.address||'',kind:draft.kind||'shop',tags:draft.tags||[],rating:null,lat:Number.isFinite(draft.lat)?draft.lat:null,lng:Number.isFinite(draft.lng)?draft.lng:null,sourceId:draft.sourceId||null,note:'',wish:true,added:today(),demo:false,u:now})}))return;
+  toast('Saved to wishlist');closePanel();render();return id;
+}
+function draftFromSearchFeature(f){
   const p=f.properties,coords=f.geometry.coordinates;
   const sourceId=p.sourceId||(p.osm_type&&p.osm_id?`${p.osm_type}:${p.osm_id}`:null)||(p.mapbox_id?`mapbox:${p.mapbox_id}`:null);
-  const wantWish=mode==='wish'||(mode!=='add'&&(searchContext.wish||tab==='wishlist'));
-  const existing=state.restaurants.find(r=>sourceId&&r.sourceId===sourceId||r.name===(p.name||p.street)&&r.lat===coords[1]&&r.lng===coords[0]);
-  if(existing&&existing.id!==searchContext.editId){
-    if(wantWish&&!existing.wish&&!commit(()=>{rest(existing.id).wish=true;rest(existing.id).u=Date.now()}))return;
-    if(pendingVisit){pendingVisit=false;return visitForm(existing.id)}
-    if(wantWish){toast(existing.wish?'Already on wishlist':'Saved to wishlist');closePanel();render();return}
-    return restaurantDetail(existing.id);
+  return {name:p.name||p.street||'New restaurant',address:placeAddress(p),lat:coords[1],lng:coords[0],sourceId,...placeCategory(p)};
+}
+function openFromSearchFeature(f,mode){
+  clearSearchMarkers();searchResults=[];searchFocusIdx=null;syncHideVisitedChip();
+  const draft=draftFromSearchFeature(f);
+  const existing=matchRestaurantByDraft(draft);
+  // Editing an existing restaurant from the old place editor search
+  if(searchContext.editId){
+    return restaurantForm(searchContext.editId,{...searchContext.draft,...draft,wish:searchContext.wish??false});
   }
-  return restaurantForm(searchContext.editId||null,{...searchContext.draft,name:p.name||p.street||'New restaurant',address:placeAddress(p),lat:coords[1],lng:coords[0],wish:wantWish,sourceId,...placeCategory(p)});
+  const wantWish=mode==='wish'||(mode!=='add'&&!pendingVisit&&!!searchContext.wish);
+  // Wishlist: pick place → wish=true → done (no visit fields)
+  if(wantWish){
+    if(existing){
+      if(existing.wish){toast('Already on wishlist');closePanel();return}
+      if(!commit(()=>{rest(existing.id).wish=true;rest(existing.id).u=Date.now()}))return;
+      toast('Saved to wishlist');closePanel();render();return;
+    }
+    return savePlaceToWishlist(draft);
+  }
+  // Add visit / add restaurant → same visit-sheet (search-prefill), not old forms
+  if(mode==='add'||pendingVisit||mode==null||mode==='visit'){
+    pendingVisit=false;closePanel();
+    if(existing)return visitForm(existing.id);
+    return visitForm(null,null,draft);
+  }
+  if(existing)return restaurantDetail(existing.id);
+  closePanel();
+  return visitForm(null,null,draft);
 }
 
 function placeCategory(p){
@@ -854,13 +955,7 @@ function placeAddress(p){
   if(p._provider==='mapbox')return [p.address,p.place_formatted].filter(Boolean).join(', ')||[p.housenumber,p.street,p.city,p.country].filter(Boolean).join(', ');
   return [...new Set([p.housenumber,p.street,p.district,p.city,p.state,p.country].filter(Boolean))].join(', ')
 }
-function openFromSearchFeature(f){
-  const p=f.properties,coords=f.geometry.coordinates;
-  const sourceId=p.sourceId||(p.osm_type&&p.osm_id?`${p.osm_type}:${p.osm_id}`:null)||(p.mapbox_id?`mapbox:${p.mapbox_id}`:null);
-  const existing=state.restaurants.find(r=>sourceId&&r.sourceId===sourceId||r.name===(p.name||p.street)&&r.lat===coords[1]&&r.lng===coords[0]);
-  if(existing&&existing.id!==searchContext.editId){if(searchContext.wish&&!existing.wish&&!commit(()=>{rest(existing.id).wish=true;rest(existing.id).u=Date.now()}))return;if(pendingVisit){pendingVisit=false;return visitForm(existing.id)}return restaurantDetail(existing.id)}
-  return restaurantForm(searchContext.editId||null,{...searchContext.draft,name:p.name||p.street||'New restaurant',address:placeAddress(p),lat:coords[1],lng:coords[0],wish:searchContext.wish??tab==='wishlist',sourceId,...placeCategory(p)})
-}
+
 
 function logo(){return '<img class="meowsto-logo" src="assets/meowsto-logo-256.png?v=ui20261015m" alt="">'}
 function initialOf(){const n=String(USER||'?').trim();return (n.match(/[\p{L}\p{N}]/u)?.[0]||'?').toUpperCase()}
@@ -876,7 +971,7 @@ function downloadJson(text,name){const url=URL.createObjectURL(new Blob([text],{
 function exportBackup(){downloadJson(JSON.stringify(state,null,2),`meowsto-${today()}.json`);toast('Backup exported')}
 async function importBackup(e){const file=e.target.files[0];if(!file)return;try{if(file.size>15000000)throw Error();let d=JSON.parse(await file.text());if(!validBackup(d))throw Error();d=removeLegacySamples(d);openPanel('Replace your journal?',`<p>This backup contains ${d.restaurants.length} restaurants and ${d.visits.length} visits. Importing replaces your cloud journal.</p><div class="form-actions"><button data-action="export">Export current</button><button class="primary" id="confirm-import">Replace journal</button></div>`,{full:true});$('#confirm-import').onclick=()=>{if(!commit(()=>{state=RL.migrate(d)}))return;selected=state.restaurants[0]?.id;closePanel();render();toast('Journal imported')}}catch{toast('Not a valid Meowsto backup.')}}
 function confirmAction(title,message,fn){openPanel(title,`<p>${message}</p><div class="form-actions"><button data-action="close-panel">Cancel</button><button class="primary" id="confirm-action">Confirm</button></div>`,{full:true});$('#confirm-action').onclick=()=>{if(!commit(fn))return;closePanel();render();toast('Done')}}
-function locate(){if(!navigator.geolocation)return toast('Location unavailable.');toast('Finding your location…');navigator.geolocation.getCurrentPosition(p=>{userLocation=[p.coords.latitude,p.coords.longitude];mapCenter=userLocation;mapZoom=15;if(map)map.setView(mapCenter,mapZoom);if(tab!=='map')tab='map';render();toast('Map centered');runMapPlaceSearch('restaurant')},()=>toast('Location unavailable or denied.'),{enableHighAccuracy:true,timeout:10000})}
+function locate(){if(!navigator.geolocation)return toast('Location unavailable.');toast('Finding your location…');navigator.geolocation.getCurrentPosition(p=>{userLocation=[p.coords.latitude,p.coords.longitude];mapCenter=userLocation;mapZoom=15;if(tab!=='map')tab='map';render();toast('Map centered');runMapPlaceSearch('restaurant',{centerOnUser:true})},()=>toast('Location unavailable or denied.'),{enableHighAccuracy:true,timeout:10000})}
 
 document.addEventListener('change',e=>{
   const t=e.target;
@@ -905,7 +1000,7 @@ document.addEventListener('click',e=>{
   if(d.editvisit)return visitForm(null,d.editvisit);
   if(d.deletevisit)return confirmAction('Delete this visit?','This visit and its photos will be removed.',()=>{state.del=state.del||{};state.del['v:'+d.deletevisit]=Date.now();state.visits=state.visits.filter(v=>v.id!==d.deletevisit);if(expandedVisitId===d.deletevisit)expandedVisitId=null});
   if(d.delete)return confirmAction('Delete restaurant?','This restaurant and all its visits will be removed.',()=>{state.del=state.del||{};state.del['r:'+d.delete]=Date.now();state.restaurants=state.restaurants.filter(r=>r.id!==d.delete);state.visits=state.visits.filter(v=>v.restaurantId!==d.delete)});
-  if(d.explore!=null){const x=exploreResults[+d.explore];if(x){map?.closePopup();restaurantForm(null,{name:x.name,address:x.address,lat:x.lat,lng:x.lng,wish:true,kind:x.amenity==='cafe'?'cafe':'shop'})}return}
+  if(d.explore!=null){const x=exploreResults[+d.explore];if(x){map?.closePopup();savePlaceToWishlist({name:x.name,address:x.address||'',lat:x.lat,lng:x.lng,kind:x.amenity==='cafe'?'cafe':'shop',tags:[]})}return}
   if(d.save){if(!commit(()=>{const x=rest(d.save);x.wish=!x.wish;x.u=Date.now()}))return;if(!$('#panel').hidden)restaurantDetail(d.save);render();toast(rest(d.save).wish?'Saved to wishlist':'Removed from wishlist');return}
   if(d.note){const r=rest(d.note);openPanel('My note',`<form id="note-form"><textarea aria-label="My note" maxlength="2000">${esc(r.note)}</textarea><div class="form-actions"><button class="primary">Save note</button></div></form>`,{full:true});$('#note-form').onsubmit=e=>{e.preventDefault();if(!commit(()=>{rest(d.note).note=e.target.querySelector('textarea').value;rest(d.note).u=Date.now()}))return;closePanel();render();toast('Note saved')};return}
   if(d.hitFocus!==undefined){focusSearchHit(d.hitFocus);return}
