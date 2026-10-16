@@ -412,3 +412,5 @@ body.wl-ts-up #toast,body.wl-ts-up #toast[popover]{bottom:var(--wl-ts-lift,22px)
 .tl-page .tl-card{padding:11px 13px}
 .tl-page .tl-latest{padding:8.5px 26.5px 8.5px 10.5px!important}
 .tl-page .tl-card .pin-burst{display:none}
+/* ui20261015ct: breathing room between tabs and the date strip */
+.tl-page .tl-dates{margin-top:12px}
