@@ -476,3 +476,19 @@ header h1.app-name,.lockcard h1,.lockcard .lock-title{font-family:var(--font-tit
 /* ui20261015dc: scroll hint beside the meal roll */
 .vs-sheet .vs-when .vs-mealrow .vs-roll-hint{flex:none;display:flex;flex-direction:column;align-items:center;justify-content:center;width:12px;height:36px;margin-left:-6px;pointer-events:none;color:#c9564a;opacity:.75;font:800 12px/0.6 Nunito,sans-serif;user-select:none}
 .vs-sheet .vs-when .vs-mealrow .vs-roll-hint i{font-style:normal;display:block;height:9px}
+/* ui20261015de: expanded Timeline tags = one scrollable row */
+.tl-card .tl-tags,.tl-latest .tl-tags{flex-direction:row!important;align-items:center!important;gap:6px!important;margin-top:8px!important;flex-wrap:nowrap!important;overflow-x:auto;overflow-y:hidden;max-width:100%!important;-webkit-overflow-scrolling:touch;scroll-behavior:smooth;overscroll-behavior-x:contain;scrollbar-width:none;padding-right:18px;-webkit-mask-image:linear-gradient(to right,#000 calc(100% - 22px),transparent);mask-image:linear-gradient(to right,#000 calc(100% - 22px),transparent)}
+.tl-card .tl-tags::-webkit-scrollbar,.tl-latest .tl-tags::-webkit-scrollbar{display:none}
+.tl-card .tl-tag,.tl-latest .tl-tag{flex:none}
+/* ui20261015de: Google Maps "Go" pill in place sheet */
+#sheet .detail-sheet .sheet-actions{display:flex;gap:6px;min-width:0}
+#sheet .detail-sheet .sheet-actions>*{flex:1 1 0;min-width:0}
+#sheet .detail-sheet .sheet-actions .sheet-nav{display:inline-flex;align-items:center;justify-content:center;gap:4px;height:36px;padding:0 10px;border-radius:999px;border:2px solid #38271f;background:#fffdf6;color:#38271f;font:800 14px/1 Nunito,sans-serif;text-decoration:none;white-space:nowrap;flex:0 0 auto}
+#sheet .detail-sheet .sheet-actions .sheet-nav .ui-icon{width:14px;height:14px}
+#sheet .detail-sheet .sheet-actions button{padding:0 8px!important}
+/* ui20261015de: profile as a bottom sheet, no blocking backdrop */
+.panel.profile-sheet{background:transparent!important;pointer-events:none!important}
+.panel.profile-sheet .panel-inner{pointer-events:auto;max-height:72dvh!important;height:auto!important;border-radius:18px 18px 0 0!important;box-shadow:0 -8px 28px #38271f22;overflow:hidden;display:flex;flex-direction:column}
+.panel.profile-sheet .panel-body{overflow-y:auto;overscroll-behavior:contain;min-height:0;flex:1 1 auto}
+.panel.profile-sheet .profile-panel{overflow:visible!important}
+.panel.profile-sheet .panel-head h2{font-size:20px}

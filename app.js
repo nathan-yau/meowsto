@@ -196,7 +196,7 @@ function pagerHtml(pages,total,label){if(total<=PAGE_SIZE)return '';return `<div
 function card(r){const vv=visits(r.id);return `<article class="restaurant no-tile"><div class="info" role="button" tabindex="0" data-detail="${r.id}"><h3>${esc(r.name)}</h3>${rating(r)}<p class="visit-meta">♜ ${vv.length} visit${vv.length===1?'':'s'}${vv[0]?` · last ${fmt(vv[0].date)}`:''}</p><p class="address">♧ ${esc(r.address||'Location not added')}</p>${tags(r)}<p class="note">▤ ${esc(r.note||'Add a little note…')}</p></div><div class="right-meta"><button class="save" data-save="${r.id}" aria-label="${r.wish?'Remove from':'Add to'} wishlist">${r.wish?'▮':'♧'}</button></div><button class="chevron" data-detail="${r.id}" aria-label="Open ${esc(r.name)}">›</button></article>`}
 
 let wishKeep=new Set(),wishKeepTab=null;
-const HEART_ON='assets/icon-wish-meow.png?v=ui20261015dd',HEART_OFF='assets/icon-wish-meow-off.png?v=ui20261015dd';
+const HEART_ON='assets/icon-wish-meow.png?v=ui20261015de',HEART_OFF='assets/icon-wish-meow-off.png?v=ui20261015de';
 const CUISINE_LABEL={ramen:'Ramen',sushi:'Sushi',japanese:'Japanese',cafe:'Cafe',matcha:'Matcha',tea:'Tea',boba:'Boba',dessert:'Dessert',bakery:'Bakery',burger:'Burger',pasta:'Italian',pizza:'Pizza',steak:'Steak',chinese:'Chinese',korean:'Korean',thai:'Thai',indian:'Indian',hongkong:'Hong Kong',singaporean:'Singaporean',mideast:'Middle Eastern',shop:'Restaurant'};
 function cuisineOf(r){const k=foodKey(r);if(k.startsWith('icon/')){const d=k.split('/')[1]||'';return {key:k,label:d.split('-').map(w=>w[0]?.toUpperCase()+w.slice(1)).join(' ')||tlCat(r)}}return {key:k,label:CUISINE_LABEL[k]||tlCat(r)}}
 function areaOf(r){const parts=String(r.address||'').split(',').map(x=>x.trim()).filter(x=>x&&!/^[A-Z]\d[A-Z]\s?\d[A-Z]\d$/i.test(x)&&!/^(BC|British Columbia|Canada|ON|Ontario|AB|WA|USA)(\s+[A-Z]\d[A-Z].*)?$/i.test(x));if(!parts.length)return '';if(parts.length>=3)return parts[1];if(parts.length===2&&/^\d/.test(parts[0]))return parts[1];return parts[0]}
@@ -204,7 +204,7 @@ function areaOf(r){const parts=String(r.address||'').split(',').map(x=>x.trim())
 function saveHeart(on){return `<img class="save-heart" src="${on?HEART_ON:HEART_OFF}" alt="" width="30" height="30">`}
 function paintSaveBtn(b){const on=!!rest(b.dataset.save)?.wish;b.classList.toggle('saved',on);b.setAttribute('aria-pressed',on);b.setAttribute('aria-label',(on?'Remove from':'Add to')+' wishlist');b.innerHTML=saveHeart(on)}
 function wishCard(r){const c=cuisineOf(r),area=areaOf(r),val=personalRating(r),on=!!r.wish,tg=(r.tags||[]).filter(t=>t&&t!=='demo');
-  return `<article class="wl-card${on?'':' wl-off'}"><div class="wl-main" role="button" tabindex="0" data-detail="${r.id}"><span class="wl-food tl-bg-${foodBg(c.key)}"><img src="${foodSrc(c.key)}" alt="" loading="lazy"></span><div class="wl-body"><h3 class="wl-name">${esc(r.name)}</h3><p class="wl-meta">${val?`<span class="wl-star">★</span><b>${val}</b><i>·</i>`:''}<span class="wl-cui">${esc(c.label)}</span>${area?`<i>·</i><span class="wl-pin" aria-hidden="true"></span><span class="wl-area">${esc(area)}</span>`:''}</p></div>${tg.length?`<div class="wl-tags">${tg.map(t=>`<span class="wl-tag">${vibeIcon(t)}<span>${esc(t)}</span></span>`).join('')}</div>`:''}</div><button type="button" class="wl-heart${on?' on':''}" data-wl-heart="${r.id}" aria-pressed="${on}" aria-label="${on?'Remove from':'Add to'} wishlist"><img src="${on?HEART_ON:HEART_OFF}" alt="" width="28" height="28"></button></article>`}
+  return `<article class="wl-card${on?'':' wl-off'}"><div class="wl-main" role="button" tabindex="0" data-wl-open="${r.id}"><span class="wl-food tl-bg-${foodBg(c.key)}"><img src="${foodSrc(c.key)}" alt="" loading="lazy"></span><div class="wl-body"><h3 class="wl-name">${esc(r.name)}</h3><p class="wl-meta">${val?`<span class="wl-star">★</span><b>${val}</b><i>·</i>`:''}<span class="wl-cui">${esc(c.label)}</span>${area?`<i>·</i><span class="wl-pin" aria-hidden="true"></span><span class="wl-area">${esc(area)}</span>`:''}</p></div>${tg.length?`<div class="wl-tags">${tg.map(t=>`<span class="wl-tag">${vibeIcon(t)}<span>${esc(t)}</span></span>`).join('')}</div>`:''}</div><button type="button" class="wl-heart${on?' on':''}" data-wl-heart="${r.id}" aria-pressed="${on}" aria-label="${on?'Remove from':'Add to'} wishlist"><img src="${on?HEART_ON:HEART_OFF}" alt="" width="28" height="28"></button></article>`}
 // ui20261015cm: Wishlist cuisine chips use the icon cuisine folders (site/icon/*), mapped exactly like the card icon:
 // foodKey(r) → 'icon/<set>/…' uses <set>; legacy food keys go through SET_FOR; anything unmapped (dessert, bakery, shop) → 'mixed'.
 const WL_CUISINES=[['chinese','Chinese','17bb14f864525ceab02c7bfd31131f948903ee7a920a8d04ad3ea8a742b28ee1'],['hong-kong','Hong Kong','siu-mai-dumpling-hong-kong'],['japanese','Japanese','nigiri-sushi-sushi-japanese'],['korean','Korean','bibimbap-rice-korean'],['thai','Thai','pad-thai-noodle-thai'],['singaporean','Singaporean','hainanese-chicken-rice-rice-singaporean'],['indian','Indian','butter-chicken-curry-indian'],['middle-eastern','Middle East','falafel-bowl-salad-middle-eastern'],['western','Western','cheeseburger-burger-western'],['drinks','Drinks','bubble-milk-tea-drink-international'],['mixed','Mixed','cheesecake-dessert-international']];
@@ -378,10 +378,16 @@ function pinTier(){const z=map?map.getZoom():mapZoom;return z>=14?'full':z>=12?'
 function searchPinTier(){const z=map?map.getZoom():mapZoom;return z>=16?'full':'meow'}
 // ui20261015cy: three meow marker styles (visited · wishlist · search/explore), all switching pin↔label with searchPinTier() (label at zoom ≥ 16)
 function markerIcon(r){const isSel=r.id===selected||(r.id===searchLinkId&&searchFocusIdx!=null&&searchResults.length>0);const t=searchPinTier(),sel=isSel?' selected':'';const last=visits(r.id)[0],wishy=!!r.wish&&!last;
-  if(t==='meow'){const sz=isSel?[30,41]:[24,33];return window.L.icon({iconUrl:wishy?'assets/meow-map-pin-wish.png?v=ui20261015dd':'assets/meow-map-pin.png?v=ui20261015x',iconSize:sz,iconAnchor:[sz[0]/2,sz[1]],className:'meow-pin '+(wishy?'meow-pin-wish':'meow-pin-visited')+sel})}
+  if(t==='meow'){const sz=isSel?[30,41]:[24,33];return window.L.icon({iconUrl:wishy?'assets/meow-map-pin-wish.png?v=ui20261015de':'assets/meow-map-pin.png?v=ui20261015x',iconSize:sz,iconAnchor:[sz[0]/2,sz[1]],className:'meow-pin '+(wishy?'meow-pin-wish':'meow-pin-visited')+sel})}
   const meta=last?(mapChipRelativeLabel(last.date)||'visited'):(r.wish?'on your wishlist':'never visited');
   return window.L.divIcon({className:'restaurant-pin pin-full',html:`<div class="map-chip ${wishy?'chip-wish':'chip-visited'}${sel}">${sel?'<i class="pin-burst" aria-hidden="true"></i>':''}<b>${wishy?'<img class="chip-heart" src="'+HEART_ON+'" alt="">':''}${esc(r.name)}</b>${meta?`<small>${esc(meta)}</small>`:''}</div>`,iconSize:null,iconAnchor:[0,0]})}
 function updateMarkerIcons(){markers.forEach(m=>m.setIcon(markerIcon(m._r)));searchMarkers.forEach((m,i)=>{if(m&&searchResults[i])m.setIcon(searchResultIcon(searchResults[i],i))});if(exploreLayer)exploreLayer.eachLayer(m=>{if(m&&m._explore)m.setIcon(exploreResultIcon(m._explore))})}
+// ui20261015de: Wishlist card → Map tab, pin drawn (clear hide-visited/explore that could hide it), centred above sheet, place sheet open
+function openOnMap(id){const r=rest(id);if(!r)return;if(!Number.isFinite(r.lat)||!Number.isFinite(r.lng)){toast('No location saved for this place');return}
+  if(hideVisited&&visits(id).length)hideVisited=false;if(exploreOn){exploreOn=false;if(exploreLayer){try{exploreLayer.remove()}catch{}exploreLayer=null}}
+  searchResults=[];searchFocusIdx=null;closePanel();wlSheetClose?.();tab='map';selected=null;render();
+  const go=()=>{if(!map)return setTimeout(go,80);if(!markers.some(m=>m._r.id===id))drawMarkers();selected=null;selectPin(id)};setTimeout(go,60)}
+function navURL(r){const p=new URLSearchParams({api:'1'});if(Number.isFinite(r.lat)&&Number.isFinite(r.lng))p.set('destination',r.lat+','+r.lng);else p.set('destination',[r.name,r.address].filter(Boolean).join(' '));const gid=r.googlePlaceId||(String(r.sourceId||'').startsWith('google:')?String(r.sourceId).slice(7):'');if(gid)p.set('destination_place_id',gid);return 'https://www.google.com/maps/dir/?'+p.toString()}
 function selectPin(id){
   selected=selected===id?null:id;
   updateMarkerIcons();renderSheet();enhanceIcons();
@@ -496,6 +502,7 @@ function renderSheet(){
       <button type="button" class="secondary" data-addvisit="${r.id}">${icon('plus')} Visit</button>
       <button type="button" data-note="${r.id}">${icon('note')} Note</button>
       <button type="button" class="primary" data-detail="${r.id}">Details ›</button>
+      <a class="sheet-nav" href="${esc(navURL(r))}" target="_blank" rel="noopener" aria-label="Directions in Google Maps">${icon('pin')} Go</a>
     </div>
   </section>`;
   bindSheetDismiss(el.querySelector('.detail-sheet'), ()=>{
@@ -1128,7 +1135,7 @@ function avatarHtml(){const p=state.avatar;return (typeof p==='string'&&/^data:i
 function renderAvatar(){const b=document.querySelector('header .avatar');if(b)b.innerHTML=avatarHtml()}
 async function avatarImage(file){if(!/^image\/(jpeg|png|webp)$/.test(file.type)||file.size>15000000)throw Error('Choose a JPG, PNG, or WebP under 15 MB.');const bmp=await createImageBitmap(file),s=Math.min(bmp.width,bmp.height),c=document.createElement('canvas');c.width=c.height=192;c.getContext('2d').drawImage(bmp,(bmp.width-s)/2,(bmp.height-s)/2,s,s,0,0,192,192);bmp.close();return c.toDataURL('image/jpeg',.8)}
 function profile(){
-  openPanel('Your profile',`<div class="profile-panel form-scroll"><div class="profile-avatar">${avatarHtml()}</div><div class="avatar-actions"><button data-action="avatar-upload">Change photo</button>${state.avatar?'<button data-action="avatar-letter">Use initial</button>':''}</div><input type="file" id="avatar-file" accept="image/jpeg,image/png,image/webp" hidden><h3 style="text-align:center">${esc(/[\u3400-\u9fff]/.test(state.profile||'')?'My food journal':(state.profile||'My food journal'))}</h3><p style="text-align:center;font-size:14px;color:#6d655c">@${esc(USER||'')}</p><div class="stats"><div><b>${state.restaurants.length}</b>Places</div><div><b>${state.visits.length}</b>Visits</div><div><b>${state.restaurants.filter(r=>r.wish).length}</b>To try</div></div><p class="hint">Your journal is encrypted on this device with AES-256-GCM before it’s uploaded, so the server can’t read it. If you forget your password, your data can’t be recovered.</p><div class="profile-actions"><button data-action="all-places">All my restaurants</button><button data-action="export">↓ Export backup</button><button data-action="import">↑ Import backup</button><button data-action="logout" class="danger">Log out</button></div><input type="file" id="import-file" accept="application/json,.json" hidden><p class="hint meowsto-sign">${logo()} Meowsto · Good food, good days.</p></div>`,{full:true,cls:'entry-panel'});
+  openPanel('Your profile',`<div class="profile-panel form-scroll"><div class="profile-avatar">${avatarHtml()}</div><div class="avatar-actions"><button data-action="avatar-upload">Change photo</button>${state.avatar?'<button data-action="avatar-letter">Use initial</button>':''}</div><input type="file" id="avatar-file" accept="image/jpeg,image/png,image/webp" hidden><h3 style="text-align:center">${esc(/[\u3400-\u9fff]/.test(state.profile||'')?'My food journal':(state.profile||'My food journal'))}</h3><p style="text-align:center;font-size:14px;color:#6d655c">@${esc(USER||'')}</p><div class="stats"><div><b>${state.restaurants.length}</b>Places</div><div><b>${state.visits.length}</b>Visits</div><div><b>${state.restaurants.filter(r=>r.wish).length}</b>To try</div></div><p class="hint">Your journal is encrypted on this device with AES-256-GCM before it’s uploaded, so the server can’t read it. If you forget your password, your data can’t be recovered.</p><div class="profile-actions"><button data-action="all-places">All my restaurants</button><button data-action="export">↓ Export backup</button><button data-action="import">↑ Import backup</button><button data-action="logout" class="danger">Log out</button></div><input type="file" id="import-file" accept="application/json,.json" hidden><p class="hint meowsto-sign">${logo()} Meowsto · Good food, good days.</p></div>`,{cls:'entry-panel profile-sheet'});
   $('#import-file').onchange=importBackup;
   $('#avatar-file').onchange=async e=>{const f=e.target.files[0];if(!f)return;try{const url=await avatarImage(f);if(commit(()=>{state.avatar=url})){renderAvatar();profile();toast('Profile photo updated')}}catch(err){toast(err.message||'Could not use that image')}};
 }
@@ -1152,10 +1159,10 @@ document.addEventListener('change',e=>{
   }
 });
 // ui20261015ck: swallow the click that can follow a horizontal swipe of a Wishlist tag row
-let wlTagScrollAt=0;document.addEventListener('scroll',e=>{if(e.target.classList?.contains('wl-tags'))wlTagScrollAt=Date.now()},true);
+let wlTagScrollAt=0;document.addEventListener('scroll',e=>{if(e.target.classList?.contains('wl-tags')||e.target.classList?.contains('tl-tags'))wlTagScrollAt=Date.now()},true);
 document.addEventListener('click',e=>{
-  if(Date.now()-wlTagScrollAt<350&&e.target.closest?.('.wl-tags')){e.preventDefault();e.stopPropagation();return}
-  const b=e.target.closest('button,[data-detail],[data-visit-toggle],[data-latest-toggle],[data-hit-focus]');if(!b)return;const d=b.dataset;
+  if(Date.now()-wlTagScrollAt<350&&e.target.closest?.('.wl-tags,.tl-tags')){e.preventDefault();e.stopPropagation();return}
+  const b=e.target.closest('button,[data-detail],[data-visit-toggle],[data-latest-toggle],[data-hit-focus],[data-wl-open]');if(!b)return;const d=b.dataset;
   if(d.page==='prev'){listPage=Math.max(0,listPage-1);if(tab==='wishlist'){renderWishlist();enhanceIcons()}return}
   if(d.page==='next'){listPage++;if(tab==='wishlist'){renderWishlist();enhanceIcons()}return}
 
@@ -1167,6 +1174,7 @@ document.addEventListener('click',e=>{
   if(d.edit)return restaurantForm(d.edit);
   if(d.map){const r=rest(d.map);selected=r.id;mapCenter=[r.lat,r.lng];mapZoom=16;if(map)map.setView(mapCenter,mapZoom);tab='map';closePanel();render();return}
   if(d.addvisit)return visitForm(d.addvisit);
+  if(d.wlOpen){openOnMap(d.wlOpen);return}
   if(d.latestToggle){latestOpen=!latestOpen;if(tab==='timeline')renderTimeline();return}
   if(d.visitToggle){toggleTimelineVisit(d.visitToggle);return}
   if(d.visit)return visitDetail(d.visit);
