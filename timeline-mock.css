@@ -581,3 +581,11 @@ html body .sheet-expanded>.handle,html body .sheet-expanded>.search-sheet-head,h
 @keyframes epCat{from{left:0}to{left:85%}}
 @keyframes epHop{from{translate:0 0}to{translate:0 -2px}}
 @media (prefers-reduced-motion:reduce){.explore-progress .ep-cat{animation:none!important}}
+/* ui20261015dx: profile head — username + areas line + hex layer switch (flat pill like Log it) */
+.pf-head .pf-id{flex:1 1 auto;min-width:0}.pf-head .pf-id b{display:block;font-weight:800;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}.pf-head .pf-id small{display:block;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.hex-switch{flex:0 0 auto;display:inline-flex;align-items:center;gap:6px;height:34px;padding:0 8px 0 9px!important;border:1.5px solid #e3dccd!important;border-radius:999px!important;background:#fffdf6!important;color:#b9aea0;box-shadow:none!important;min-height:0!important;cursor:pointer}
+.hex-switch .hex-ic{width:18px;height:18px}
+.hex-switch .hex-track{position:relative;width:30px;height:18px;border-radius:999px;background:#ece4d8;transition:background .2s}
+.hex-switch .hex-knob{position:absolute;top:2px;left:2px;width:14px;height:14px;border-radius:50%;background:#fff;box-shadow:0 1px 2px #38271f33;transition:transform .2s}
+.hex-switch.on{color:#e0565d;border-color:#f6c2c6!important}.hex-switch.on .hex-track{background:#f8776b}.hex-switch.on .hex-knob{transform:translateX(12px)}
+.leaflet-hexPane-pane path{pointer-events:none!important}

@@ -196,7 +196,7 @@ function pagerHtml(pages,total,label){if(total<=PAGE_SIZE)return '';return `<div
 function card(r){const vv=visits(r.id);return `<article class="restaurant no-tile"><div class="info" role="button" tabindex="0" data-detail="${r.id}"><h3>${esc(r.name)}</h3>${rating(r)}<p class="visit-meta">♜ ${vv.length} visit${vv.length===1?'':'s'}${vv[0]?` · last ${fmt(vv[0].date)}`:''}</p><p class="address">♧ ${esc(r.address||'Location not added')}</p>${tags(r)}<p class="note">▤ ${esc(r.note||'Add a little note…')}</p></div><div class="right-meta"><button class="save" data-save="${r.id}" aria-label="${r.wish?'Remove from':'Add to'} wishlist">${r.wish?'▮':'♧'}</button></div><button class="chevron" data-detail="${r.id}" aria-label="Open ${esc(r.name)}">›</button></article>`}
 
 let wishKeep=new Set(),wishKeepTab=null;
-const HEART_ON='assets/icon-wish-meow.png?v=ui20261015dw',HEART_OFF='assets/icon-wish-meow-off.png?v=ui20261015dw';
+const HEART_ON='assets/icon-wish-meow.png?v=ui20261015dx',HEART_OFF='assets/icon-wish-meow-off.png?v=ui20261015dx';
 const CUISINE_LABEL={ramen:'Ramen',sushi:'Sushi',japanese:'Japanese',cafe:'Cafe',matcha:'Matcha',tea:'Tea',boba:'Boba',dessert:'Dessert',bakery:'Bakery',burger:'Burger',pasta:'Italian',pizza:'Pizza',steak:'Steak',chinese:'Chinese',korean:'Korean',thai:'Thai',indian:'Indian',hongkong:'Hong Kong',singaporean:'Singaporean',mideast:'Middle Eastern',shop:'Restaurant'};
 function cuisineOf(r){const k=foodKey(r);if(k.startsWith('icon/')){const d=k.split('/')[1]||'';return {key:k,label:d.split('-').map(w=>w[0]?.toUpperCase()+w.slice(1)).join(' ')||tlCat(r)}}return {key:k,label:CUISINE_LABEL[k]||tlCat(r)}}
 function areaOf(r){const parts=String(r.address||'').split(',').map(x=>x.trim()).filter(x=>x&&!/^[A-Z]\d[A-Z]\s?\d[A-Z]\d$/i.test(x)&&!/^(BC|British Columbia|Canada|ON|Ontario|AB|WA|USA)(\s+[A-Z]\d[A-Z].*)?$/i.test(x));if(!parts.length)return '';if(parts.length>=3)return parts[1];if(parts.length===2&&/^\d/.test(parts[0]))return parts[1];return parts[0]}
@@ -260,11 +260,11 @@ let ICON_SETS=null;const iconSets=()=>ICON_SETS||(ICON_SETS=fetch('icon/index.js
 const SET_FOR={chinese:'chinese',hongkong:'hong-kong',japanese:'japanese',sushi:'japanese',ramen:'japanese',matcha:'japanese',korean:'korean',thai:'thai',indian:'indian',singaporean:'singaporean',mideast:'middle-eastern',tea:'drinks',boba:'drinks',cafe:'drinks',burger:'western',pasta:'western',pizza:'western',steak:'western'};
 function vibeIcon(t){t=t.toLowerCase();if(/sweet|cute|sparkle|vibe/.test(t))return icon('sparkle');if(/friend|solo|date|group|people/.test(t))return icon('users');if(/comfort|cozy|love|heart/.test(t))return icon('heart');return `<svg class="ui-icon leaf-ico" viewBox="0 0 24 24" aria-hidden="true"><path d="M5 19C5 10 11 5 20 4c0 9-5 15-14 15Z"/><path d="M5 19 13 11"/></svg>`}
 function vibeTags(list,max=3){list=(list||[]).filter(t=>t&&t!=='demo').slice(0,max);return list.length?`<div class="tl-tags">${list.map(t=>`<span class="tl-tag">${vibeIcon(t)}${esc(t)}</span>`).join('')}</div>`:''}
-// ui20261015dw: friendly kind label — icon/<cuisine>/<file> → 'Hong Kong' etc.; never show a path
+// ui20261015dx: friendly kind label — icon/<cuisine>/<file> → 'Hong Kong' etc.; never show a path
 function kindLabel(k){k=String(k||'').trim();if(!k||k==='shop')return '';if(k.includes('/')){const parts=k.split('/').filter(Boolean);if(parts[0].toLowerCase()==='icon')parts.shift();const d=(parts[0]||'');if(!d||/^[0-9a-f]{12,}$/i.test(d))return '';return d.split(/[-_ ]+/).filter(Boolean).map(w=>w[0].toUpperCase()+w.slice(1).toLowerCase()).join(' ')}return k[0].toUpperCase()+k.slice(1)}
 function tlCat(r){return (r?.tags||[]).find(t=>t!=='demo')||kindLabel(r?.kind)||'Restaurant'}
 function tlCardHtml(v,open,cls,attr){const x=rest(v.restaurantId);const vt=[...new Set([...(v.tags||[]),...(x?.tags||[]).slice(1)])];return `<div class="tl-card${cls?' '+cls:''}${open?' expanded':''}" ${attr} role="button" tabindex="0" aria-expanded="${open?'true':'false'}"><div class="tl-card-main">${foodImg(x)}<div class="tl-card-body"><h3>${esc(x?.name||'Restaurant')}</h3><p class="tl-meta">${v.rating?'<span class="star">★</span> ':''}${v.rating?v.rating+' · ':''}${esc(tlCat(x))} · ${esc(v.meal||'')}</p></div><span class="tl-chev" aria-hidden="true">${open?'⌄':'›'}</span></div>${open?vibeTags(vt)+visitExpandHtml(v):''}</div>`}
-// ui20261015dw: 'Did you go?' pending entries (state.pendingGo), recorded on every Go tap; never counted as visits
+// ui20261015dx: 'Did you go?' pending entries (state.pendingGo), recorded on every Go tap; never counted as visits
 function mealFromHour(h){return h<11?'Breakfast':h<15?'Lunch':h<17?'Snack':'Dinner'}
 function pendList(){return Array.isArray(state.pendingGo)?state.pendingGo:[]}
 function mixPending(all){const ps=pendList().map(p=>({...p,_pend:true}));if(!ps.length)return all;const k=x=>x.date+(x.time||'');return [...all,...ps].sort((a,b)=>sort==='oldest'?k(a).localeCompare(k(b)):k(b).localeCompare(k(a)))}
@@ -336,7 +336,7 @@ function createMapTiles(target,statusSelector='#map-status'){
   load();
   return {redraw:load};
 }
-// ui20261015dw: Explore is one-shot (no on/off mode); exploreSeq invalidates stale responses
+// ui20261015dx: Explore is one-shot (no on/off mode); exploreSeq invalidates stale responses
 let exploreLayer=null,exploreTimer,exploreAbort,exploreResults=[],exploreSeq=0;
 let areaSearchMode=null,areaSearchCenter=null; // 'explore'|'places' — enables Search again after pan
 function markAreaSearch(mode){areaSearchMode=mode;if(map){const c=map.getCenter();areaSearchCenter=[c.lat,c.lng]}else areaSearchCenter=mapCenter.slice();hideSearchAgain()}
@@ -348,7 +348,7 @@ function exploreProxyURL(){return (DATA_ORIGIN||'')+'/api/overpass'}
 function overpassEndpoints(){return ['https://overpass.kumi.systems/api/interpreter','https://maps.mail.ru/osm/tools/overpass/api/interpreter','https://overpass.private.coffee/api/interpreter','https://lz4.overpass-api.de/api/interpreter','https://overpass-api.de/api/interpreter',exploreProxyURL()]}
 function parseOverpassElements(j){return (j?.elements||[]).map(e=>({name:e.tags?.name,lat:e.lat??e.center?.lat,lng:e.lon??e.center?.lon,amenity:e.tags?.amenity||e.tags?.shop||'',cuisine:e.tags?.cuisine||'',address:[e.tags?.['addr:housenumber'],e.tags?.['addr:street']].filter(Boolean).join(' ')})).filter(x=>x.name&&Number.isFinite(x.lat)&&Number.isFinite(x.lng)&&FOOD_OSM.test(x.amenity))}
 async function fetchExploreOverpass(bb,signal){const q=`[out:json][timeout:15];(nwr["amenity"~"^(restaurant|fast_food|cafe|food_court|ice_cream)$"]["name"](${bb});nwr["amenity"~"^(pub|bar|biergarten)$"]["food"="yes"]["name"](${bb});nwr["amenity"="pub"]["kitchen_hours"]["name"](${bb});nwr["shop"~"^(bakery|pastry|confectionery|ice_cream|bubble_tea)$"]["name"](${bb}););out center 80;`;const body='data='+encodeURIComponent(q);const t0=Date.now();for(const ep of overpassEndpoints()){if(Date.now()-t0>24000)break;const local=new AbortController();const onAbort=()=>local.abort();signal?.addEventListener('abort',onAbort,{once:true});const timer=setTimeout(()=>local.abort(),9000);try{const res=await fetch(ep,{method:'POST',body,headers:{'Content-Type':'application/x-www-form-urlencoded'},signal:local.signal});if(!res.ok)continue;const j=await res.json();if(j&&Array.isArray(j.elements)){const list=parseOverpassElements(j);if(list.length)return list}}catch(e){if(signal?.aborted)throw e;/* try next mirror */}finally{clearTimeout(timer);signal?.removeEventListener('abort',onAbort)}}return null}
-// ui20261015dw: Mapbox Search Box /category fallback (limit max 25 per call; comma-joined ids accepted). 3 parallel calls merged by mapbox_id.
+// ui20261015dx: Mapbox Search Box /category fallback (limit max 25 per call; comma-joined ids accepted). 3 parallel calls merged by mapbox_id.
 const MB_CAT_SETS=['restaurant,cafe,coffee,fast_food,food_court,bakery,ice_cream,dessert_shop,bubble_tea,teahouse','restaurant','cafe,coffee,bakery,dessert_shop,bubble_tea,teahouse,ice_cream'];
 function mapboxCategoryURL(cats,b,c){const p=new URLSearchParams({access_token:MAPBOX_TOKEN,language:'en',limit:'25',proximity:`${c.lng.toFixed(5)},${c.lat.toFixed(5)}`,bbox:[b.getWest(),b.getSouth(),b.getEast(),b.getNorth()].map(x=>x.toFixed(5)).join(',')});return 'https://api.mapbox.com/search/searchbox/v1/category/'+cats+'?'+p.toString()}
 async function fetchExploreMapboxCategory(signal,sets=MB_CAT_SETS){if(!map)return null;const b=map.getBounds(),c=map.getCenter();window.__exploreMbCalls=(window.__exploreMbCalls||0)+sets.length;
@@ -366,11 +366,11 @@ function exploreResultIcon(x){
   }
   return window.L.divIcon({className:'restaurant-pin explore-pin pin-'+t,html:`<div class="map-chip chip-search explore-chip"><b>${esc(x.name)}</b></div>`,iconSize:null,iconAnchor:[0,0]});
 }
-// ui20261015dw: Explore = ONE Mapbox /category call (restaurant, limit 25) + Overpass in parallel. Mapbox shows at once; a paw progress bar
+// ui20261015dx: Explore = ONE Mapbox /category call (restaurant, limit 25) + Overpass in parallel. Mapbox shows at once; a paw progress bar
 // ("Fetching more…") runs until Overpass merges. Only if Overpass fails/empty → the other two category calls. Photon only if everything fails.
 function exploreBar(state){
   let el=$('#explore-progress');const wrap=$('.map-wrap');
-  if(state==='start'){if(!wrap)return;if(!el){el=document.createElement('div');el.id='explore-progress';el.className='explore-progress';el.setAttribute('role','status');el.innerHTML='<div class="ep-track"><div class="ep-fill"></div><img class="ep-cat" src="assets/icon-go-meow.png?v=ui20261015dw" alt="" aria-hidden="true"></div><span class="ep-text">Fetching more…</span>';wrap.appendChild(el)}
+  if(state==='start'){if(!wrap)return;if(!el){el=document.createElement('div');el.id='explore-progress';el.className='explore-progress';el.setAttribute('role','status');el.innerHTML='<div class="ep-track"><div class="ep-fill"></div><img class="ep-cat" src="assets/icon-go-meow.png?v=ui20261015dx" alt="" aria-hidden="true"></div><span class="ep-text">Fetching more…</span>';wrap.appendChild(el)}
     el.classList.remove('done','fade');el.style.setProperty('--ep',0);void el.offsetWidth;el.classList.add('run');
     const pos=()=>{const e=$('#explore-progress');if(!e)return;const s=$('#sheet .search-sheet'),w=wrap.getBoundingClientRect();const top=s?s.getBoundingClientRect().top:w.bottom-40;e.style.top=Math.max(0,top-w.top-30)+'px';if(!e.classList.contains('fade'))e._raf=requestAnimationFrame(pos)};cancelAnimationFrame(el._raf);pos();return}
   if(!el)return;
@@ -424,14 +424,47 @@ function mergeExplore(list){
   const st=out.scrollTop;renderPlaceHits(out,feats,{noFit:true,keepMarkers:true});out.scrollTop=st;
   drawSearchMarkers();
 }
+// ui20261015dx: hex "conquered area" layer — axial pointy-top hex grid in Web Mercator metres (pure JS), drawn in a pane under the pins.
+// On/off kept per device in localStorage 'meowsto-hex' (default ON).
+let hexOn=(()=>{try{return localStorage.getItem('meowsto-hex')!=='0'}catch{return true}})(),hexLayer=null,hexTierDrawn=null;
+function hexAcrossM(z){return z<=9?8000:z<=12?2000:500}
+function visitedPlaces(){return state.restaurants.filter(r=>Number.isFinite(r.lat)&&Number.isFinite(r.lng)&&visits(r.id).length)}
+function hexRefCos(list){if(!list.length)return 1;const lat=Math.round(list.map(r=>r.lat).sort((a,b)=>a-b)[list.length>>1]);return Math.max(0.2,Math.cos(lat*Math.PI/180))}
+function hexBins(acrossM,list=visitedPlaces()){
+  const s=acrossM/Math.sqrt(3)/hexRefCos(list); // centre→corner, in mercator units (corrected to true metres at the data's latitude)
+  const bins=new Map();
+  for(const r of list){const p=window.L.CRS.EPSG3857.project(window.L.latLng(r.lat,r.lng));
+    const q=(Math.sqrt(3)/3*p.x-1/3*p.y)/s,rr=(2/3*p.y)/s;
+    let x=q,z=rr,y=-x-z,rx=Math.round(x),ry=Math.round(y),rz=Math.round(z);const dx=Math.abs(rx-x),dy=Math.abs(ry-y),dz=Math.abs(rz-z);
+    if(dx>dy&&dx>dz)rx=-ry-rz;else if(dy>dz)ry=-rx-rz;else rz=-rx-ry;
+    const k=rx+','+rz;if(!bins.has(k))bins.set(k,{q:rx,r:rz,ids:new Set()});bins.get(k).ids.add(r.id)}
+  return {s,bins};
+}
+function hexAreaCount(){try{return hexBins(500).bins.size}catch{return 0}}
+function drawHexes(force){
+  if(!map||!window.L)return;
+  const z=map.getZoom(),across=hexAcrossM(z);
+  if(!hexOn){if(hexLayer){hexLayer.remove();hexLayer=null}hexTierDrawn=null;return}
+  if(!force&&hexLayer&&hexTierDrawn===across)return;
+  if(!map.getPane('hexPane')){const pn=map.createPane('hexPane');pn.style.zIndex=350;pn.style.pointerEvents='none'}
+  if(hexLayer)hexLayer.remove();
+  hexLayer=window.L.layerGroup();hexTierDrawn=across;
+  const {s,bins}=hexBins(across);
+  bins.forEach(b=>{const cx=s*Math.sqrt(3)*(b.q+b.r/2),cy=s*1.5*b.r;const pts=[];
+    for(let i=0;i<6;i++){const a=Math.PI/180*(60*i-30);pts.push(window.L.CRS.EPSG3857.unproject(window.L.point(cx+s*Math.cos(a),cy+s*Math.sin(a))))}
+    const n=b.ids.size,col=n>=5?'#c8323c':n>=2?'#ee6a6f':'#f9b4c4';
+    window.L.polygon(pts,{pane:'hexPane',interactive:false,color:n>=5?'#a8262f':n>=2?'#e0565d':'#f29bb0',weight:1.2,opacity:.55,fillColor:col,fillOpacity:n>=5?.38:n>=2?.32:.3,className:'hex-cell'}).addTo(hexLayer)});
+  hexLayer.addTo(map);
+}
+function setHexOn(on){hexOn=!!on;try{localStorage.setItem('meowsto-hex',hexOn?'1':'0')}catch{}drawHexes(true);const b=document.querySelector('.hex-switch');if(b){b.setAttribute('aria-checked',String(hexOn));b.classList.toggle('on',hexOn)}}
 function pinTier(){const z=map?map.getZoom():mapZoom;return z>=14?'full':z>=12?'mini':'meow'}
 function searchPinTier(){const z=map?map.getZoom():mapZoom;return z>=16?'full':'meow'}
 // ui20261015cy: three meow marker styles (visited · wishlist · search/explore), all switching pin↔label with searchPinTier() (label at zoom ≥ 16)
-// ui20261015dw: visited/wishlist markers are always meow pins (selected = enlarged); details live in the sheet
+// ui20261015dx: visited/wishlist markers are always meow pins (selected = enlarged); details live in the sheet
 function markerIcon(r){const isSel=r.id===selected||(r.id===searchLinkId&&searchFocusIdx!=null&&searchResults.length>0);const wishy=!!r.wish&&!visits(r.id)[0];const sz=isSel?[30,41]:[24,33];
   return window.L.icon({iconUrl:wishy?'assets/meow-map-pin-wish.png?v=ui20261015dk':'assets/meow-map-pin.png?v=ui20261015x',iconSize:sz,iconAnchor:[sz[0]/2,sz[1]],className:'meow-pin '+(wishy?'meow-pin-wish':'meow-pin-visited')+(isSel?' selected':'')})}
 function updateMarkerIcons(){markers.forEach(m=>m.setIcon(markerIcon(m._r)));searchMarkers.forEach((m,i)=>{if(m&&searchResults[i])m.setIcon(searchResultIcon(searchResults[i],i))});if(exploreLayer)exploreLayer.eachLayer(m=>{if(m&&m._explore)m.setIcon(exploreResultIcon(m._explore))})}
-// ui20261015dw: Wishlist card → Map tab, pin drawn (clear hide-visited/explore that could hide it), centred above sheet, place sheet open
+// ui20261015dx: Wishlist card → Map tab, pin drawn (clear hide-visited/explore that could hide it), centred above sheet, place sheet open
 function openOnMap(id){const r=rest(id);if(!r)return;if(!Number.isFinite(r.lat)||!Number.isFinite(r.lng)){toast('No location saved for this place');return}
   if(hideVisited&&visits(id).length)hideVisited=false;exploreSeq++;clearTimeout(exploreTimer);exploreAbort?.abort();
   searchResults=[];searchFocusIdx=null;closePanel();wlSheetClose?.();tab='map';selected=null;render();
@@ -493,7 +526,7 @@ function searchHitHidden(f){
   return true;
 }
 function searchResultIcon(f,i){
-  const sel=searchFocusIdx!=null&&Number(i)===Number(searchFocusIdx),t=sel?'full':'meow'; // ui20261015dw: result pins stay pins; only the selected one shows its label
+  const sel=searchFocusIdx!=null&&Number(i)===Number(searchFocusIdx),t=sel?'full':'meow'; // ui20261015dx: result pins stay pins; only the selected one shows its label
   if(t==='meow'){
     return window.L.icon({iconUrl:'assets/meow-map-pin-search.png?v=ui20261015cb',iconSize:[24,33],iconAnchor:[12,33],className:'meow-pin meow-pin-search'+(sel?' search-pin-active':'')});
   }
@@ -526,8 +559,8 @@ function savedOnMapFor(name,lat,lng,sourceId){if(!Number.isFinite(lat)||!Number.
 function savedForHit(f){const c=f?.geometry?.coordinates,p=f?.properties||{};if(!c)return null;const d=draftFromSearchFeature(f);return savedOnMapFor(p.name||p.street,c[1],c[0],d?.sourceId)}
 function wishOnly(r){return !!r.viaWish||(!!r.sourceId&&!r.note&&r.rating==null&&!(r.photos||[]).length)}
 function onMap(r){return !!r.wish||visits(r.id).length>0||!wishOnly(r)}
-function drawMarkers(){if(!map)return;markers.forEach(m=>m.remove());markers=[];state.restaurants.filter(r=>Number.isFinite(r.lat)&&Number.isFinite(r.lng)&&onMap(r)&&!(hideVisited&&visits(r.id).length)).forEach(r=>{const m=window.L.marker([r.lat,r.lng],{icon:markerIcon(r),title:r.name,riseOnHover:true,bubblingMouseEvents:false}).addTo(map).on('click',e=>{window.L.DomEvent.stopPropagation(e);selectPin(r.id)});m._r=r;markers.push(m)});drawSearchMarkers();bindMapEvents()}
-function bindMapEvents(){if(!map._meowZoom){map._meowZoom=1;let last=pinTier(),lastS=searchPinTier();map.on('zoomend',()=>{mapZoom=map.getZoom();const t=pinTier(),s=searchPinTier();if(t!==last||s!==lastS){last=t;lastS=s;updateMarkerIcons()}});map.on('moveend',()=>{const c=map.getCenter();mapCenter=[c.lat,c.lng];syncSearchAgain()});map.on('click',()=>{if(selected){selected=null;updateMarkerIcons();renderSheet();enhanceIcons()}})}}
+function drawMarkers(){if(!map)return;drawHexes(true);markers.forEach(m=>m.remove());markers=[];state.restaurants.filter(r=>Number.isFinite(r.lat)&&Number.isFinite(r.lng)&&onMap(r)&&!(hideVisited&&visits(r.id).length)).forEach(r=>{const m=window.L.marker([r.lat,r.lng],{icon:markerIcon(r),title:r.name,riseOnHover:true,bubblingMouseEvents:false}).addTo(map).on('click',e=>{window.L.DomEvent.stopPropagation(e);selectPin(r.id)});m._r=r;markers.push(m)});drawSearchMarkers();bindMapEvents()}
+function bindMapEvents(){if(!map._meowZoom){map._meowZoom=1;let last=pinTier(),lastS=searchPinTier();map.on('zoomend',()=>{mapZoom=map.getZoom();drawHexes();const t=pinTier(),s=searchPinTier();if(t!==last||s!==lastS){last=t;lastS=s;updateMarkerIcons()}});map.on('moveend',()=>{const c=map.getCenter();mapCenter=[c.lat,c.lng];syncSearchAgain()});map.on('click',()=>{if(selected){selected=null;updateMarkerIcons();renderSheet();enhanceIcons()}})}}
 function distance(r){if(!userLocation||!Number.isFinite(r.lat))return '';const rad=x=>x*Math.PI/180,dlat=rad(r.lat-userLocation[0]),dlng=rad(r.lng-userLocation[1]),a=Math.sin(dlat/2)**2+Math.cos(rad(r.lat))*Math.cos(rad(userLocation[0]))*Math.sin(dlng/2)**2;let km=6371*2*Math.atan2(Math.sqrt(a),Math.sqrt(1-a));return `${km<1?Math.round(km*1000)+' m':km.toFixed(1)+' km'} · `}
 function renderSheet(){
   const el=$('#sheet');if(!el)return;
@@ -823,7 +856,7 @@ function dismissSearchSheet(){
   const sheet=$('#sheet');if(sheet)renderSheet();
   syncHideVisitedChip();
 }
-// ui20261015dw: one shared animated sheet close (translateY + 220ms), used by drag, handle tap and Cancel
+// ui20261015dx: one shared animated sheet close (translateY + 220ms), used by drag, handle tap and Cancel
 function sheetCloseAnim(root,cb){if(!root){cb&&cb();return}if(root.dataset.closing)return;root.dataset.closing='1';root.style.transition='transform .22s ease,opacity .22s ease';requestAnimationFrame(()=>{root.style.transform=`translateY(${root.offsetHeight+40}px)`;root.style.opacity='0'});setTimeout(()=>{root.style.transition='';root.style.transform='';root.style.opacity='';delete root.dataset.closing;cb&&cb()},230)}
 function closePanelAnimated(){const inner=document.querySelector('#panel:not([hidden]) .panel-inner');if(!inner)return closePanel();sheetCloseAnim(inner,()=>{pendingVisit=false;closePanel()})}
 function sheetViewH(){const de=document.documentElement;if(de.classList.contains('shell-fit')){const v=parseFloat(getComputedStyle(de).getPropertyValue('--shell-h'));if(v>0)return v}return Math.round(window.visualViewport?.height||innerHeight)}
@@ -833,7 +866,7 @@ function bindSheetDismiss(root,onDismiss){
   root.dataset.dismissBound='1';
   const grips=[root.querySelector('.handle'),root.querySelector('.search-sheet-head,.sheet-head,.panel-head,.wl-ts-head')].filter(Boolean);
   if(!grips.length)return;
-  // ui20261015dw: 1:1 drag. Up (if natural < 50% of visible height) grows the sheet to ≤50%, snaps natural|50% on release.
+  // ui20261015dx: 1:1 drag. Up (if natural < 50% of visible height) grows the sheet to ≤50%, snaps natural|50% on release.
   // Down from expanded → natural; further down translates; close if translate >60px or flick >0.4px/ms; no tap-to-close.
   let startY=0,dy=0,dragging=false,pid=null,lastY=0,lastT=0,vel=0,nat=0,maxH=0,base=0,curH=0;
   const setH=h=>{if(h>nat+0.5){root.style.setProperty('--sx-h',h+'px');root.classList.add('sheet-expanded')}else{root.style.removeProperty('--sx-h');root.classList.remove('sheet-expanded')}curH=Math.max(h,nat)};
@@ -906,7 +939,7 @@ function placeHitHtml(f,i){
   const p=f.properties,dist=hitDistanceLabel(f),addr=placeAddress(p);
   const meta=`${dist?`<span class="hit-dist">${esc(dist)}</span>${addr?' · ':''}`:''}${esc(addr)}`;
   const wished=!!matchRestaurantByDraft(draftFromSearchFeature(f))?.wish;
-  return `<article class="place-hit" data-hit="${i}" data-hit-focus="${i}" role="button" tabindex="0"><div class="place-hit-info"><div class="place-hit-title"><button type="button" class="hit-icon hit-wish-lead${wished?' wish-on':''}" data-result-wish="${i}" aria-label="${wished?'Saved to wishlist':'Save to wishlist'}" title="${wished?'Saved':'Wishlist'}"><img src="${wished?HEART_ON:HEART_OFF}" alt="" width="26" height="26" decoding="async"></button><b>${esc(p.name||p.street||'Place')}</b><div class="place-hit-actions"><a class="hit-go" href="${esc(navURL(draftFromSearchFeature(f)))}" target="_blank" rel="noopener" aria-label="Directions to ${esc(p.name||'place')} in Google Maps"><img src="assets/icon-go-meow.png?v=ui20261015dn" alt="" width="26" height="26" decoding="async"></a><button type="button" class="hit-icon" data-result-add="${i}" aria-label="Add restaurant" title="Add"><img src="assets/icon-add-meow.png?v=ui20261015dw" alt="" width="26" height="26" decoding="async"></button></div></div><small>${meta}</small></div></article>`;
+  return `<article class="place-hit" data-hit="${i}" data-hit-focus="${i}" role="button" tabindex="0"><div class="place-hit-info"><div class="place-hit-title"><button type="button" class="hit-icon hit-wish-lead${wished?' wish-on':''}" data-result-wish="${i}" aria-label="${wished?'Saved to wishlist':'Save to wishlist'}" title="${wished?'Saved':'Wishlist'}"><img src="${wished?HEART_ON:HEART_OFF}" alt="" width="26" height="26" decoding="async"></button><b>${esc(p.name||p.street||'Place')}</b><div class="place-hit-actions"><a class="hit-go" href="${esc(navURL(draftFromSearchFeature(f)))}" target="_blank" rel="noopener" aria-label="Directions to ${esc(p.name||'place')} in Google Maps"><img src="assets/icon-go-meow.png?v=ui20261015dn" alt="" width="26" height="26" decoding="async"></a><button type="button" class="hit-icon" data-result-add="${i}" aria-label="Add restaurant" title="Add"><img src="assets/icon-add-meow.png?v=ui20261015dx" alt="" width="26" height="26" decoding="async"></button></div></div><small>${meta}</small></div></article>`;
 }
 function renderPlaceHits(output,features,opts={}){
   searchResults=(features||[]).filter(validPlace);
@@ -932,7 +965,7 @@ function renderPlaceHits(output,features,opts={}){
     if(row){
       const rh=row.getBoundingClientRect().height||48;
       hits.style.setProperty('--place-hit-h',rh+'px');
-      hits.style.maxHeight='';output.style.maxHeight=Math.round(rh*3.5)+'px'; // ui20261015dw: rows + Can't find it scroll together
+      hits.style.maxHeight='';output.style.maxHeight=Math.round(rh*3.5)+'px'; // ui20261015dx: rows + Can't find it scroll together
     }
     output.classList.toggle('can-scroll',output.scrollHeight>output.clientHeight+4);
   });
@@ -995,7 +1028,7 @@ async function fetchPlaceFeaturesLive(q,center,signal){
     return data.features.filter(validPlace).filter(isFoodFeature);
   }
 }
-// ui20261015dw: partial-name rescue. Only when Mapbox /forward has no name match: Mapbox /suggest (+/retrieve for matching names) and Photon,
+// ui20261015dx: partial-name rescue. Only when Mapbox /forward has no name match: Mapbox /suggest (+/retrieve for matching names) and Photon,
 // 3s timeout each, appended after first results (never blocks them). Overpass name-regex skipped: mirrors too slow/unreliable for 3s.
 function normName(x){return String(x||'').toLowerCase().normalize('NFKD').replace(/[\u0300-\u036f]/g,'').replace(/[^\p{L}\p{N}]+/gu,' ').trim()}
 function nameMatchRank(name,q){const n=normName(name),t=normName(q);if(!n||!t)return 3;if(n===t)return 0;if(n.startsWith(t))return 1;if(n.includes(t))return 2;return 3}
@@ -1226,7 +1259,7 @@ function avatarHtml(){const p=state.avatar;return (typeof p==='string'&&/^data:i
 function renderAvatar(){const b=document.querySelector('header .avatar');if(b)b.innerHTML=avatarHtml()}
 async function avatarImage(file){if(!/^image\/(jpeg|png|webp)$/.test(file.type)||file.size>15000000)throw Error('Choose a JPG, PNG, or WebP under 15 MB.');const bmp=await createImageBitmap(file),s=Math.min(bmp.width,bmp.height),c=document.createElement('canvas');c.width=c.height=192;c.getContext('2d').drawImage(bmp,(bmp.width-s)/2,(bmp.height-s)/2,s,s,0,0,192,192);bmp.close();return c.toDataURL('image/jpeg',.8)}
 function profile(){
-  openPanel('Your profile',`<div class="profile-panel pf-lite"><div class="pf-head"><button type="button" class="pf-av" data-action="avatar-upload" aria-label="Change photo">${avatarHtml()}<span class="pf-cam">✎</span></button><div class="pf-id"><b>${esc(/[\u3400-\u9fff]/.test(state.profile||'')?'My food journal':(state.profile||'My food journal'))}</b><small>@${esc(USER||'')} · tap photo to change</small></div></div><input type="file" id="avatar-file" accept="image/jpeg,image/png,image/webp" hidden><p class="pf-lock">🔒 Your journal is encrypted on this device. Keep your password safe; we can’t recover it.</p><div class="pf-actions"><button data-action="export">↓ Export</button><button data-action="import">↑ Import</button><button data-action="logout" class="danger">Log out</button></div><input type="file" id="import-file" accept="application/json,.json" hidden><details class="pf-more"><summary>More</summary><p class="pf-stats">${state.restaurants.length} places · ${state.visits.length} visits · ${state.restaurants.filter(r=>r.wish).length} to try</p>${state.avatar?'<button data-action="avatar-letter">Use initial instead of photo</button>':''}</details></div>`,{cls:'entry-panel profile-sheet'});
+  openPanel('Your profile',`<div class="profile-panel pf-lite"><div class="pf-head"><button type="button" class="pf-av" data-action="avatar-upload" aria-label="Change photo">${avatarHtml()}<span class="pf-cam">✎</span></button><div class="pf-id"><b>${esc(String(USER||state.profile||'You'))}</b><small>🐾 ${hexAreaCount()} area${hexAreaCount()===1?'':'s'} conquered</small></div><button type="button" class="hex-switch${hexOn?' on':''}" role="switch" aria-checked="${hexOn}" aria-label="Show conquered areas on map" data-action="hex-toggle"><svg class="hex-ic" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 2.8 20 7.4v9.2L12 21.2 4 16.6V7.4z" fill="currentColor" fill-opacity=".25" stroke="currentColor" stroke-width="2" stroke-linejoin="round"/></svg><span class="hex-track"><span class="hex-knob"></span></span></button></div><input type="file" id="avatar-file" accept="image/jpeg,image/png,image/webp" hidden><p class="pf-lock">🔒 Your journal is encrypted on this device. Keep your password safe; we can’t recover it.</p><div class="pf-actions"><button data-action="export">↓ Export</button><button data-action="import">↑ Import</button><button data-action="logout" class="danger">Log out</button></div><input type="file" id="import-file" accept="application/json,.json" hidden><details class="pf-more"><summary>More</summary><p class="pf-stats">${state.restaurants.length} places · ${state.visits.length} visits · ${state.restaurants.filter(r=>r.wish).length} to try</p>${state.avatar?'<button data-action="avatar-letter">Use initial instead of photo</button>':''}</details></div>`,{cls:'entry-panel profile-sheet'});
   $('#import-file').onchange=importBackup;
   $('#avatar-file').onchange=async e=>{const f=e.target.files[0];if(!f)return;try{const url=await avatarImage(f);if(commit(()=>{state.avatar=url})){renderAvatar();profile();toast('Profile photo updated')}}catch(err){toast(err.message||'Could not use that image')}};
 }
@@ -1254,7 +1287,7 @@ document.addEventListener('change',e=>{
 let wlTagScrollAt=0;document.addEventListener('scroll',e=>{if(e.target.classList?.contains('wl-tags')||e.target.classList?.contains('tl-tags'))wlTagScrollAt=Date.now()},true);
 document.addEventListener('click',e=>{
   if(Date.now()-wlTagScrollAt<350&&e.target.closest?.('.wl-tags,.tl-tags')){e.preventDefault();e.stopPropagation();return}
-  if(e.target.closest('a.hit-go,a.sheet-nav'))return; // ui20261015dw: directions links open externally, never select the row
+  if(e.target.closest('a.hit-go,a.sheet-nav'))return; // ui20261015dx: directions links open externally, never select the row
   const b=e.target.closest('button,[data-detail],[data-visit-toggle],[data-latest-toggle],[data-hit-focus],[data-wl-open]');if(!b)return;const d=b.dataset;
   if(d.page==='prev'){listPage=Math.max(0,listPage-1);if(tab==='wishlist'){renderWishlist();enhanceIcons()}return}
   if(d.page==='next'){listPage++;if(tab==='wishlist'){renderWishlist();enhanceIcons()}return}
@@ -1296,6 +1329,7 @@ document.addEventListener('click',e=>{
     case'search-again':runSearchAgain();break;
     case'locate':locate();break;
     case'profile':profile();break;
+    case'hex-toggle':setHexOn(!hexOn);break;
     case'export':exportBackup();break;
     case'avatar-upload':$('#avatar-file')?.click();break;
     case'avatar-letter':if(commit(()=>{delete state.avatar}))profile(),renderAvatar();break;
@@ -1386,8 +1420,8 @@ fit();addEventListener('resize',fit);addEventListener('orientationchange',()=>se
 // ui20261015ck: compact Wishlist cards, single scrollable tag row.
 // ui20261015cj: removed zoom-in gate from runMapPlaceSearch; search works at any zoom.
 
-// ui20261015dw: temporary tap debug overlay, only with ?debugtap=1
+// ui20261015dx: temporary tap debug overlay, only with ?debugtap=1
 (function(){if(!/[?&]debugtap=1\b/.test(location.search))return;const box=document.createElement('div');box.id='debugtap';box.style.cssText='position:fixed;left:6px;right:6px;bottom:calc(6px + env(safe-area-inset-bottom,0px));z-index:2147483646;background:rgba(20,20,20,.82);color:#fff;font:11px/1.35 ui-monospace,Menlo,monospace;padding:6px 8px;border-radius:8px;pointer-events:none;white-space:pre-wrap;word-break:break-all';const pr=document.createElement('div');pr.style.cssText='position:fixed;top:env(safe-area-inset-top,0px);height:1px;width:1px;visibility:hidden';document.documentElement.appendChild(pr);const dot=document.createElement('div');dot.style.cssText='position:fixed;width:14px;height:14px;margin:-7px 0 0 -7px;border-radius:50%;background:#f00a;z-index:2147483646;pointer-events:none;display:none';const d=e=>e?e.tagName.toLowerCase()+(e.id?'#'+e.id:'')+(typeof e.className==='string'&&e.className.trim()?'.'+e.className.trim().split(/\s+/).slice(0,3).join('.'):''):'-';let last='(tap anywhere)';function info(){const vv=window.visualViewport,de=document.documentElement,app=document.querySelector('.app');return 'tap: '+last+'\ninnerH '+innerHeight+' vvH '+(vv?Math.round(vv.height)+' vvTop '+Math.round(vv.offsetTop):'-')+' screenH '+screen.height+'\n--shell-h '+(getComputedStyle(de).getPropertyValue('--shell-h').trim()||'-')+' shell-fit '+de.classList.contains('shell-fit')+' safeTop '+Math.round(pr.getBoundingClientRect().top)+'\napp '+(app?Math.round(app.getBoundingClientRect().top)+'..'+Math.round(app.getBoundingClientRect().bottom)+' scrollTop '+app.scrollTop:'-')+' bodyScroll '+document.body.scrollTop+' winY '+scrollY}function up(){box.textContent=info()}addEventListener('pointerdown',e=>{const t=document.elementFromPoint(e.clientX,e.clientY);const btn=t&&t.closest('button,a,[data-tab]');last=Math.round(e.clientX)+','+Math.round(e.clientY)+' '+d(t)+(btn&&btn!==t?' < '+d(btn):'');dot.style.left=e.clientX+'px';dot.style.top=e.clientY+'px';dot.style.display='block';up()},true);addEventListener('resize',up);if(window.visualViewport)visualViewport.addEventListener('resize',up);function mount(){document.body.appendChild(box);document.body.appendChild(dot);up()}document.body?mount():addEventListener('DOMContentLoaded',mount)})();
 
-// ui20261015dw: panel sheet drag/handle close
+// ui20261015dx: panel sheet drag/handle close
 (function(){const go=()=>{const i=document.querySelector('#panel .panel-inner');if(i)bindSheetDismiss(i,()=>{pendingVisit=false;closePanel()})};document.readyState==='loading'?addEventListener('DOMContentLoaded',go):go()})();
