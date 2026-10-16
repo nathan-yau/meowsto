@@ -507,3 +507,19 @@ header h1.app-name,.lockcard h1,.lockcard .lock-title{font-family:var(--font-tit
 .tl-latest-wrap .tl-eyebrow{display:block;font:800 12px/1.2 Nunito,sans-serif;color:#c0645a;letter-spacing:.02em;margin:0 0 6px 4px;text-transform:uppercase}
 .tl-card.tl-card-latest{background:#fdeee9!important}
 .tl-page .tl-latest-wrap .tl-card.tl-card-latest,.tl-page .tl-latest-wrap .tl-card.tl-card-latest.expanded{background:#fdeee9!important}
+/* ui20261015dj: every sheet shares the place-sheet chrome; handle closes; no × */
+.panel:not(.full) .panel-inner,.wl-ts{background:#fffbf3!important;border:2px solid #e3dccd!important;border-bottom:0!important;border-radius:26px 26px 0 0!important;box-shadow:0 -4px 18px #38271f14!important}
+.panel:not(.full) .panel-body,.panel:not(.full) .panel-head,.panel.profile-sheet .profile-panel{background:transparent!important}
+.panel .panel-head .close,.wl-ts-x{display:none!important}
+.handle,.panel-handle{position:relative;display:block;width:40px!important;height:5px!important;border-radius:3px!important;background:#ddd5c8!important;margin:8px auto 4px!important;cursor:pointer;touch-action:none;flex:none}
+.handle::before{content:'';position:absolute;left:-40px;right:-40px;top:-12px;bottom:-12px}
+.panel-head,.wl-ts-head{touch-action:none}
+.panel.full .panel-handle{margin-top:calc(8px + env(safe-area-inset-top,0px))!important}
+.pf-lock{background:#f6f1e6!important}
+.panel.confirm-sheet{background:transparent!important}
+.cf-msg{margin:2px 0 14px;font-size:15px;color:#6d655c;line-height:1.35}
+.cf-row{display:flex;gap:8px;padding-bottom:calc(6px + env(safe-area-inset-bottom,0px))}
+.cf-row button{flex:1 1 0;height:36px!important;min-height:36px!important;padding:0 12px!important;border-radius:999px!important;font:800 15px/1 Nunito,sans-serif!important}
+.cf-row .cf-ok{background:#fde4df!important;border:2px solid #c0645a!important;color:#b84d43!important}
+.handle,.panel-head,.wl-ts-head,.search-sheet-head,.sheet-head{-webkit-user-select:none;user-select:none}
+.cf-row .secondary{background:#fffdf6!important;border:2px solid #38271f!important;color:#38271f!important}
