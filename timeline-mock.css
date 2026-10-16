@@ -402,3 +402,5 @@ body.wl-ts-up #toast,body.wl-ts-up #toast[popover]{bottom:var(--wl-ts-lift,22px)
 .detail-sheet .save .save-heart{width:30px;height:30px;object-fit:contain;transition:transform .15s}
 .detail-sheet .save:active .save-heart{transform:scale(.88)}
 .detail-sheet.sheet-compact .sheet-head h2{font:700 19px/1.15 Gaegu,cursive!important;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden;overflow-wrap:anywhere}
+/* ui20261015cp: All visits cards — restaurant name on one line with ellipsis */
+.tl-card .tl-card-body h3{white-space:nowrap!important;overflow:hidden!important;text-overflow:ellipsis!important;overflow-wrap:normal!important;max-width:100%;display:block}

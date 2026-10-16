@@ -192,7 +192,7 @@ function pagerHtml(pages,total,label){if(total<=PAGE_SIZE)return '';return `<div
 function card(r){const vv=visits(r.id);return `<article class="restaurant no-tile"><div class="info" role="button" tabindex="0" data-detail="${r.id}"><h3>${esc(r.name)}</h3>${rating(r)}<p class="visit-meta">♜ ${vv.length} visit${vv.length===1?'':'s'}${vv[0]?` · last ${fmt(vv[0].date)}`:''}</p><p class="address">♧ ${esc(r.address||'Location not added')}</p>${tags(r)}<p class="note">▤ ${esc(r.note||'Add a little note…')}</p></div><div class="right-meta"><button class="save" data-save="${r.id}" aria-label="${r.wish?'Remove from':'Add to'} wishlist">${r.wish?'▮':'♧'}</button></div><button class="chevron" data-detail="${r.id}" aria-label="Open ${esc(r.name)}">›</button></article>`}
 
 let wishKeep=new Set(),wishKeepTab=null;
-const HEART_ON='assets/icon-wish-meow.png?v=ui20261015co',HEART_OFF='assets/icon-wish-meow-off.png?v=ui20261015co';
+const HEART_ON='assets/icon-wish-meow.png?v=ui20261015cp',HEART_OFF='assets/icon-wish-meow-off.png?v=ui20261015cp';
 const CUISINE_LABEL={ramen:'Ramen',sushi:'Sushi',japanese:'Japanese',cafe:'Cafe',matcha:'Matcha',tea:'Tea',boba:'Boba',dessert:'Dessert',bakery:'Bakery',burger:'Burger',pasta:'Italian',pizza:'Pizza',steak:'Steak',chinese:'Chinese',korean:'Korean',thai:'Thai',indian:'Indian',hongkong:'Hong Kong',singaporean:'Singaporean',mideast:'Middle Eastern',shop:'Restaurant'};
 function cuisineOf(r){const k=foodKey(r);if(k.startsWith('icon/')){const d=k.split('/')[1]||'';return {key:k,label:d.split('-').map(w=>w[0]?.toUpperCase()+w.slice(1)).join(' ')||tlCat(r)}}return {key:k,label:CUISINE_LABEL[k]||tlCat(r)}}
 function areaOf(r){const parts=String(r.address||'').split(',').map(x=>x.trim()).filter(x=>x&&!/^[A-Z]\d[A-Z]\s?\d[A-Z]\d$/i.test(x)&&!/^(BC|British Columbia|Canada|ON|Ontario|AB|WA|USA)(\s+[A-Z]\d[A-Z].*)?$/i.test(x));if(!parts.length)return '';if(parts.length>=3)return parts[1];if(parts.length===2&&/^\d/.test(parts[0]))return parts[1];return parts[0]}
@@ -322,9 +322,9 @@ function syncSearchAgain(){const b=$('#search-again');if(!b||!map||!areaSearchMo
 function runSearchAgain(){if(!areaSearchMode||!map)return;hideSearchAgain();if(areaSearchMode==='explore'){markAreaSearch('explore');loadExplore(true)}else{const q=lastSearchQuery||'restaurant';if(searchContext)delete searchContext.center;markAreaSearch('places');runMapPlaceSearch(q,{force:true})}}
 function exploreProxyURL(){return (DATA_ORIGIN||'')+'/api/overpass'}
 function overpassEndpoints(){return ['https://overpass.kumi.systems/api/interpreter','https://maps.mail.ru/osm/tools/overpass/api/interpreter','https://overpass.private.coffee/api/interpreter','https://lz4.overpass-api.de/api/interpreter','https://overpass-api.de/api/interpreter',exploreProxyURL()]}
-function parseOverpassElements(j){return (j?.elements||[]).map(e=>({name:e.tags?.name,lat:e.lat??e.center?.lat,lng:e.lon??e.center?.lon,amenity:e.tags?.amenity||'restaurant',cuisine:e.tags?.cuisine||'',address:[e.tags?.['addr:housenumber'],e.tags?.['addr:street']].filter(Boolean).join(' ')})).filter(x=>x.name&&Number.isFinite(x.lat)&&Number.isFinite(x.lng))}
-async function fetchExploreOverpass(bb,signal){const q=`[out:json][timeout:15];(node["amenity"~"^(restaurant|fast_food|cafe)$"]["name"](${bb});way["amenity"~"^(restaurant|fast_food|cafe)$"]["name"](${bb}););out center 80;`;const body='data='+encodeURIComponent(q);for(const ep of overpassEndpoints()){const local=new AbortController();const onAbort=()=>local.abort();signal?.addEventListener('abort',onAbort,{once:true});const timer=setTimeout(()=>local.abort(),8000);try{const res=await fetch(ep,{method:'POST',body,headers:{'Content-Type':'application/x-www-form-urlencoded'},signal:local.signal});if(!res.ok)continue;const j=await res.json();if(j&&Array.isArray(j.elements)){const list=parseOverpassElements(j);if(list.length)return list}}catch(e){if(signal?.aborted)throw e;/* try next mirror */}finally{clearTimeout(timer);signal?.removeEventListener('abort',onAbort)}}return null}
-async function fetchExplorePhoton(signal){const center=map?[map.getCenter().lat,map.getCenter().lng]:mapCenter;const res=await fetch(placeSearchURL('restaurant',center,true),{signal});if(!res.ok)throw Error('photon');const data=await res.json();const list=(data.features||[]).filter(validPlace).map(f=>{const p=f.properties||{},c=f.geometry.coordinates;return {name:p.name||p.street||'Place',lat:c[1],lng:c[0],amenity:p.osm_value||'restaurant',cuisine:'',address:placeAddress(p)}}).filter(x=>x.name&&Number.isFinite(x.lat));if(!list.length)throw Error('photon empty');return list}
+function parseOverpassElements(j){return (j?.elements||[]).map(e=>({name:e.tags?.name,lat:e.lat??e.center?.lat,lng:e.lon??e.center?.lon,amenity:e.tags?.amenity||e.tags?.shop||'',cuisine:e.tags?.cuisine||'',address:[e.tags?.['addr:housenumber'],e.tags?.['addr:street']].filter(Boolean).join(' ')})).filter(x=>x.name&&Number.isFinite(x.lat)&&Number.isFinite(x.lng)&&FOOD_OSM.test(x.amenity))}
+async function fetchExploreOverpass(bb,signal){const q=`[out:json][timeout:15];(nwr["amenity"~"^(restaurant|fast_food|cafe|food_court|ice_cream)$"]["name"](${bb});nwr["amenity"~"^(pub|bar|biergarten)$"]["food"="yes"]["name"](${bb});nwr["amenity"="pub"]["kitchen_hours"]["name"](${bb});nwr["shop"~"^(bakery|pastry|confectionery|ice_cream|bubble_tea)$"]["name"](${bb}););out center 80;`;const body='data='+encodeURIComponent(q);for(const ep of overpassEndpoints()){const local=new AbortController();const onAbort=()=>local.abort();signal?.addEventListener('abort',onAbort,{once:true});const timer=setTimeout(()=>local.abort(),8000);try{const res=await fetch(ep,{method:'POST',body,headers:{'Content-Type':'application/x-www-form-urlencoded'},signal:local.signal});if(!res.ok)continue;const j=await res.json();if(j&&Array.isArray(j.elements)){const list=parseOverpassElements(j);if(list.length)return list}}catch(e){if(signal?.aborted)throw e;/* try next mirror */}finally{clearTimeout(timer);signal?.removeEventListener('abort',onAbort)}}return null}
+async function fetchExplorePhoton(signal){const center=map?[map.getCenter().lat,map.getCenter().lng]:mapCenter;const res=await fetch(placeSearchURL('restaurant',center,true),{signal});if(!res.ok)throw Error('photon');const data=await res.json();const list=(data.features||[]).filter(validPlace).filter(isFoodFeature).map(f=>{const p=f.properties||{},c=f.geometry.coordinates;return {name:p.name||p.street||'Place',lat:c[1],lng:c[0],amenity:p.osm_value||'restaurant',cuisine:'',address:placeAddress(p)}}).filter(x=>x.name&&Number.isFinite(x.lat));if(!list.length)throw Error('photon empty');return list}
 function exploreResultIcon(x){
   const t=searchPinTier();
   if(t==='meow'){
@@ -618,17 +618,25 @@ function visitDetail(id){const v=state.visits.find(v=>v.id===id);if(!v)return;op
 let activeSearch=null, searchGeneration=0, autocompleteTimer=null, lastSearchAt=0, placePreviewMap=null, searchResultPage=0;
 function destroyPlacePreview(){if(placePreviewMap){placePreviewMap.remove();placePreviewMap=null}}
 function cancelSearch(){clearTimeout(autocompleteTimer);searchGeneration++;activeSearch?.abort();activeSearch=null;searchBusy=false}
+// ui20261015cp: food-only results. API filters + client backstop for every provider.
+const MAPBOX_FOOD_CATS='restaurant,cafe,coffee,fast_food,food_court,bakery,ice_cream,dessert_shop,bubble_tea,tea_house,food,food_and_drink';
+const FOOD_OSM=/^(restaurant|cafe|fast_food|food_court|ice_cream|pub|biergarten|bar|bakery|pastry|confectionery|bubble_tea)$/;
+const FOOD_CAT=/^(food|restaurant|[a-z_]+_restaurant|cafe|coffee|coffee_shop|fast_food|food_court|bakery|ice_cream|ice_cream_shop|ice_cream_parlor|dessert|dessert_shop|bubble_tea|bubble_tea_shop|tea_house|tea_shop|juice_bar|donut_shop|frozen_yogurt|gelato|pastry_shop|cake_shop|creperie|brunch_restaurant|deli|food_truck|noodle_shop|bistro|diner|steakhouse|pizzeria)$/;
+const NONFOOD_CAT=/^(grocery|supermarket|liquor_store|convenience_store|gas_station|grocery_store|wine_store|beer_store)$/;
+function isFoodFeature(f){const p=f?.properties||{};if(p._provider==='demo')return true;
+  if(p._provider==='mapbox'){const c=(p.poi_category_ids||p.poi_category||[]).map(x=>String(x).toLowerCase().replace(/\s+/g,'_'));return c.some(x=>FOOD_CAT.test(x))&&!c.some(x=>NONFOOD_CAT.test(x))}
+  const k=String(p.osm_key||''),v=String(p.osm_value||'');if(k==='amenity'||k==='shop')return FOOD_OSM.test(v)&&v!=='bar';return false}
 function validPlace(f){
   const c=f?.geometry?.coordinates;return f?.geometry?.type==='Point'&&f.properties&&Array.isArray(c)&&Number.isFinite(c[0])&&Math.abs(c[0])<=180&&Number.isFinite(c[1])&&Math.abs(c[1])<=90
 }
 function placeSearchURL(query,center,nearMap=true){
   const params=new URLSearchParams({q:query,limit:'30',lat:String(center[0]),lon:String(center[1]),zoom:'13',location_bias_scale:'0.2'});
-  for(const type of ['amenity:restaurant','amenity:cafe','amenity:fast_food','amenity:food_court','amenity:bar','amenity:pub','amenity:ice_cream','shop:bakery'])params.append('osm_tag',type);
+  for(const type of ['amenity:restaurant','amenity:cafe','amenity:fast_food','amenity:food_court','amenity:pub','amenity:ice_cream','shop:bakery','shop:pastry','shop:confectionery','shop:ice_cream'])params.append('osm_tag',type);
   if(nearMap)params.set('bbox',[Math.max(-180,center[1]-.45),Math.max(-90,center[0]-.27),Math.min(180,center[1]+.45),Math.min(90,center[0]+.27)].join(','));
   return 'https://photon.komoot.io/api/?'+params.toString();
 }
 function mapboxForwardURL(query,center,nearMap){
-  const params=new URLSearchParams({q:query,access_token:MAPBOX_TOKEN,language:'en',limit:'10',types:'poi'});
+  const params=new URLSearchParams({q:query,access_token:MAPBOX_TOKEN,language:'en',limit:'10',types:'poi',poi_category:MAPBOX_FOOD_CATS});
   if(nearMap&&Array.isArray(center)&&center.length>=2){
     params.set('proximity',`${center[1]},${center[0]}`);
     params.set('bbox',[Math.max(-180,center[1]-.45),Math.max(-90,center[0]-.27),Math.min(180,center[1]+.45),Math.min(90,center[0]+.27)].join(','));
@@ -636,14 +644,14 @@ function mapboxForwardURL(query,center,nearMap){
   return 'https://api.mapbox.com/search/searchbox/v1/forward?'+params.toString();
 }
 function mapboxForwardFeatures(features){
-  return (features||[]).filter(f=>validPlace(f)).map(f=>{
+  return (features||[]).filter(f=>validPlace(f)).filter(f=>isFoodFeature({properties:{_provider:'mapbox',poi_category_ids:f.properties?.poi_category_ids||[]}})).map(f=>{
     const p=f.properties||{},ctx=p.context||{};
     return {type:'Feature',geometry:f.geometry,properties:{
       _provider:'mapbox',mapbox_id:p.mapbox_id||null,
       name:p.name_preferred||p.name,full_address:p.full_address||'',address:p.address||'',place_formatted:p.place_formatted||'',
       housenumber:ctx.address?.address_number,street:ctx.address?.street_name||ctx.street?.name,
       district:ctx.neighborhood?.name,city:ctx.place?.name,state:ctx.region?.name,country:ctx.country?.name,
-      poi_category:p.poi_category||[],osm_value:(p.poi_category_ids||[])[0]||'',
+      poi_category:p.poi_category||[],poi_category_ids:p.poi_category_ids||[],osm_value:(p.poi_category_ids||[])[0]||'',
       sourceId:p.mapbox_id?`mapbox:${p.mapbox_id}`:null
     }};
   });
@@ -880,7 +888,8 @@ async function fetchPlaceFeatures(q,signal){
   if(out&&out.length)searchCachePut(key,out);
   return out;
 }
-const SEARCH_CACHE_KEY='meowsto-search-cache-v1',SEARCH_CACHE_TTL=7*864e5,SEARCH_CACHE_MAX=60;
+try{localStorage.removeItem('meowsto-search-cache-v1')}catch{}
+const SEARCH_CACHE_KEY='meowsto-search-cache-v2',SEARCH_CACHE_TTL=7*864e5,SEARCH_CACHE_MAX=60;
 function searchCacheKey(q,c){const n=String(q||'').trim().toLowerCase().replace(/\s+/g,' ');const p=Array.isArray(c)&&c.length>=2?`${(+c[0]).toFixed(2)},${(+c[1]).toFixed(2)}`:'none';return n+'@'+p}
 function searchCacheLoad(){try{return JSON.parse(localStorage.getItem(SEARCH_CACHE_KEY)||'{}')||{}}catch{return {}}}
 function searchCacheGet(k){const c=searchCacheLoad(),e=c[k];if(!e)return null;if(Date.now()-e.t>SEARCH_CACHE_TTL){delete c[k];try{localStorage.setItem(SEARCH_CACHE_KEY,JSON.stringify(c))}catch{}return null}return e.f}
@@ -891,14 +900,17 @@ async function fetchPlaceFeaturesLive(q,center,signal){
     if(!res.ok)throw Error('mapbox '+res.status);
     const json=await res.json();
     if(!Array.isArray(json.features))throw Error('mapbox invalid');
-    return mapboxForwardFeatures(json.features);
+    const mb=mapboxForwardFeatures(json.features);
+    if(mb.length)return mb;
+    throw Error('mapbox no food');
   }catch(mbErr){
     if(mbErr?.name==='AbortError')throw mbErr;
-    const res=await fetch(placeSearchURL(q,center,true),{signal});
-    if(!res.ok)throw Error('Search unavailable');
+    const soft=mbErr?.message==='mapbox no food';
+    let res;try{res=await fetch(placeSearchURL(q,center,true),{signal})}catch(e){if(soft&&e?.name!=='AbortError')return [];throw e}
+    if(!res.ok){if(soft)return [];throw Error('Search unavailable')}
     const data=await res.json();
     if(!Array.isArray(data.features))throw Error('Invalid');
-    return data.features.filter(validPlace);
+    return data.features.filter(validPlace).filter(isFoodFeature);
   }
 }
 function showSearchSheetResults(sheet,features,opts={}){
