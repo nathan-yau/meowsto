@@ -1,7 +1,8 @@
 /* Readable type and comfortable touch targets, layered over the illustrated theme. */
 :root {
   --font-ui: 'Nunito', system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
-  --font-display: 'Gaegu', cursive;
+  --font-display: 'Nunito', system-ui, -apple-system, sans-serif;
+  --font-title: 'Gaegu', cursive;
   --muted: #6d655c;
 }
 html { -webkit-text-size-adjust: 100%; }

@@ -37,7 +37,7 @@ header .avatar .avatar-initial{font-size:22px}
 .pin-full .map-chip,.pin-mini .map-chip{bottom:16px;background:var(--mm-cream);border:2px solid var(--mm-ink);border-radius:12px;padding:5px 11px;box-shadow:0 2px 6px #38271f22}
 .map-chip:after{bottom:-7px;width:10px;height:10px;margin-left:-6px;border-width:0 2px 2px 0}
 .pin-full .map-chip:before,.pin-mini .map-chip:before{content:'';position:absolute;left:50%;bottom:-20px;width:9px;height:9px;margin-left:-5px;border-radius:50%;background:var(--mm-ink);box-shadow:0 0 0 2px #fffaf1}
-.pin-full .map-chip b{font:700 16px/1.1 Gaegu,cursive;font-family:Nunito,sans-serif;font-weight:800;font-size:14px}
+.pin-full .map-chip b{font:800 14px/1.1 Nunito,sans-serif;font-weight:800;font-size:14px}
 .pin-full .map-chip small{font:600 12px Nunito,sans-serif;color:#5b524a}
 .map-chip.selected{background:var(--mm-coral)!important;border-color:#d9574c!important;color:#fff}
 .map-chip.selected small{color:#fff!important}
@@ -51,7 +51,7 @@ header .avatar .avatar-initial{font-size:22px}
 /* Bottom detail sheet: opaque cream card, no photo */
 .search-sheet,.detail-sheet.sheet-compact{margin:0!important;padding:8px 18px calc(14px + env(safe-area-inset-bottom,0px))!important;background:#fffbf3!important;border:2px solid var(--mm-line)!important;border-bottom:0!important;border-radius:26px 26px 0 0!important;backdrop-filter:none!important;-webkit-backdrop-filter:none!important;box-shadow:0 -4px 18px #38271f14!important}
 .search-sheet .handle,.detail-sheet.sheet-compact .handle{width:40px!important;height:5px!important;background:#ddd5c8!important;border-radius:4px}
-.detail-sheet.sheet-compact .sheet-head h2{font:700 30px/1.05 Gaegu,cursive!important;color:var(--mm-ink)}
+.detail-sheet.sheet-compact .sheet-head h2{font:800 18px/1.2 Nunito,sans-serif!important;color:var(--mm-ink)}
 .detail-sheet.sheet-compact .sheet-sub{font:600 15px Nunito,sans-serif!important;color:#6d655c;margin-top:6px!important;display:flex;align-items:center;gap:4px;flex-wrap:wrap}
 .sheet-star{color:var(--mm-coral);font-size:17px}.sheet-sub b{color:var(--mm-ink);margin-right:8px}
 .sheet-loc{display:inline-flex}.sheet-loc .ui-icon{width:16px;height:16px}
