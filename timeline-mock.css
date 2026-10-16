@@ -246,3 +246,17 @@
   .vs-sheet .vs-when .vs-mealrow .vs-mealopt{height:34px;font-size:12px!important}
   .vs-sheet .vs-when .vs-mealrow .vs-stars button{font-size:18px!important}
 }
+/* ui20261015by: compact Nearby/search sheet — ~3.5 rows, map stays visible above */
+.view-map .search-sheet{padding:4px 14px calc(8px + env(safe-area-inset-bottom,0px))!important;max-height:min(46vh,300px);display:flex;flex-direction:column;overflow:hidden}
+.view-map .search-sheet .search-sheet-head{margin-bottom:2px;min-height:0}
+.view-map .search-sheet .search-sheet-head h2{font-size:12px}
+.view-map .search-sheet .search-results{flex:1 1 auto;min-height:0}
+.view-map .search-sheet .place-hit{padding:5px 2px!important}
+.view-map .search-sheet .place-hit-title b{font-size:15px;line-height:1.2}
+.view-map .search-sheet .place-hit-info small{margin-top:1px;font-size:12px;line-height:1.3}
+.view-map .search-sheet .place-hit-actions .hit-icon{width:26px!important;height:26px!important;min-width:26px!important}
+.view-map .search-sheet .place-hit-actions .hit-icon img{width:22px;height:22px}
+.view-map .search-sheet .manual-fallback{margin:4px 2px 0;border-top:0}
+.view-map .search-sheet .manual-fallback summary{min-height:0;padding:4px 6px;font-size:12px}
+.view-map .search-sheet .search-sheet-head .text-button{min-height:0!important;padding:2px 6px!important;line-height:1.2}
+.view-map .search-sheet .handle{padding:4px 0 2px!important;margin-bottom:2px!important}

@@ -59,13 +59,13 @@ async function loadData(){let cached=localStorage.getItem(K('env')),local=null;
     // First login: migrate legacy localStorage if present
     if(!local){let db=RL.defaults();try{const raw=localStorage.getItem(LEGACY_KEY);if(raw){const legacy=JSON.parse(raw);if(RL.validDb(legacy)){db=RL.migrate(legacy);localStorage.setItem(LEGACY_KEY+'-migrated-at',String(Date.now()))}}}catch{}state=db;bootApp()}
     dirty=true;save();return}
-  if(j.etag!==ETAG||!local){const remote=await RL.decrypt(j.env,PASS);state=(local&&dirty)?RL.merge(local,remote):RL.migrate(remote);ETAG=j.etag;if(!dirty)cacheEnv(j.env,j.etag);if(!local)bootApp();else render()}
+  if(j.etag!==ETAG||!local){const remote=await RL.decrypt(j.env,PASS);state=(local&&dirty)?RL.merge(local,remote):RL.migrate(remote);ETAG=j.etag;if(!dirty)cacheEnv(j.env,j.etag);if(!local)bootApp();else refreshAfterSync()}
   sync(dirty?'Unsynced changes…':'Synced ✓');if(dirty)save()}
 async function save(){if(!TOK)return false;if(saving){clearTimeout(tmr);tmr=setTimeout(save,800);return}saving=true;
   try{const env=await RL.encrypt(state,PASS,SALT);cacheEnv(env);
     for(let i=0;i<4;i++){const j=await api('data','PUT',{env,etag:ETAG});
       if(j._s===200){ETAG=j.etag;cacheEnv(env,ETAG);dirty=false;localStorage.removeItem(K('dirty'));sync('Synced ✓ '+RL.hm(Date.now()));return true}
-      if(j._s===409&&j.env){state=RL.merge(state,await RL.decrypt(j.env,PASS));ETAG=j.etag;const env2=await RL.encrypt(state,PASS,SALT);cacheEnv(env2);render();continue}
+      if(j._s===409&&j.env){state=RL.merge(state,await RL.decrypt(j.env,PASS));ETAG=j.etag;const env2=await RL.encrypt(state,PASS,SALT);cacheEnv(env2);refreshAfterSync();continue}
       if(j._s===401){const tr=await tryRefresh();if(tr===true)continue;if(tr==='off'){sync('Can’t sync right now — saved on this device');return false}expired();return false}
       sync('Can’t sync right now — saved on this device');return false}
     sync('Can’t sync right now — saved on this device');return false}
@@ -201,9 +201,9 @@ function renderWishlist(){
 
 const FOOD_ICONS=['ramen','sushi','japanese','cafe','matcha','tea','boba','dessert','bakery','burger','pasta','pizza','steak','chinese','korean','thai','indian','hongkong','singaporean','mideast','shop'];
 function foodKey(r){if(typeof r?.kind==='string'&&r.kind.startsWith('icon/'))return r.kind;if(r?.kind&&!['shop','cafe'].includes(r.kind)&&FOOD_ICONS.includes(r.kind))return r.kind;const blob=((r?.kind||'')+' '+(r?.tags||[]).join(' ')+' '+(r?.name||'')).toLowerCase();const rules=[[/ramen|noodle|udon|soba/,'ramen'],[/sushi|sashimi|omakase/,'sushi'],[/matcha/,'matcha'],[/boba|bubble/,'boba'],[/\btea\b/,'tea'],[/cafe|café|coffee|espresso/,'cafe'],[/dessert|ice cream|sweet|gelato|cake/,'dessert'],[/bakery|bread|pastry|croissant/,'bakery'],[/burger/,'burger'],[/pizza/,'pizza'],[/pasta|italian/,'pasta'],[/steak|grill|bbq/,'steak'],[/hong ?kong|dim sum|cantonese|cha chaan/,'hongkong'],[/chinese|sichuan|szechuan|dumpling/,'chinese'],[/korean|bibimbap|kbbq/,'korean'],[/thai/,'thai'],[/indian|curry/,'indian'],[/singapore|malay|hainan/,'singaporean'],[/middle ?east|turkish|lebanese|kebab|falafel|mediterranean/,'mideast'],[/japanese|izakaya/,'japanese']];for(const[re,k]of rules)if(re.test(blob))return k;return FOOD_ICONS.includes(r?.kind)?r.kind:'shop'}
-const foodSrc=k=>k.startsWith('icon/')?`${k}.png`:`food/${k}.png?v=ui20261015bx`;const foodBg=k=>k.startsWith('icon/')?'set':k;
+const foodSrc=k=>k.startsWith('icon/')?`${k}.png`:`food/${k}.png?v=ui20261015by`;const foodBg=k=>k.startsWith('icon/')?'set':k;
 function foodImg(r,cls='tl-food'){const k=foodKey(r);return `<span class="${cls} tl-bg-${foodBg(k)}"><img src="${foodSrc(k)}" alt="" loading="lazy"></span>`}
-let ICON_SETS=null;const iconSets=()=>ICON_SETS||(ICON_SETS=fetch('icon/index.json?v=ui20261015bx').then(r=>r.json()).catch(()=>({})));
+let ICON_SETS=null;const iconSets=()=>ICON_SETS||(ICON_SETS=fetch('icon/index.json?v=ui20261015by').then(r=>r.json()).catch(()=>({})));
 const SET_FOR={chinese:'chinese',hongkong:'hong-kong',japanese:'japanese',sushi:'japanese',ramen:'japanese',matcha:'japanese',korean:'korean',thai:'thai',indian:'indian',singaporean:'singaporean',mideast:'middle-eastern',tea:'drinks',boba:'drinks',cafe:'drinks',burger:'western',pasta:'western',pizza:'western',steak:'western'};
 function vibeIcon(t){t=t.toLowerCase();if(/sweet|cute|sparkle|vibe/.test(t))return icon('sparkle');if(/friend|solo|date|group|people/.test(t))return icon('users');if(/comfort|cozy|love|heart/.test(t))return icon('heart');return `<svg class="ui-icon leaf-ico" viewBox="0 0 24 24" aria-hidden="true"><path d="M5 19C5 10 11 5 20 4c0 9-5 15-14 15Z"/><path d="M5 19 13 11"/></svg>`}
 function vibeTags(list,max=3){list=(list||[]).filter(t=>t&&t!=='demo').slice(0,max);return list.length?`<div class="tl-tags">${list.map(t=>`<span class="tl-tag">${vibeIcon(t)}${esc(t)}</span>`).join('')}</div>`:''}
@@ -1091,6 +1091,16 @@ function seedDemoPins(){
     state.visits=DEMO_VISITS.map(([id,restaurantId,ago,time,meal,rating,note])=>({id,restaurantId,date:demoDay(ago),time,meal,rating,note,photos:[],u:0}));
   }
   state.u=Date.now();
+}
+// ui20261015by: background sync used to call render(), rebuilding #sheet mid "Near me" search (first-tap flicker).
+function refreshAfterSync(){
+  if(tab==='map'&&map&&$('#panel').hidden&&(isMapSearching()||searchBusy)){
+    if(selected&&!rest(selected))selected=null;
+    drawMarkers();
+    const out=$('#search-results');if(out&&searchResults.length)renderPlaceHits(out,searchResults,{keepMarkers:false});
+    syncHideVisitedChip();enhanceIcons();return;
+  }
+  render();
 }
 function bootApp(){
   seedDemoPins();
