@@ -523,3 +523,8 @@ header h1.app-name,.lockcard h1,.lockcard .lock-title{font-family:var(--font-tit
 .cf-row .cf-ok{background:#fde4df!important;border:2px solid #c0645a!important;color:#b84d43!important}
 .handle,.panel-head,.wl-ts-head,.search-sheet-head,.sheet-head{-webkit-user-select:none;user-select:none}
 .cf-row .secondary{background:#fffdf6!important;border:2px solid #38271f!important;color:#38271f!important}
+/* ui20261015dk: Nearby/Explore sheet — no extra bottom space; whole result area (rows + Can't find it) scrolls to the end */
+.view-map .search-sheet{padding-bottom:env(safe-area-inset-bottom,0px)!important}
+.view-map .search-sheet .search-results{overflow-y:auto!important;overscroll-behavior:contain;-webkit-overflow-scrolling:touch;padding-bottom:8px}
+.view-map .search-sheet .search-results .place-hits{max-height:none!important;overflow:visible!important}
+.view-map .search-sheet .manual-fallback{margin:6px 2px 0!important}

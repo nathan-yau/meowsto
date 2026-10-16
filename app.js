@@ -196,7 +196,7 @@ function pagerHtml(pages,total,label){if(total<=PAGE_SIZE)return '';return `<div
 function card(r){const vv=visits(r.id);return `<article class="restaurant no-tile"><div class="info" role="button" tabindex="0" data-detail="${r.id}"><h3>${esc(r.name)}</h3>${rating(r)}<p class="visit-meta">♜ ${vv.length} visit${vv.length===1?'':'s'}${vv[0]?` · last ${fmt(vv[0].date)}`:''}</p><p class="address">♧ ${esc(r.address||'Location not added')}</p>${tags(r)}<p class="note">▤ ${esc(r.note||'Add a little note…')}</p></div><div class="right-meta"><button class="save" data-save="${r.id}" aria-label="${r.wish?'Remove from':'Add to'} wishlist">${r.wish?'▮':'♧'}</button></div><button class="chevron" data-detail="${r.id}" aria-label="Open ${esc(r.name)}">›</button></article>`}
 
 let wishKeep=new Set(),wishKeepTab=null;
-const HEART_ON='assets/icon-wish-meow.png?v=ui20261015dj',HEART_OFF='assets/icon-wish-meow-off.png?v=ui20261015dj';
+const HEART_ON='assets/icon-wish-meow.png?v=ui20261015dk',HEART_OFF='assets/icon-wish-meow-off.png?v=ui20261015dk';
 const CUISINE_LABEL={ramen:'Ramen',sushi:'Sushi',japanese:'Japanese',cafe:'Cafe',matcha:'Matcha',tea:'Tea',boba:'Boba',dessert:'Dessert',bakery:'Bakery',burger:'Burger',pasta:'Italian',pizza:'Pizza',steak:'Steak',chinese:'Chinese',korean:'Korean',thai:'Thai',indian:'Indian',hongkong:'Hong Kong',singaporean:'Singaporean',mideast:'Middle Eastern',shop:'Restaurant'};
 function cuisineOf(r){const k=foodKey(r);if(k.startsWith('icon/')){const d=k.split('/')[1]||'';return {key:k,label:d.split('-').map(w=>w[0]?.toUpperCase()+w.slice(1)).join(' ')||tlCat(r)}}return {key:k,label:CUISINE_LABEL[k]||tlCat(r)}}
 function areaOf(r){const parts=String(r.address||'').split(',').map(x=>x.trim()).filter(x=>x&&!/^[A-Z]\d[A-Z]\s?\d[A-Z]\d$/i.test(x)&&!/^(BC|British Columbia|Canada|ON|Ontario|AB|WA|USA)(\s+[A-Z]\d[A-Z].*)?$/i.test(x));if(!parts.length)return '';if(parts.length>=3)return parts[1];if(parts.length===2&&/^\d/.test(parts[0]))return parts[1];return parts[0]}
@@ -360,7 +360,7 @@ function loadExplore(force){
     }
   },delay);
 }
-// ui20261015dj: Explore reuses the Nearby results sheet + blue search pins (no separate explore layer)
+// ui20261015dk: Explore reuses the Nearby results sheet + blue search pins (no separate explore layer)
 function showExplore(list){
   if(!map||!exploreOn||!map.getContainer()?.isConnected)return;
   if(exploreLayer){try{exploreLayer.remove()}catch{}exploreLayer=null}
@@ -375,11 +375,11 @@ function pinTier(){const z=map?map.getZoom():mapZoom;return z>=14?'full':z>=12?'
 function searchPinTier(){const z=map?map.getZoom():mapZoom;return z>=16?'full':'meow'}
 // ui20261015cy: three meow marker styles (visited · wishlist · search/explore), all switching pin↔label with searchPinTier() (label at zoom ≥ 16)
 function markerIcon(r){const isSel=r.id===selected||(r.id===searchLinkId&&searchFocusIdx!=null&&searchResults.length>0);const t=searchPinTier(),sel=isSel?' selected':'';const last=visits(r.id)[0],wishy=!!r.wish&&!last;
-  if(t==='meow'){const sz=isSel?[30,41]:[24,33];return window.L.icon({iconUrl:wishy?'assets/meow-map-pin-wish.png?v=ui20261015dj':'assets/meow-map-pin.png?v=ui20261015x',iconSize:sz,iconAnchor:[sz[0]/2,sz[1]],className:'meow-pin '+(wishy?'meow-pin-wish':'meow-pin-visited')+sel})}
+  if(t==='meow'){const sz=isSel?[30,41]:[24,33];return window.L.icon({iconUrl:wishy?'assets/meow-map-pin-wish.png?v=ui20261015dk':'assets/meow-map-pin.png?v=ui20261015x',iconSize:sz,iconAnchor:[sz[0]/2,sz[1]],className:'meow-pin '+(wishy?'meow-pin-wish':'meow-pin-visited')+sel})}
   const meta=last?(mapChipRelativeLabel(last.date)||'visited'):(r.wish?'on your wishlist':'never visited');
   return window.L.divIcon({className:'restaurant-pin pin-full',html:`<div class="map-chip ${wishy?'chip-wish':'chip-visited'}${sel}">${sel?'<i class="pin-burst" aria-hidden="true"></i>':''}<b>${wishy?'<img class="chip-heart" src="'+HEART_ON+'" alt="">':''}${esc(r.name)}</b>${meta?`<small>${esc(meta)}</small>`:''}</div>`,iconSize:null,iconAnchor:[0,0]})}
 function updateMarkerIcons(){markers.forEach(m=>m.setIcon(markerIcon(m._r)));searchMarkers.forEach((m,i)=>{if(m&&searchResults[i])m.setIcon(searchResultIcon(searchResults[i],i))});if(exploreLayer)exploreLayer.eachLayer(m=>{if(m&&m._explore)m.setIcon(exploreResultIcon(m._explore))})}
-// ui20261015dj: Wishlist card → Map tab, pin drawn (clear hide-visited/explore that could hide it), centred above sheet, place sheet open
+// ui20261015dk: Wishlist card → Map tab, pin drawn (clear hide-visited/explore that could hide it), centred above sheet, place sheet open
 function openOnMap(id){const r=rest(id);if(!r)return;if(!Number.isFinite(r.lat)||!Number.isFinite(r.lng)){toast('No location saved for this place');return}
   if(hideVisited&&visits(id).length)hideVisited=false;if(exploreOn){exploreOn=false;if(exploreLayer){try{exploreLayer.remove()}catch{}exploreLayer=null}}
   searchResults=[];searchFocusIdx=null;closePanel();wlSheetClose?.();tab='map';selected=null;render();
@@ -441,7 +441,7 @@ function searchHitHidden(f){
   return true;
 }
 function searchResultIcon(f,i){
-  const t='meow',sel=searchFocusIdx!=null&&Number(i)===Number(searchFocusIdx); // ui20261015dj: result pins never switch to labels
+  const sel=searchFocusIdx!=null&&Number(i)===Number(searchFocusIdx),t=sel?'full':'meow'; // ui20261015dk: result pins stay pins; only the selected one shows its label
   if(t==='meow'){
     return window.L.icon({iconUrl:'assets/meow-map-pin-search.png?v=ui20261015cb',iconSize:[24,33],iconAnchor:[12,33],className:'meow-pin meow-pin-search'+(sel?' search-pin-active':'')});
   }
@@ -770,7 +770,7 @@ function dismissSearchSheet(){
   const sheet=$('#sheet');if(sheet)renderSheet();
   syncHideVisitedChip();
 }
-// ui20261015dj: one shared animated sheet close (translateY + 220ms), used by drag, handle tap and Cancel
+// ui20261015dk: one shared animated sheet close (translateY + 220ms), used by drag, handle tap and Cancel
 function sheetCloseAnim(root,cb){if(!root){cb&&cb();return}if(root.dataset.closing)return;root.dataset.closing='1';root.style.transition='transform .22s ease,opacity .22s ease';requestAnimationFrame(()=>{root.style.transform=`translateY(${root.offsetHeight+40}px)`;root.style.opacity='0'});setTimeout(()=>{root.style.transition='';root.style.transform='';root.style.opacity='';delete root.dataset.closing;cb&&cb()},230)}
 function closePanelAnimated(){const inner=document.querySelector('#panel:not([hidden]) .panel-inner');if(!inner)return closePanel();sheetCloseAnim(inner,()=>{pendingVisit=false;closePanel()})}
 function bindSheetDismiss(root,onDismiss){
@@ -778,35 +778,34 @@ function bindSheetDismiss(root,onDismiss){
   root.dataset.dismissBound='1';
   const grips=[root.querySelector('.handle'),root.querySelector('.search-sheet-head,.sheet-head,.panel-head,.wl-ts-head')].filter(Boolean);
   if(!grips.length)return;
-  let startY=0,dy=0,dragging=false,pid=null,onHandle=false;
-  const threshold=()=>Math.max(64,Math.round(root.getBoundingClientRect().height*0.28));
+  // ui20261015dk: 1:1 drag; close if dy>60px or flick >0.4px/ms; no tap-to-close
+  let startY=0,dy=0,dragging=false,pid=null,lastY=0,lastT=0,vel=0;
   const onMove=e=>{
     if(!dragging||e.pointerId!==pid)return;
-    dy=e.clientY-startY;
-    if(dy<0)dy=0;
+    const now=performance.now();const dt=now-lastT;if(dt>0){vel=0.6*((e.clientY-lastY)/dt)+0.4*vel}lastY=e.clientY;lastT=now;
+    dy=Math.max(0,e.clientY-startY);
     root.style.transform=`translateY(${dy}px)`;
-    root.style.opacity=String(Math.max(0.35,1-dy/Math.max(180,root.offsetHeight)));
   };
   const onUp=e=>{
     if(!dragging||e.pointerId!==pid)return;
     dragging=false;pid=null;
     root.classList.remove('sheet-dragging');
-    try{root.releasePointerCapture(e.pointerId)}catch{}
     window.removeEventListener('pointermove',onMove);
     window.removeEventListener('pointerup',onUp);
     window.removeEventListener('pointercancel',onUp);
-    if(dy>=threshold()||(dy<6&&onHandle)){
+    if(performance.now()-lastT>120)vel=0;
+    if(dy>60||(dy>8&&vel>0.4)){
       sheetCloseAnim(root,onDismiss);
-    }else{
-      root.style.transform='';root.style.opacity='';
+    }else if(dy>0){
+      root.style.transition='transform .22s ease';root.style.transform='';setTimeout(()=>{if(!dragging)root.style.transition=''},230);
     }
-    dy=0;
+    dy=0;vel=0;
   };
   const onDown=e=>{
     if(e.button!=null&&e.button!==0)return;
     // ignore interactive controls inside header (Clear, wishlist toggle, etc.)
     if(e.target.closest('button,a,input,select,textarea,label'))return;
-    dragging=true;pid=e.pointerId;startY=e.clientY;dy=0;onHandle=!!e.target.closest('.handle');if(e.cancelable)e.preventDefault();
+    dragging=true;pid=e.pointerId;startY=lastY=e.clientY;lastT=performance.now();vel=0;dy=0;root.style.transition='';if(e.cancelable)e.preventDefault();
     root.classList.add('sheet-dragging');
     
     window.addEventListener('pointermove',onMove,{passive:false});
@@ -870,9 +869,9 @@ function renderPlaceHits(output,features,opts={}){
     if(row){
       const rh=row.getBoundingClientRect().height||48;
       hits.style.setProperty('--place-hit-h',rh+'px');
-      hits.style.maxHeight=Math.round(rh*3.5)+'px';
+      hits.style.maxHeight='';output.style.maxHeight=Math.round(rh*3.5)+'px'; // ui20261015dk: rows + Can't find it scroll together
     }
-    output.classList.toggle('can-scroll',hits.scrollHeight>hits.clientHeight+4);
+    output.classList.toggle('can-scroll',output.scrollHeight>output.clientHeight+4);
   });
   if(!(opts.keepMarkers&&searchMarkers.length===searchResults.length))drawSearchMarkers();
 }
@@ -1289,8 +1288,8 @@ fit();addEventListener('resize',fit);addEventListener('orientationchange',()=>se
 // ui20261015ck: compact Wishlist cards, single scrollable tag row.
 // ui20261015cj: removed zoom-in gate from runMapPlaceSearch; search works at any zoom.
 
-// ui20261015dj: temporary tap debug overlay, only with ?debugtap=1
+// ui20261015dk: temporary tap debug overlay, only with ?debugtap=1
 (function(){if(!/[?&]debugtap=1\b/.test(location.search))return;const box=document.createElement('div');box.id='debugtap';box.style.cssText='position:fixed;left:6px;right:6px;bottom:calc(6px + env(safe-area-inset-bottom,0px));z-index:2147483646;background:rgba(20,20,20,.82);color:#fff;font:11px/1.35 ui-monospace,Menlo,monospace;padding:6px 8px;border-radius:8px;pointer-events:none;white-space:pre-wrap;word-break:break-all';const pr=document.createElement('div');pr.style.cssText='position:fixed;top:env(safe-area-inset-top,0px);height:1px;width:1px;visibility:hidden';document.documentElement.appendChild(pr);const dot=document.createElement('div');dot.style.cssText='position:fixed;width:14px;height:14px;margin:-7px 0 0 -7px;border-radius:50%;background:#f00a;z-index:2147483646;pointer-events:none;display:none';const d=e=>e?e.tagName.toLowerCase()+(e.id?'#'+e.id:'')+(typeof e.className==='string'&&e.className.trim()?'.'+e.className.trim().split(/\s+/).slice(0,3).join('.'):''):'-';let last='(tap anywhere)';function info(){const vv=window.visualViewport,de=document.documentElement,app=document.querySelector('.app');return 'tap: '+last+'\ninnerH '+innerHeight+' vvH '+(vv?Math.round(vv.height)+' vvTop '+Math.round(vv.offsetTop):'-')+' screenH '+screen.height+'\n--shell-h '+(getComputedStyle(de).getPropertyValue('--shell-h').trim()||'-')+' shell-fit '+de.classList.contains('shell-fit')+' safeTop '+Math.round(pr.getBoundingClientRect().top)+'\napp '+(app?Math.round(app.getBoundingClientRect().top)+'..'+Math.round(app.getBoundingClientRect().bottom)+' scrollTop '+app.scrollTop:'-')+' bodyScroll '+document.body.scrollTop+' winY '+scrollY}function up(){box.textContent=info()}addEventListener('pointerdown',e=>{const t=document.elementFromPoint(e.clientX,e.clientY);const btn=t&&t.closest('button,a,[data-tab]');last=Math.round(e.clientX)+','+Math.round(e.clientY)+' '+d(t)+(btn&&btn!==t?' < '+d(btn):'');dot.style.left=e.clientX+'px';dot.style.top=e.clientY+'px';dot.style.display='block';up()},true);addEventListener('resize',up);if(window.visualViewport)visualViewport.addEventListener('resize',up);function mount(){document.body.appendChild(box);document.body.appendChild(dot);up()}document.body?mount():addEventListener('DOMContentLoaded',mount)})();
 
-// ui20261015dj: panel sheet drag/handle close
+// ui20261015dk: panel sheet drag/handle close
 (function(){const go=()=>{const i=document.querySelector('#panel .panel-inner');if(i)bindSheetDismiss(i,()=>{pendingVisit=false;closePanel()})};document.readyState==='loading'?addEventListener('DOMContentLoaded',go):go()})();
