@@ -165,7 +165,7 @@ function openPanel(title,html,opts={}){
   enhanceIcons();
   panelMode=opts.full?'full':'sheet';
 }
-function closePanel(){destroyPlacePreview();cancelSearch();const panel=$('#panel');panel.hidden=true;panel.className='panel';panel.setAttribute('aria-hidden','true');$('#modal').innerHTML='';pendingVisit=false}
+function closePanel(){destroyPlacePreview();cancelSearch();const panel=$('#panel');{const a=document.activeElement;if(a&&panel.contains(a)&&a.blur)a.blur()}panel.removeAttribute('style');if(window.scrollY||window.scrollX||document.scrollingElement?.scrollTop)window.scrollTo(0,0);panel.hidden=true;panel.className='panel';panel.setAttribute('aria-hidden','true');$('#modal').innerHTML='';pendingVisit=false}
 function closeModal(){closePanel()}
 function openModal(title,html){openPanel(title,html,{full:true,cls:'entry-panel'})}
 
@@ -533,7 +533,7 @@ function visitForm(restaurantId,visitId,seedDraft){
   mealBox.addEventListener('scroll',()=>{clearTimeout(mealScrollT);mealScrollT=setTimeout(syncMealScroll,70)},{passive:true});
   mealBox.addEventListener('scrollend',syncMealScroll);
   mealBox.addEventListener('keydown',e=>{if(e.key!=='ArrowDown'&&e.key!=='ArrowUp')return;e.preventDefault();const i=MEALS.indexOf(meal),n=e.key==='ArrowDown'?Math.min(MEALS.length-1,i+1):Math.max(0,i-1);if(n!==i){meal=MEALS[n];paint()}});
-  paint();if(!place)setTimeout(()=>$('#vs-q')?.focus(),60);
+  paint();if(!place)setTimeout(()=>{const q=$('#vs-q');if(q&&q.isConnected)q.focus({preventScroll:true})},60);
   $f.onsubmit=e=>{e.preventDefault();
     if(!place&&!draft)return toast('Pick a place first.');
     const now=Date.now();let rid=place?.id;if($('#vs-tags').value.trim())addTag();const vtags=tagList.slice(0,12);if(draft)draft.tags=vtags;
@@ -1181,3 +1181,7 @@ $('#uf').onsubmit=async e=>{
   try{await loadData()}catch(e){lockMsg(e.message||'Automatic sign-in failed',true);await vault('del')}
 })();
 // ui20261015cb: Explore+Search again use blue pins (searchPinTier); raise Photon/Mapbox result caps; fix explore layer races on remount/zoom.
+// ui20261015cf: iOS standalone shell height = physical screen (see ui-polish.css)
+(function(){const de=document.documentElement;const sa=()=>navigator.standalone===true||matchMedia('(display-mode: standalone)').matches||matchMedia('(display-mode: fullscreen)').matches;
+function fit(){if(!sa()){de.classList.remove('shell-fit');return}const land=matchMedia('(orientation: landscape)').matches;const sh=land?Math.min(screen.width,screen.height):Math.max(screen.width,screen.height);const ih=window.innerHeight;const h=(sh>ih&&sh-ih<140)?sh:ih;de.style.setProperty('--shell-h',h+'px');de.classList.add('shell-fit');if(typeof map!=='undefined'&&map&&map.invalidateSize)setTimeout(()=>{try{map.invalidateSize()}catch{}},50)}
+fit();addEventListener('resize',fit);addEventListener('orientationchange',()=>setTimeout(fit,250));window.__fitShell=fit})();

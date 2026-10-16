@@ -263,7 +263,7 @@
 /* ui20261015cb: no excess bottom gap on Timeline/Map (bottom nav already pads safe-area) */
 #main.view-timeline,#main.view-map{padding-bottom:0!important;margin-bottom:0!important}
 #main.view-timeline>.content,#main.view-timeline>.content.tl-page{padding-bottom:0!important;margin-bottom:0!important}
-#main.view-timeline .timeline-list,#main.view-timeline .tl-list{padding-bottom:2px!important;margin-bottom:0!important}
+#main.view-timeline .timeline-list,#main.view-timeline .tl-list{padding-bottom:calc(8px + env(safe-area-inset-bottom,0px))!important;margin-bottom:0!important}
 #main.view-timeline .tl-row:last-child{margin-bottom:0!important}
 #main.view-map .map-wrap{margin-bottom:0!important;padding-bottom:0!important}
 #main.view-map #sheet{margin:0!important;padding:0!important}

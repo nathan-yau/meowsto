@@ -52,3 +52,11 @@ body{position:fixed!important;inset:0!important}
 html body .app{position:fixed!important;top:0!important;bottom:0!important;left:0!important;right:0!important;height:auto!important;min-height:0!important;max-height:none!important;margin:0 auto!important;padding-bottom:0!important}
 #main.view-map,#main.view-timeline{flex:1 1 auto!important;margin-bottom:0!important;padding-bottom:0!important}
 #main.view-map .map-wrap{flex:1 1 auto!important}
+/* ui20261015cf: iOS home-screen PWA (black-translucent + viewport-fit=cover) reports a layout viewport
+   shorter than the screen by the status-bar height, so position:fixed;inset:0 / 100% / 100dvh all stop
+   ~59pt above the physical bottom and html's --bg shows as a band. JS measures screen height in standalone
+   and pins html/body/.app to it (--shell-h). Safe-area padding lives inside scrollers/sheets only. */
+html.shell-fit,html.shell-fit body{height:var(--shell-h)!important;min-height:var(--shell-h)!important;max-height:none!important}
+html.shell-fit body{bottom:auto!important}
+html.shell-fit body .app{bottom:auto!important;height:var(--shell-h)!important}
+[data-detail],[data-visit-toggle],[data-hit-focus]{cursor:pointer}
