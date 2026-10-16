@@ -1,5 +1,5 @@
 /* Timeline page restyle to match timeline-mock (ui20261015bm). Loaded last. */
-.tl-page{--tl-ink:#38271f;--tl-muted:#6d655c;--tl-line:#e8e0d0;--tl-cream:#fffaf1;--tl-sage:#5b8a63;--tl-coral:#f26d63;--tl-coral-soft:#fde3dc;--tl-tag:#f3eee4;padding:4px 14px 24px!important}
+.tl-page{--tl-ink:#38271f;--tl-muted:#6d655c;--tl-line:#e8e0d0;--tl-cream:#fffaf1;--tl-sage:#5b8a63;--tl-coral:#f26d63;--tl-coral-soft:#fde3dc;--tl-tag:#f3eee4;padding:4px 14px 4px!important}
 .tl-page button,.tl-page select,.tl-page .tl-card,.tl-page .tl-latest{box-shadow:none!important;transform:none!important}
 /* Date slider */
 .tl-dates{position:relative;display:flex;justify-content:space-between;gap:4px;margin:2px 4px 14px}
@@ -260,14 +260,18 @@
 .view-map .search-sheet .manual-fallback summary{min-height:0;padding:4px 6px;font-size:12px}
 .view-map .search-sheet .search-sheet-head .text-button{min-height:0!important;padding:2px 6px!important;line-height:1.2}
 .view-map .search-sheet .handle{padding:4px 0 2px!important;margin-bottom:2px!important}
-/* ui20261015bz: no excess bottom gap on Timeline/Map (bottom nav already pads safe-area) */
+/* ui20261015ca: no excess bottom gap on Timeline/Map (bottom nav already pads safe-area) */
 #main.view-timeline,#main.view-map{padding-bottom:0!important;margin-bottom:0!important}
-#main.view-timeline>.content{padding-bottom:0!important;margin-bottom:0!important}
-#main.view-timeline .timeline-list{padding-bottom:4px!important;margin-bottom:0!important}
-#main.view-timeline .tl-row:last-child{margin-bottom:0}
-#main.view-map .map-wrap{margin-bottom:0!important}
-#main.view-map #sheet:empty{display:none}
+#main.view-timeline>.content,#main.view-timeline>.content.tl-page{padding-bottom:0!important;margin-bottom:0!important}
+#main.view-timeline .timeline-list,#main.view-timeline .tl-list{padding-bottom:2px!important;margin-bottom:0!important}
+#main.view-timeline .tl-row:last-child{margin-bottom:0!important}
+#main.view-map .map-wrap{margin-bottom:0!important;padding-bottom:0!important}
+#main.view-map #sheet{margin:0!important;padding:0!important}
+#main.view-map #sheet:empty{display:none!important;height:0!important;min-height:0!important}
+.view-map main,.view-timeline main{padding-bottom:0!important}
 /* Search again sits inline in toolbar between Near me and Explore */
-.map-toolbar .search-again{position:static!important;top:auto!important;left:auto!important;transform:none!important;margin:0 auto!important;flex:0 0 auto!important;min-height:40px!important;padding:6px 12px!important;font:800 14px Nunito,sans-serif!important;white-space:nowrap}
+.map-toolbar{display:flex!important;align-items:center;justify-content:space-between}
+.map-toolbar .search-again{position:static!important;top:auto!important;left:auto!important;transform:none!important;margin:0 auto!important;flex:0 0 auto!important;order:0;min-height:40px!important;padding:6px 12px!important;font:800 14px Nunito,sans-serif!important;white-space:nowrap;z-index:1}
 .map-toolbar .search-again:active{transform:translateY(1px)!important}
+.map-toolbar .search-again[hidden]{display:none!important}
 .map-toolbar:has(.search-again:not([hidden])){gap:6px}

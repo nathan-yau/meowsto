@@ -31,3 +31,8 @@ main, .content { padding-bottom: calc(8px + env(safe-area-inset-bottom, 0px)) !i
 .detail-sheet { padding-bottom: calc(10px + env(safe-area-inset-bottom, 0px)) !important; }
 .detail-sheet.sheet-compact { padding-bottom: calc(8px + env(safe-area-inset-bottom, 0px)) !important; }
 #toast { bottom: calc(22px + env(safe-area-inset-bottom, 0px)) !important; }
+
+/* ui20261015ca: kill leftover bottom gap under Timeline/Map */
+.view-timeline .content.tl-page,
+.view-map .map-wrap,
+.view-map #sheet:empty { padding-bottom: 0 !important; margin-bottom: 0 !important; }
