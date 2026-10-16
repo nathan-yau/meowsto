@@ -351,3 +351,19 @@
 .wl-heart{grid-column:3;grid-row:1;align-self:start;width:40px;height:40px;margin:0}
 .wl-heart img{width:32px;height:32px}
 .view-wishlist .wl-page{padding-top:12px}
+/* ui20261015ck: compact Wishlist cards; tags = one horizontally scrollable row */
+.wl-list{gap:8px}
+.wl-card{grid-template-columns:48px minmax(0,1fr) 32px;column-gap:10px;padding:8px 6px 8px 10px;border-radius:14px}
+.wl-food{width:48px;height:48px}
+.wl-food img{width:38px;height:38px}
+.wl-name{font-size:18px;line-height:1.1;display:block;white-space:nowrap;text-overflow:ellipsis;overflow:hidden;overflow-wrap:normal;padding-right:2px}
+.wl-meta{margin-top:1px;font-size:11.5px;line-height:1.25;gap:4px}
+.wl-pin{width:8px;height:10px}
+.wl-tags{flex-wrap:nowrap;gap:5px;margin-top:5px;margin-right:4px;overflow-x:auto;overflow-y:hidden;-webkit-overflow-scrolling:touch;scroll-behavior:smooth;overscroll-behavior-x:contain;touch-action:pan-x pan-y;scrollbar-width:none;-ms-overflow-style:none;
+ -webkit-mask-image:linear-gradient(to right,#000 calc(100% - 22px),transparent);mask-image:linear-gradient(to right,#000 calc(100% - 22px),transparent);padding-right:18px}
+.wl-tags::-webkit-scrollbar{display:none}
+.wl-tag{flex:none;max-width:none;padding:2px 8px;font-size:11px;line-height:1.3;gap:3px}
+.wl-tag>span{overflow:visible;text-overflow:clip}
+.wl-tag .ui-icon{width:11px;height:11px}
+.wl-heart{width:32px;height:32px}
+.wl-heart img{width:28px;height:28px}
