@@ -287,3 +287,25 @@
 .view-map .search-sheet.manual-open .search-results{overflow-y:auto;overscroll-behavior:contain;-webkit-overflow-scrolling:touch}
 .view-map .search-sheet.manual-open .search-results.can-scroll::after{display:none}
 .view-map .search-sheet .manual-fallback[open]{padding-bottom:4px}
+
+/* ui20261015ci: overflow audit — everything inside a sheet stays reachable & inside its border */
+.panel .form-scroll,.panel .place-editor-scroll,.panel .page-list,.panel #visit-form,.panel #note-form,.panel .profile-panel{overflow-y:auto!important;overflow-x:hidden!important;overscroll-behavior:contain;-webkit-overflow-scrolling:touch}
+.panel .form-scroll>*,.panel .place-editor-scroll>*,.panel .page-list>*{flex-shrink:0}
+.panel .page-list button,.panel .page-list b{min-width:0;overflow-wrap:anywhere}
+.panel #visit-form .vs-actions{position:sticky;bottom:0;z-index:2;margin-top:2px;padding:6px 0 2px;background:var(--bg,#faf7ee)}
+.panel #visit-form>*{flex-shrink:0}
+.vs-sheet .vs-picked b{display:-webkit-box;-webkit-box-orient:vertical;-webkit-line-clamp:2;overflow:hidden;overflow-wrap:anywhere}
+.vs-sheet .vs-picked .vs-change{flex:none}
+.vs-tagchip{min-width:0;overflow-wrap:anywhere;word-break:break-word}
+.vs-tagchip button{flex:none}
+.vs-sheet textarea{max-width:100%;overflow-wrap:anywhere}
+.panel .detail-top>div,.panel .form-scroll p,.panel .address{min-width:0;overflow-wrap:anywhere}
+.view-map .search-sheet .search-results{overflow-y:auto;overflow-x:hidden;overscroll-behavior:contain;-webkit-overflow-scrolling:touch}
+.view-map .search-sheet .search-results.can-scroll::after{display:none}
+.search-sheet .place-hit-title b,.search-sheet .place-hit-info small{min-width:0;overflow-wrap:anywhere}
+.detail-sheet .sheet-head h2,.detail-sheet .sheet-sub{overflow-wrap:anywhere;min-width:0}
+/* ui20261015ci: meal roll — option fills the whole window (was clipped 4px by border) and selected meal centers correctly */
+.vs-sheet .vs-when .vs-mealrow #vs-meals.vs-mealroll{position:relative;height:40px}
+.vs-sheet .vs-when .vs-mealrow #vs-meals.vs-mealroll>.vs-mealopt{flex-shrink:0}
+@media (max-width:360px){.vs-sheet .vs-when .vs-mealrow #vs-meals.vs-mealroll{height:38px}}
+.panel .form-scroll .page-list{overflow:visible!important;flex:none!important}

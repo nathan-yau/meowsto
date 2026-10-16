@@ -493,7 +493,7 @@ function visitForm(restaurantId,visitId,seedDraft){
     $('#vs-change')?.addEventListener('click',()=>{place=null;draft=null;paint();$('#vs-q').focus()});
     {const td=dOff(0),dl=new Date(date+'T12:00').toLocaleDateString(undefined,{weekday:'short',month:'short',day:'numeric'});const nb=(n,t,a)=>`<button type="button" class="vs-step" data-vs-step="${n}" aria-label="${a}"${n>0&&date>=td?' disabled':''}>${t}</button>`;
     $('#vs-dates').innerHTML=`<div class="vs-stepper">${nb(-7,'«','Back a week')}${nb(-1,'‹','Previous day')}<label class="vs-curdate"><span>${esc(dl)}</span>${date===td?'<i class="vs-today">Today</i>':''}<input type="date" id="vs-date" value="${date}" max="${td}" aria-label="Pick date"></label>${nb(1,'›','Next day')}${nb(7,'»','Forward a week')}</div>`}
-    {const box=$('#vs-meals'),idx=Math.max(0,MEALS.indexOf(meal));box.innerHTML=MEALS.map(m=>`<button type="button" role="option" class="vs-mealopt${m===meal?' on':''}" data-vs-meal="${m}" aria-selected="${m===meal}">${m}</button>`).join('');requestAnimationFrame(()=>{const opt=box.children[idx];if(opt)box.scrollTop=opt.offsetTop-(box.clientHeight-opt.offsetHeight)/2})}
+    {const box=$('#vs-meals'),idx=Math.max(0,MEALS.indexOf(meal));box.innerHTML=MEALS.map(m=>`<button type="button" role="option" class="vs-mealopt${m===meal?' on':''}" data-vs-meal="${m}" aria-selected="${m===meal}">${m}</button>`).join('');const ctr=(n=0)=>{const opt=box.children[idx];if(!opt||!box.isConnected)return;if(!box.clientHeight&&n<20)return setTimeout(()=>ctr(n+1),50);box.scrollTop=idx*opt.offsetHeight-(box.clientHeight-opt.offsetHeight)/2};requestAnimationFrame(()=>ctr())}
     $f.querySelectorAll('[data-star]').forEach(b=>{const n=+b.dataset.star;b.classList.toggle('on',n<=ratingVal);b.setAttribute('aria-checked',n===ratingVal)});
     paintIcons();
   };
@@ -1192,4 +1192,4 @@ $('#uf').onsubmit=async e=>{
 (function(){const de=document.documentElement;const sa=()=>navigator.standalone===true||matchMedia('(display-mode: standalone)').matches||matchMedia('(display-mode: fullscreen)').matches;
 function fit(){if(!sa()){de.classList.remove('shell-fit');return}const land=matchMedia('(orientation: landscape)').matches;const sh=land?Math.min(screen.width,screen.height):Math.max(screen.width,screen.height);const ih=window.innerHeight;const h=(sh>ih&&sh-ih<140)?sh:ih;de.style.setProperty('--shell-h',h+'px');de.classList.add('shell-fit');if(typeof map!=='undefined'&&map&&map.invalidateSize)setTimeout(()=>{try{map.invalidateSize()}catch{}},50)}
 fit();addEventListener('resize',fit);addEventListener('orientationchange',()=>setTimeout(fit,250));window.__fitShell=fit})();
-// ui20261015ch: removed zoom-in gate from runMapPlaceSearch; search works at any zoom.
+// ui20261015ci: removed zoom-in gate from runMapPlaceSearch; search works at any zoom.
