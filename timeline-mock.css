@@ -1,6 +1,6 @@
 /* Timeline page restyle to match timeline-mock (ui20261015bm). Loaded last. */
 .tl-page{--tl-ink:#38271f;--tl-muted:#6d655c;--tl-line:#e8e0d0;--tl-cream:#fffaf1;--tl-sage:#5b8a63;--tl-coral:#f26d63;--tl-coral-soft:#fde3dc;--tl-tag:#f3eee4;padding:0 14px 4px!important}
-.tl-page button,.tl-page select,.tl-page .tl-card,.tl-page .tl-latest{box-shadow:none!important;transform:none!important}
+.tl-page button,.tl-page select,.tl-page .tl-card{box-shadow:none!important;transform:none!important}
 /* Date slider */
 .tl-dates{position:relative;display:flex;justify-content:space-between;gap:4px;margin:2px 4px 14px}
 .tl-dates:before{content:'';position:absolute;left:24px;right:24px;top:24px;height:2px;background:var(--tl-ink);opacity:.85}
@@ -8,15 +8,7 @@
 .tl-dot{width:48px;height:48px;border-radius:50%;border:2px solid var(--tl-ink);background:var(--tl-cream);display:grid;place-items:center;font:800 18px Nunito,sans-serif;color:var(--tl-ink)}
 .tl-day.sel .tl-dot{background:#f9b4aa;border-color:#c9584c}
 .tl-day small{font:600 13px Nunito,sans-serif;color:var(--tl-muted)}
-/* Featured latest */
-.tl-latest{position:relative;display:flex;align-items:center;gap:8px;background:var(--tl-coral-soft)!important;border:1.5px solid #f6c4b8!important;border-radius:18px!important;padding:12px 30px 12px 14px!important;margin:0 0 18px!important;cursor:pointer;min-height:0}
-.tl-latest-main{flex:1;min-width:0}
 .tl-eyebrow{display:block;font:600 13px Nunito,sans-serif;color:var(--tl-ink);margin-bottom:8px}
-.tl-latest-row{display:flex;align-items:center;gap:10px}
-.tl-latest-info{min-width:0}
-.tl-latest h2{font:700 20px/1.15 Nunito,sans-serif!important;margin:0 0 4px!important;color:var(--tl-ink);overflow-wrap:anywhere}
-.tl-latest .tl-tags{flex-direction:column;align-items:flex-start;flex:0 0 auto;max-width:46%;margin:0}
-.tl-latest .tl-tag{background:#fff3ee}
 .tl-meta{margin:0!important;font:600 13px Nunito,sans-serif!important;color:var(--tl-muted)!important}
 .tl-meta .star{color:#f4b63d}
 .tl-chev{position:absolute;right:12px;top:50%;transform:translateY(-50%);font:700 22px Nunito,sans-serif;color:var(--tl-ink);opacity:.7}
@@ -51,14 +43,7 @@
 .tl-card .visit-expand{margin-top:8px;padding:0;border-top:1px dashed #e1d8ca}
 /* Food icon backgrounds */
 .tl-bg-sushi,.tl-bg-dessert,.tl-bg-boba{background:#fde0da}.tl-bg-matcha,.tl-bg-tea,.tl-bg-korean{background:#dfe9d6}.tl-bg-cafe,.tl-bg-bakery{background:#f3e4cf}
-@media (max-width:380px){.tl-dot{width:42px;height:42px;font-size:16px}.tl-dates:before{top:21px}.tl-latest .tl-tags{max-width:42%}.tl-row{grid-template-columns:40px 12px 1fr}.tl-row:before{left:50px}}
-
-/* ui20261015bm: latest card ink border + compact */
-.tl-latest{border:2px solid var(--tl-ink,#38271f)!important;padding:8px 26px 8px 10px!important;margin:0 0 14px!important;border-radius:16px!important}
-.tl-latest h2{font-size:17px!important;margin:0 0 2px!important}
-.tl-latest .tl-food.big{width:46px;height:46px}
-.tl-latest .tl-eyebrow{font-size:12px}
-.tl-latest .tl-tags{gap:3px}
+@media (max-width:380px){.tl-dot{width:42px;height:42px;font-size:16px}.tl-dates:before{top:21px}.tl-row{grid-template-columns:40px 12px 1fr}.tl-row:before{left:50px}}
 /* visit sheet */
 .panel.visit-sheet .panel-inner{max-height:86dvh}
 .vs-sheet{display:flex;flex-direction:column;gap:6px;font-family:Nunito,sans-serif;font-size:15px;padding-bottom:4px}
@@ -404,17 +389,12 @@ body.wl-ts-up #toast,body.wl-ts-up #toast[popover]{bottom:var(--wl-ts-lift,22px)
 .detail-sheet.sheet-compact .sheet-head h2{font:800 16px/1.25 Nunito,sans-serif!important;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden;overflow-wrap:anywhere}
 /* ui20261015cp: All visits cards — restaurant name on one line with ellipsis */
 .tl-card .tl-card-body h3{white-space:nowrap!important;overflow:hidden!important;text-overflow:ellipsis!important;overflow-wrap:normal!important;max-width:100%;display:block}
-/* ui20261015cr: Latest visit name one line with ellipsis */
-.tl-latest-info,.tl-latest-main{min-width:0}
-.tl-latest h2{white-space:nowrap!important;overflow:hidden!important;text-overflow:ellipsis!important;overflow-wrap:normal!important;max-width:100%;display:block}
 /* ui20261015cs: all Timeline cards share the Wishlist card style (border/radius/bg/shadow); padding offsets the thinner border → no shift */
-.tl-page .tl-card,.tl-page .tl-card.expanded,.tl-page .tl-latest{border:1.5px solid #ebe4d3!important;border-radius:14px!important;background:#fffdf6!important;box-shadow:0 2px 0 #38271f0d!important;outline:none!important}
+.tl-page .tl-card,.tl-page .tl-card.expanded{border:1.5px solid #ebe4d3!important;border-radius:14px!important;background:#fffdf6!important;box-shadow:0 2px 0 #38271f0d!important;outline:none!important}
 .tl-page .tl-card{padding:11px 13px}
-.tl-page .tl-latest{padding:8.5px 26.5px 8.5px 10.5px!important}
 .tl-page .tl-card .pin-burst{display:none}
 /* ui20261015cv: Nunito everywhere except the app title (Gaegu). Size fixes for Nunito's wider metrics. */
 .wl-name{font-size:15px!important;line-height:1.25}
-.tl-latest h2{font-family:Nunito,sans-serif!important;font-weight:800!important;font-size:15px!important}
 .brand p,.search-welcome p{font-size:15px}
 .visit-note b{font-size:17px}
 .place-suggestion b{font-size:18px}
@@ -477,9 +457,9 @@ header h1.app-name,.lockcard h1,.lockcard .lock-title{font-family:var(--font-tit
 .vs-sheet .vs-when .vs-mealrow .vs-roll-hint{flex:none;display:flex;flex-direction:column;align-items:center;justify-content:center;width:12px;height:36px;margin-left:-6px;pointer-events:none;color:#c9564a;opacity:.75;font:800 12px/0.6 Nunito,sans-serif;user-select:none}
 .vs-sheet .vs-when .vs-mealrow .vs-roll-hint i{font-style:normal;display:block;height:9px}
 /* ui20261015de: expanded Timeline tags = one scrollable row */
-.tl-card .tl-tags,.tl-latest .tl-tags{flex-direction:row!important;align-items:center!important;gap:6px!important;margin-top:8px!important;flex-wrap:nowrap!important;overflow-x:auto;overflow-y:hidden;max-width:100%!important;-webkit-overflow-scrolling:touch;scroll-behavior:smooth;overscroll-behavior-x:contain;scrollbar-width:none;padding-right:18px;-webkit-mask-image:linear-gradient(to right,#000 calc(100% - 22px),transparent);mask-image:linear-gradient(to right,#000 calc(100% - 22px),transparent)}
-.tl-card .tl-tags::-webkit-scrollbar,.tl-latest .tl-tags::-webkit-scrollbar{display:none}
-.tl-card .tl-tag,.tl-latest .tl-tag{flex:none}
+.tl-card .tl-tags{flex-direction:row!important;align-items:center!important;gap:6px!important;margin-top:8px!important;flex-wrap:nowrap!important;overflow-x:auto;overflow-y:hidden;max-width:100%!important;-webkit-overflow-scrolling:touch;scroll-behavior:smooth;overscroll-behavior-x:contain;scrollbar-width:none;padding-right:18px;-webkit-mask-image:linear-gradient(to right,#000 calc(100% - 22px),transparent);mask-image:linear-gradient(to right,#000 calc(100% - 22px),transparent)}
+.tl-card .tl-tags::-webkit-scrollbar{display:none}
+.tl-card .tl-tag{flex:none}
 /* ui20261015de: Google Maps "Go" pill in place sheet */
 #sheet .detail-sheet .sheet-actions{display:flex;gap:6px;min-width:0}
 #sheet .detail-sheet .sheet-actions>*{flex:1 1 0;min-width:0}
@@ -522,3 +502,8 @@ header h1.app-name,.lockcard h1,.lockcard .lock-title{font-family:var(--font-tit
 #sheet .detail-sheet .sheet-tools .save{position:static!important;flex:none}
 #sheet .detail-sheet .sheet-actions2{display:flex!important;gap:8px!important;flex-wrap:nowrap!important}
 #sheet .detail-sheet .sheet-actions2 button{flex:1 1 0!important;min-width:0;height:36px!important;min-height:36px!important;padding:0 12px!important;border-radius:999px!important;font-size:15px!important;white-space:nowrap}
+/* ui20261015di: Latest visit reuses the All visits card (tlCardHtml); only label + tint differ */
+.tl-latest-wrap{margin:4px 0 6px}
+.tl-latest-wrap .tl-eyebrow{display:block;font:800 12px/1.2 Nunito,sans-serif;color:#c0645a;letter-spacing:.02em;margin:0 0 6px 4px;text-transform:uppercase}
+.tl-card.tl-card-latest{background:#fdeee9!important}
+.tl-page .tl-latest-wrap .tl-card.tl-card-latest,.tl-page .tl-latest-wrap .tl-card.tl-card-latest.expanded{background:#fdeee9!important}
