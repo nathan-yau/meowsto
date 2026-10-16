@@ -412,8 +412,6 @@ body.wl-ts-up #toast,body.wl-ts-up #toast[popover]{bottom:var(--wl-ts-lift,22px)
 .tl-page .tl-card{padding:11px 13px}
 .tl-page .tl-latest{padding:8.5px 26.5px 8.5px 10.5px!important}
 .tl-page .tl-card .pin-burst{display:none}
-/* ui20261015cu: visible gap between tabs and the Timeline date strip (padding on the tabs bar, outside the timeline flex/overflow box) */
-.tabs{padding-bottom:8px!important}
 /* ui20261015cv: Nunito everywhere except the app title (Gaegu). Size fixes for Nunito's wider metrics. */
 .wl-name{font-size:15px!important;line-height:1.25}
 .tl-latest h2{font-family:Nunito,sans-serif!important;font-weight:800!important;font-size:15px!important}
@@ -469,8 +467,6 @@ header h1.app-name,.lockcard h1,.lockcard .lock-title{font-family:var(--font-tit
 .map-chip.chip-wish.selected{background:#e48aa0!important;border-color:#c45a78!important}
 .map-chip.chip-wish.selected:before{box-shadow:0 0 0 3px #e48aa0!important}
 .map-chip .chip-heart{width:14px;height:14px;vertical-align:-2px;margin-right:3px;display:inline-block}
-/* ui20261015cz: tabs bar carries the gap; keep Wishlist consistent with Timeline (10px) */
-.view-wishlist .wl-page{padding-top:2px!important}
 /* ui20261015db: place sheet — name row (ellipsis), address row below (pin + ellipsis) */
 .detail-sheet.sheet-compact .sheet-head .info{min-width:0}
 .detail-sheet.sheet-compact .sheet-head .info>h2{-webkit-line-clamp:unset!important;display:block!important;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;min-width:0}
