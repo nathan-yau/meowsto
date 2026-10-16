@@ -558,3 +558,7 @@ header h1.app-name,.lockcard h1,.lockcard .lock-title{font-family:var(--font-tit
 .panel.profile-sheet .panel-body{padding-bottom:0!important;flex:0 1 auto!important;min-height:0!important}
 .panel.profile-sheet .pf-lite{flex:0 0 auto!important;padding-bottom:max(12px,env(safe-area-inset-bottom,0px))!important}
 .panel.profile-sheet .pf-more>*:last-child{margin-bottom:0!important}
+/* ui20261015dt: drag-up expanded sheets (≤50% visible height via --sx-h); extra space goes to the scroller, cream fill below short content */
+html body .sheet-expanded,html body .panel.profile-sheet .panel-inner.sheet-expanded{display:flex!important;flex-direction:column!important;height:var(--sx-h)!important;max-height:var(--sx-h)!important;min-height:0!important;background:var(--mm-cream,#fffbf3)}
+html body .sheet-expanded>.search-results,html body .sheet-expanded>.panel-body,html body .panel.profile-sheet .panel-inner.sheet-expanded>.panel-body{max-height:none!important;flex:1 1 auto!important;min-height:0!important}
+html body .sheet-expanded>.handle,html body .sheet-expanded>.search-sheet-head,html body .sheet-expanded>.sheet-head,html body .sheet-expanded>.panel-head{flex:0 0 auto!important}
