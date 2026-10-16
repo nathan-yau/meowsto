@@ -566,3 +566,18 @@ html body .sheet-expanded>.handle,html body .sheet-expanded>.search-sheet-head,h
 .tl-card-body{min-width:0!important}
 .tl-meta{white-space:nowrap!important;overflow:hidden!important;text-overflow:ellipsis!important;max-width:100%}
 .search-sheet-head .search-more{font:600 12px Nunito,sans-serif;color:#81796e;text-transform:none;letter-spacing:0;margin-left:4px}
+/* ui20261015dw: Explore "Fetching more…" paw progress bar, floats just above the Nearby sheet */
+.explore-progress{position:absolute;left:50%;transform:translateX(-50%);z-index:560;display:flex;align-items:center;gap:8px;padding:4px 10px 4px 8px;border-radius:999px;background:#fffaf1ee;border:1.5px solid #e9dccb;box-shadow:0 2px 8px #38271f14;pointer-events:none;transition:opacity .3s ease}
+.explore-progress .ep-track{position:relative;width:120px;height:6px;border-radius:999px;background:#f3e6ef;overflow:visible}
+.explore-progress .ep-fill{position:absolute;left:0;top:0;bottom:0;width:0;border-radius:999px;background:linear-gradient(90deg,#ffcec0,#f9a8c0)}
+.explore-progress .ep-cat{position:absolute;top:50%;left:0;width:18px;height:18px;margin:-9px 0 0 -9px;object-fit:contain}
+.explore-progress.run .ep-fill{animation:epFill 9s cubic-bezier(.2,.7,.3,1) forwards}
+.explore-progress.run .ep-cat{animation:epCat 9s cubic-bezier(.2,.7,.3,1) forwards,epHop .5s ease-in-out infinite alternate}
+.explore-progress.done .ep-fill{width:100%;transition:width .35s ease}
+.explore-progress.done .ep-cat{left:100%;transition:left .35s ease}
+.explore-progress.fade{opacity:0}
+.explore-progress .ep-text{font:700 12px Nunito,sans-serif;color:#81796e;white-space:nowrap}
+@keyframes epFill{from{width:0}to{width:85%}}
+@keyframes epCat{from{left:0}to{left:85%}}
+@keyframes epHop{from{translate:0 0}to{translate:0 -2px}}
+@media (prefers-reduced-motion:reduce){.explore-progress .ep-cat{animation:none!important}}
