@@ -543,7 +543,12 @@ function visitForm(restaurantId,visitId,seedDraft){
       const item={...(old||{}),id:visitId||uid(),restaurantId:rid,date,time:old?.time||v.time,meal,rating:ratingVal||null,note:old?.note||'',photos:old?.photos||[],tags:vtags,u:now};
       if(visitId)state.visits=state.visits.map(x=>x.id===visitId?item:x);else state.visits.push(item);
     });
-    if(!ok)return;closePanel();render();toast('A delicious memory saved!')};
+    if(!ok)return;
+    // ui20261015cg: logged from the Nearby matches sheet → bring that sheet back after render() so '+' keeps working
+    const backToHits=tab==='map'&&searchResults.length&&!!document.querySelector('#sheet .search-sheet .place-hits');
+    closePanel();render();
+    if(backToHits&&$('#sheet')){selected=null;clearSearchMarkers();showSearchSheetResults($('#sheet'),searchResults.slice(),{});updateMarkerIcons()}
+    toast('A delicious memory saved!')};
 }
 async function compressImage(file){if(!/^image\/(jpeg|png|webp)$/.test(file.type)||file.size>15000000)throw Error('Choose a JPG, PNG, or WebP under 15 MB.');const bmp=await createImageBitmap(file),scale=Math.min(1,1000/Math.max(bmp.width,bmp.height));const c=document.createElement('canvas');c.width=bmp.width*scale;c.height=bmp.height*scale;c.getContext('2d').drawImage(bmp,0,0,c.width,c.height);bmp.close();return c.toDataURL('image/jpeg',.72)}
 function visitExpandHtml(v){
@@ -590,6 +595,7 @@ function mapboxForwardFeatures(features){
     }};
   });
 }
+document.addEventListener('toggle',e=>{const d=e.target;if(!d||!d.matches||!d.matches('.manual-fallback'))return;const sh=d.closest('.search-sheet');if(!sh)return;sh.classList.toggle('manual-open',d.open);if(d.open)requestAnimationFrame(()=>requestAnimationFrame(()=>{const sc=d.closest('.search-results');if(sc){const top=d.offsetTop+d.offsetHeight-sc.clientHeight;if(top>sc.scrollTop)sc.scrollTo({top,behavior:'smooth'})}d.scrollIntoView({block:'nearest',behavior:'smooth'})}))},true);
 function manualFallback(){return `<details class="manual-fallback"><summary>Can’t find it?</summary><p>Enter details manually.</p><button type="button" class="manual-last-resort" data-action="manual">Enter manually</button></details>`}
 function hitDistanceLabel(f){
   if(!userLocation)return '';
@@ -987,7 +993,10 @@ function wishlistSearchHit(i){
   if(map)drawMarkers();
 }
 function openFromSearchFeature(f,mode){
-  clearSearchMarkers();searchResults=[];searchFocusIdx=null;syncHideVisitedChip();
+  // ui20261015cg: '+' (add) from the Nearby matches sheet leaves the sheet on screen underneath the visit sheet.
+  // Clearing searchResults here made every later '+' a no-op (searchResults[i] undefined) until Search again.
+  const fromSheet=mode==='add'&&!searchContext.editId&&!!document.querySelector('#sheet .search-sheet .place-hits');
+  if(!fromSheet){clearSearchMarkers();searchResults=[];searchFocusIdx=null;syncHideVisitedChip()}
   const draft=draftFromSearchFeature(f);
   const existing=matchRestaurantByDraft(draft);
   // Editing an existing restaurant from the old place editor search
@@ -1181,6 +1190,7 @@ $('#uf').onsubmit=async e=>{
   try{await loadData()}catch(e){lockMsg(e.message||'Automatic sign-in failed',true);await vault('del')}
 })();
 // ui20261015cb: Explore+Search again use blue pins (searchPinTier); raise Photon/Mapbox result caps; fix explore layer races on remount/zoom.
+// ui20261015cg: + repeatable from search sheet; Can't find it? expands into view
 // ui20261015cf: iOS standalone shell height = physical screen (see ui-polish.css)
 (function(){const de=document.documentElement;const sa=()=>navigator.standalone===true||matchMedia('(display-mode: standalone)').matches||matchMedia('(display-mode: fullscreen)').matches;
 function fit(){if(!sa()){de.classList.remove('shell-fit');return}const land=matchMedia('(orientation: landscape)').matches;const sh=land?Math.min(screen.width,screen.height):Math.max(screen.width,screen.height);const ih=window.innerHeight;const h=(sh>ih&&sh-ih<140)?sh:ih;de.style.setProperty('--shell-h',h+'px');de.classList.add('shell-fit');if(typeof map!=='undefined'&&map&&map.invalidateSize)setTimeout(()=>{try{map.invalidateSize()}catch{}},50)}

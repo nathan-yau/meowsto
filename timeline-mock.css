@@ -281,3 +281,9 @@
 #main.view-timeline>.content,#main.view-timeline>.content.tl-page{padding-top:0!important;margin-top:0!important}
 #main.view-map .map-wrap{margin-top:0!important;padding-top:0!important}
 .view-map .leaflet-container{background:#ebf4e9!important}
+
+/* ui20261015cg: 'Can't find it?' expanded — let sheet grow (within screen) and scroll inside */
+.view-map .search-sheet.manual-open{max-height:min(calc(100dvh - 180px - env(safe-area-inset-top,0px)),440px)}
+.view-map .search-sheet.manual-open .search-results{overflow-y:auto;overscroll-behavior:contain;-webkit-overflow-scrolling:touch}
+.view-map .search-sheet.manual-open .search-results.can-scroll::after{display:none}
+.view-map .search-sheet .manual-fallback[open]{padding-bottom:4px}
