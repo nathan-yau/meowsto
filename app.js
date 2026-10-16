@@ -192,7 +192,7 @@ function pagerHtml(pages,total,label){if(total<=PAGE_SIZE)return '';return `<div
 function card(r){const vv=visits(r.id);return `<article class="restaurant no-tile"><div class="info" role="button" tabindex="0" data-detail="${r.id}"><h3>${esc(r.name)}</h3>${rating(r)}<p class="visit-meta">♜ ${vv.length} visit${vv.length===1?'':'s'}${vv[0]?` · last ${fmt(vv[0].date)}`:''}</p><p class="address">♧ ${esc(r.address||'Location not added')}</p>${tags(r)}<p class="note">▤ ${esc(r.note||'Add a little note…')}</p></div><div class="right-meta"><button class="save" data-save="${r.id}" aria-label="${r.wish?'Remove from':'Add to'} wishlist">${r.wish?'▮':'♧'}</button></div><button class="chevron" data-detail="${r.id}" aria-label="Open ${esc(r.name)}">›</button></article>`}
 
 let wishKeep=new Set(),wishKeepTab=null;
-const HEART_ON='assets/icon-wish-meow.png?v=ui20261015cx',HEART_OFF='assets/icon-wish-meow-off.png?v=ui20261015cx';
+const HEART_ON='assets/icon-wish-meow.png?v=ui20261015cy',HEART_OFF='assets/icon-wish-meow-off.png?v=ui20261015cy';
 const CUISINE_LABEL={ramen:'Ramen',sushi:'Sushi',japanese:'Japanese',cafe:'Cafe',matcha:'Matcha',tea:'Tea',boba:'Boba',dessert:'Dessert',bakery:'Bakery',burger:'Burger',pasta:'Italian',pizza:'Pizza',steak:'Steak',chinese:'Chinese',korean:'Korean',thai:'Thai',indian:'Indian',hongkong:'Hong Kong',singaporean:'Singaporean',mideast:'Middle Eastern',shop:'Restaurant'};
 function cuisineOf(r){const k=foodKey(r);if(k.startsWith('icon/')){const d=k.split('/')[1]||'';return {key:k,label:d.split('-').map(w=>w[0]?.toUpperCase()+w.slice(1)).join(' ')||tlCat(r)}}return {key:k,label:CUISINE_LABEL[k]||tlCat(r)}}
 function areaOf(r){const parts=String(r.address||'').split(',').map(x=>x.trim()).filter(x=>x&&!/^[A-Z]\d[A-Z]\s?\d[A-Z]\d$/i.test(x)&&!/^(BC|British Columbia|Canada|ON|Ontario|AB|WA|USA)(\s+[A-Z]\d[A-Z].*)?$/i.test(x));if(!parts.length)return '';if(parts.length>=3)return parts[1];if(parts.length===2&&/^\d/.test(parts[0]))return parts[1];return parts[0]}
@@ -330,7 +330,7 @@ function exploreResultIcon(x){
   if(t==='meow'){
     return window.L.icon({iconUrl:'assets/meow-map-pin-search.png?v=ui20261015cb',iconSize:[24,33],iconAnchor:[12,33],className:'meow-pin meow-pin-search explore-meow'});
   }
-  return window.L.divIcon({className:'restaurant-pin explore-pin pin-'+t,html:`<div class="map-chip explore-chip"><b>${esc(x.name)}</b></div>`,iconSize:null,iconAnchor:[0,0]});
+  return window.L.divIcon({className:'restaurant-pin explore-pin pin-'+t,html:`<div class="map-chip chip-search explore-chip"><b>${esc(x.name)}</b></div>`,iconSize:null,iconAnchor:[0,0]});
 }
 function loadExplore(force){
   clearTimeout(exploreTimer);
@@ -372,7 +372,11 @@ function showExplore(list){
 }
 function pinTier(){const z=map?map.getZoom():mapZoom;return z>=14?'full':z>=12?'mini':'meow'}
 function searchPinTier(){const z=map?map.getZoom():mapZoom;return z>=16?'full':'meow'}
-function markerIcon(r){const isSel=r.id===selected||(r.id===searchLinkId&&searchFocusIdx!=null&&searchResults.length>0);const t=pinTier(),sel=isSel?' selected':'';if(t==='meow'){const sz=isSel?[30,41]:[22,30];return window.L.icon({iconUrl:'assets/meow-map-pin.png?v=ui20261015x',iconSize:sz,iconAnchor:[sz[0]/2,sz[1]],className:'meow-pin'+sel})}const last=visits(r.id)[0],nv=!last?' never-visited':'';let meta='';if(t==='full'){if(last)meta=mapChipRelativeLabel(last.date);else meta=r.wish?'♡ never visited':'never visited'}return window.L.divIcon({className:'restaurant-pin pin-'+t,html:`<div class="map-chip${sel}${nv}">${sel?'<i class="pin-burst" aria-hidden="true"></i>':''}<b>${esc(r.name)}</b>${meta?`<small>${esc(meta)}</small>`:''}</div>`,iconSize:null,iconAnchor:[0,0]})}
+// ui20261015cy: three meow marker styles (visited · wishlist · search/explore), all switching pin↔label with searchPinTier() (label at zoom ≥ 16)
+function markerIcon(r){const isSel=r.id===selected||(r.id===searchLinkId&&searchFocusIdx!=null&&searchResults.length>0);const t=searchPinTier(),sel=isSel?' selected':'';const last=visits(r.id)[0],wishy=!!r.wish&&!last;
+  if(t==='meow'){const sz=isSel?[30,41]:[24,33];return window.L.icon({iconUrl:wishy?'assets/meow-map-pin-wish.png?v=ui20261015cy':'assets/meow-map-pin.png?v=ui20261015x',iconSize:sz,iconAnchor:[sz[0]/2,sz[1]],className:'meow-pin '+(wishy?'meow-pin-wish':'meow-pin-visited')+sel})}
+  const meta=last?(mapChipRelativeLabel(last.date)||'visited'):(r.wish?'on your wishlist':'never visited');
+  return window.L.divIcon({className:'restaurant-pin pin-full',html:`<div class="map-chip ${wishy?'chip-wish':'chip-visited'}${sel}">${sel?'<i class="pin-burst" aria-hidden="true"></i>':''}<b>${wishy?'<img class="chip-heart" src="'+HEART_ON+'" alt="">':''}${esc(r.name)}</b>${meta?`<small>${esc(meta)}</small>`:''}</div>`,iconSize:null,iconAnchor:[0,0]})}
 function updateMarkerIcons(){markers.forEach(m=>m.setIcon(markerIcon(m._r)));searchMarkers.forEach((m,i)=>{if(m&&searchResults[i])m.setIcon(searchResultIcon(searchResults[i],i))});if(exploreLayer)exploreLayer.eachLayer(m=>{if(m&&m._explore)m.setIcon(exploreResultIcon(m._explore))})}
 function selectPin(id){
   selected=selected===id?null:id;
@@ -439,7 +443,7 @@ function searchResultIcon(f,i){
   const nv=!last?' never-visited':'';
   let meta='never visited';
   if(last)meta=mapChipRelativeLabel(last.date)||'visited';
-  return window.L.divIcon({className:'restaurant-pin pin-'+t,html:`<div class="map-chip${nv}${sel?' selected':''}">${sel?'<i class="pin-burst" aria-hidden="true"></i>':''}<b>${esc(name)}</b>${meta?`<small>${esc(meta)}</small>`:''}</div>`,iconSize:null,iconAnchor:[0,0]});
+  return window.L.divIcon({className:'restaurant-pin pin-'+t,html:`<div class="map-chip chip-search${sel?' selected':''}">${sel?'<i class="pin-burst" aria-hidden="true"></i>':''}<b>${esc(name)}</b>${meta?`<small>${esc(meta)}</small>`:''}</div>`,iconSize:null,iconAnchor:[0,0]});
 }
 function drawSearchMarkers(){
   clearSearchMarkers();
