@@ -21,3 +21,7 @@ body.locked { background-color: #e3eedf !important; }
 /* header avatar image */
 header .avatar { background: #8fae86 !important; border-radius: 50% !important; overflow: hidden; font-size: 0 !important; border: 2px solid #b9cfae !important; }
 header .avatar:after { content: none !important; }
+/* Seamless top: status bar / safe-area strip matches header (#ebf4e9). */
+html { background-color: #ebf4e9 !important; }
+body:not(.locked) .app { background-color: #ebf4e9 !important; }
+header { margin-top: 0 !important; border-top: 0 !important; box-shadow: none !important; }
