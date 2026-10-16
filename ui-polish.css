@@ -36,3 +36,12 @@ main, .content { padding-bottom: calc(8px + env(safe-area-inset-bottom, 0px)) !i
 .view-timeline .content.tl-page,
 .view-map .map-wrap,
 .view-map #sheet:empty { padding-bottom: 0 !important; margin-bottom: 0 !important; }
+/* ui20261015cd: toasts above everything (sheets, map, nav, overlays, Leaflet, modals) */
+#toast{position:fixed!important;z-index:2147483647!important;isolation:isolate}
+#toast[popover]{margin:0;border:0;inset:auto auto calc(22px + env(safe-area-inset-bottom,0px)) 50%;overflow:visible}
+#toast[popover]:not(.show){opacity:0}
+/* ui20261015cd: header itself paints through the safe-area top (status bar is black-translucent on iOS PWA) */
+html,body{background:#ebf4e9!important}
+.app{padding-top:0!important;background:#ebf4e9!important}
+html body .app>header,html body header{background:#ebf4e9!important;padding-top:calc(16px + env(safe-area-inset-top,0px))!important;margin-top:0!important}
+#lockscr{padding-top:max(20px,calc(env(safe-area-inset-top,0px) + 12px))!important}
