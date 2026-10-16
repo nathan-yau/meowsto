@@ -424,3 +424,26 @@ body.wl-ts-up #toast,body.wl-ts-up #toast[popover]{bottom:var(--wl-ts-lift,22px)
 .place-editor .form-grid label{font-size:15px}
 .place-save-bar button.primary{font-size:16px}
 header h1.app-name,.lockcard h1,.lockcard .lock-title{font-family:var(--font-title,'Gaegu'),cursive!important}
+/* ui20261015cw: unified flat button system based on the visit form "Log it" button.
+   Not applied to map toolbar (Near me / Explore / Search again) or the top tabs. */
+:root{--btn-ink:#38271f;--btn-coral:#f8776b;--btn-cream:#fffdf6;--btn-red:#b84d43;--btn-red-soft:#fde3dc}
+.panel .vs-sheet .vs-actions button,#sheet .detail-sheet .sheet-actions button,.wl-ts .wl-ts-foot button,.visit-expand-actions button,
+.panel .form-actions button,.panel .profile-actions button,.panel .avatar-actions button,.panel .actions button,.panel .map-view-button,
+#sheet .onboarding .actions button,.manual-fallback .manual-last-resort,.explore-pop button{
+  display:inline-flex!important;align-items:center;justify-content:center;gap:6px;min-height:50px!important;height:auto!important;padding:0 16px!important;
+  border-radius:999px!important;border:2px solid var(--btn-ink)!important;background:var(--btn-cream)!important;color:var(--btn-ink)!important;
+  font:800 16px/1.15 Nunito,sans-serif!important;box-shadow:none!important;transform:none!important;filter:none!important;text-transform:none!important;letter-spacing:0!important;min-width:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.panel .vs-sheet .vs-actions .primary,#sheet .detail-sheet .sheet-actions .primary,.wl-ts .wl-ts-foot .wl-ts-apply,.panel .form-actions .primary,.panel .actions .secondary,#sheet .onboarding .actions .primary,.explore-pop button{
+  background:var(--btn-coral)!important;color:#fff!important;border-color:var(--btn-ink)!important}
+.panel .vs-sheet .vs-actions .primary{font-size:17px!important}
+.panel .vs-sheet .vs-actions .primary:active,#sheet .detail-sheet .sheet-actions button:active,.wl-ts-foot button:active,.visit-expand-actions button:active,.panel .form-actions button:active{transform:none!important;box-shadow:none!important;opacity:.85}
+#sheet .detail-sheet .sheet-actions .secondary{background:var(--btn-cream)!important;color:var(--btn-ink)!important}
+.visit-expand-actions .danger,.panel .form-actions .danger,.panel .profile-actions .danger{background:var(--btn-red-soft)!important;border-color:var(--btn-red)!important;color:var(--btn-red)!important}
+.wl-ts .wl-ts-foot button:disabled{opacity:.45;cursor:default}
+/* compact variants: inside cards and small popups */
+.visit-expand-actions button,.explore-pop button{min-height:44px!important;font-size:15px!important}
+.visit-expand-actions{display:flex;gap:8px}.visit-expand-actions button{flex:1}
+/* sheet header text links + Can't find it summary: same pill, small */
+.search-sheet-head .text-button,.manual-fallback>summary{display:inline-flex!important;align-items:center;justify-content:center;min-height:34px!important;padding:0 14px!important;border-radius:999px!important;border:2px solid var(--btn-ink)!important;background:var(--btn-cream)!important;color:var(--btn-ink)!important;font:800 13px/1 Nunito,sans-serif!important;text-decoration:none!important;box-shadow:none!important;text-transform:none!important;letter-spacing:0!important}
+.manual-fallback>summary{list-style:none;cursor:pointer;width:max-content}
+.manual-fallback>summary::-webkit-details-marker{display:none}
