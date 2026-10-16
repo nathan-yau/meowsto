@@ -404,3 +404,7 @@ body.wl-ts-up #toast,body.wl-ts-up #toast[popover]{bottom:var(--wl-ts-lift,22px)
 .detail-sheet.sheet-compact .sheet-head h2{font:700 19px/1.15 Gaegu,cursive!important;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden;overflow-wrap:anywhere}
 /* ui20261015cp: All visits cards — restaurant name on one line with ellipsis */
 .tl-card .tl-card-body h3{white-space:nowrap!important;overflow:hidden!important;text-overflow:ellipsis!important;overflow-wrap:normal!important;max-width:100%;display:block}
+/* ui20261015cq: All visits cards borderless (transparent border keeps size → no layout shift), soft bg + shadow */
+.tl-page .tl-card,.tl-page .tl-card.expanded{border-color:transparent!important;outline:none!important;background:#fffaf0;box-shadow:0 1px 2px #38271f14,0 4px 12px #38271f12!important}
+.tl-page .tl-card.expanded{background:#fff6e6}
+.tl-page .tl-card .pin-burst{display:none}
