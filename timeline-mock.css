@@ -408,3 +408,6 @@ body.wl-ts-up #toast,body.wl-ts-up #toast[popover]{bottom:var(--wl-ts-lift,22px)
 .tl-page .tl-card,.tl-page .tl-card.expanded{border-color:transparent!important;outline:none!important;background:#fffaf0;box-shadow:0 1px 2px #38271f14,0 4px 12px #38271f12!important}
 .tl-page .tl-card.expanded{background:#fff6e6}
 .tl-page .tl-card .pin-burst{display:none}
+/* ui20261015cr: Latest visit name one line with ellipsis */
+.tl-latest-info,.tl-latest-main{min-width:0}
+.tl-latest h2{white-space:nowrap!important;overflow:hidden!important;text-overflow:ellipsis!important;overflow-wrap:normal!important;max-width:100%;display:block}
