@@ -196,7 +196,7 @@ function pagerHtml(pages,total,label){if(total<=PAGE_SIZE)return '';return `<div
 function card(r){const vv=visits(r.id);return `<article class="restaurant no-tile"><div class="info" role="button" tabindex="0" data-detail="${r.id}"><h3>${esc(r.name)}</h3>${rating(r)}<p class="visit-meta">♜ ${vv.length} visit${vv.length===1?'':'s'}${vv[0]?` · last ${fmt(vv[0].date)}`:''}</p><p class="address">♧ ${esc(r.address||'Location not added')}</p>${tags(r)}<p class="note">▤ ${esc(r.note||'Add a little note…')}</p></div><div class="right-meta"><button class="save" data-save="${r.id}" aria-label="${r.wish?'Remove from':'Add to'} wishlist">${r.wish?'▮':'♧'}</button></div><button class="chevron" data-detail="${r.id}" aria-label="Open ${esc(r.name)}">›</button></article>`}
 
 let wishKeep=new Set(),wishKeepTab=null;
-const HEART_ON='assets/icon-wish-meow.png?v=ui20261015dl',HEART_OFF='assets/icon-wish-meow-off.png?v=ui20261015dl';
+const HEART_ON='assets/icon-wish-meow.png?v=ui20261015dm',HEART_OFF='assets/icon-wish-meow-off.png?v=ui20261015dm';
 const CUISINE_LABEL={ramen:'Ramen',sushi:'Sushi',japanese:'Japanese',cafe:'Cafe',matcha:'Matcha',tea:'Tea',boba:'Boba',dessert:'Dessert',bakery:'Bakery',burger:'Burger',pasta:'Italian',pizza:'Pizza',steak:'Steak',chinese:'Chinese',korean:'Korean',thai:'Thai',indian:'Indian',hongkong:'Hong Kong',singaporean:'Singaporean',mideast:'Middle Eastern',shop:'Restaurant'};
 function cuisineOf(r){const k=foodKey(r);if(k.startsWith('icon/')){const d=k.split('/')[1]||'';return {key:k,label:d.split('-').map(w=>w[0]?.toUpperCase()+w.slice(1)).join(' ')||tlCat(r)}}return {key:k,label:CUISINE_LABEL[k]||tlCat(r)}}
 function areaOf(r){const parts=String(r.address||'').split(',').map(x=>x.trim()).filter(x=>x&&!/^[A-Z]\d[A-Z]\s?\d[A-Z]\d$/i.test(x)&&!/^(BC|British Columbia|Canada|ON|Ontario|AB|WA|USA)(\s+[A-Z]\d[A-Z].*)?$/i.test(x));if(!parts.length)return '';if(parts.length>=3)return parts[1];if(parts.length===2&&/^\d/.test(parts[0]))return parts[1];return parts[0]}
@@ -262,6 +262,22 @@ function vibeIcon(t){t=t.toLowerCase();if(/sweet|cute|sparkle|vibe/.test(t))retu
 function vibeTags(list,max=3){list=(list||[]).filter(t=>t&&t!=='demo').slice(0,max);return list.length?`<div class="tl-tags">${list.map(t=>`<span class="tl-tag">${vibeIcon(t)}${esc(t)}</span>`).join('')}</div>`:''}
 function tlCat(r){return (r?.tags||[]).find(t=>t!=='demo')||(r?.kind&&r.kind!=='shop'?r.kind[0].toUpperCase()+r.kind.slice(1):'Restaurant')}
 function tlCardHtml(v,open,cls,attr){const x=rest(v.restaurantId);const vt=[...new Set([...(v.tags||[]),...(x?.tags||[]).slice(1)])];return `<div class="tl-card${cls?' '+cls:''}${open?' expanded':''}" ${attr} role="button" tabindex="0" aria-expanded="${open?'true':'false'}"><div class="tl-card-main">${foodImg(x)}<div class="tl-card-body"><h3>${esc(x?.name||'Restaurant')}</h3><p class="tl-meta">${v.rating?'<span class="star">★</span> ':''}${v.rating?v.rating+' · ':''}${esc(tlCat(x))} · ${esc(v.meal||'')}</p></div><span class="tl-chev" aria-hidden="true">${open?'⌄':'›'}</span></div>${open?vibeTags(vt)+visitExpandHtml(v):''}</div>`}
+// ui20261015dm: 'Did you go?' pending entries (state.pendingGo), recorded on every Go tap; never counted as visits
+function mealFromHour(h){return h<11?'Breakfast':h<15?'Lunch':h<17?'Snack':'Dinner'}
+function pendList(){return Array.isArray(state.pendingGo)?state.pendingGo:[]}
+function mixPending(all){const ps=pendList().map(p=>({...p,_pend:true}));if(!ps.length)return all;const k=x=>x.date+(x.time||'');return [...all,...ps].sort((a,b)=>sort==='oldest'?k(a).localeCompare(k(b)):k(b).localeCompare(k(a)))}
+function pendingRowHtml(p,wd){return `<div class="tl-row tl-row-pending"><div class="tl-date">${p.date.slice(8)}<small>${wd(p.date)}</small></div><span class="tl-node" aria-hidden="true"></span><div class="tl-card tl-card-pending"><div class="tl-card-main">${foodImg({kind:p.kind||'shop',name:p.name})}<div class="tl-card-body"><small class="tl-pend-label">Did you go?</small><h3>${esc(p.name)}</h3><p class="tl-meta">${esc(p.meal||'')}${p.time?' · '+esc(p.time):''}</p></div></div><div class="tl-pend-actions"><button type="button" class="primary" data-pend-yes="${p.id}">Yes, log it</button><button type="button" class="secondary" data-pend-no="${p.id}">No</button></div></div></div>`}
+function removePendingGo(id){if(!Array.isArray(state.pendingGo))return;state.pendingGo=state.pendingGo.filter(p=>p.id!==id);state.del=state.del||{};state.del['p:'+id]=Date.now()}
+function recordPendingGo(info){if(!info||!info.name||!USER)return;const now=new Date(),date=today(),time=now.toTimeString().slice(0,5),meal=mealFromHour(now.getHours());
+  const key=p=>(p.restaurantId||p.sourceId||(p.name+'@'+(p.lat!=null?Number(p.lat).toFixed(4)+','+Number(p.lng).toFixed(4):'')));
+  commit(()=>{if(!Array.isArray(state.pendingGo))state.pendingGo=[];const k=key(info);const ex=state.pendingGo.find(p=>key(p)===k&&p.date===date&&p.meal===meal);
+    const data={name:String(info.name).slice(0,300),address:String(info.address||'').slice(0,500),lat:Number.isFinite(info.lat)?info.lat:null,lng:Number.isFinite(info.lng)?info.lng:null,restaurantId:info.restaurantId||null,sourceId:info.sourceId?String(info.sourceId).slice(0,300):null,kind:info.kind&&/^[\w\-\/.]+$/.test(info.kind)?info.kind:'shop',date,time,meal,u:Date.now()};
+    if(ex)Object.assign(ex,data);else state.pendingGo.push({id:uid(),...data})});
+  if(tab==='timeline')render()}
+document.addEventListener('click',e=>{const a=e.target.closest&&e.target.closest('a.sheet-nav,a.hit-go');if(!a)return;try{
+  if(a.classList.contains('hit-go')){const row=a.closest('[data-hit]');const f=row&&searchResults[Number(row.dataset.hit)];if(f){const d=draftFromSearchFeature(f);const s=savedForHit(f);recordPendingGo({...d,restaurantId:s?s.id:null,kind:s?s.kind:d.kind})}}
+  else{const r=rest(selected);if(r)recordPendingGo({name:r.name,address:r.address,lat:r.lat,lng:r.lng,sourceId:r.sourceId,restaurantId:r.id,kind:r.kind})}
+ }catch(err){console.warn('pendingGo',err)}},true);
 function renderTimeline(){
   const all=[...state.visits].sort((a,b)=>sort==='oldest'?(a.date+a.time).localeCompare(b.date+b.time):(b.date+b.time).localeCompare(a.date+a.time));
   const newest=[...state.visits].sort((a,b)=>(b.date+b.time).localeCompare(a.date+a.time));
@@ -271,7 +287,7 @@ function renderTimeline(){
   const days=[];newest.forEach(v=>{if(days.length<5&&!days.some(x=>x.date===v.date))days.push(v)});
   const exp=expandedVisitId&&state.visits.find(v=>v.id===expandedVisitId);const selDate=(exp||latest)?.date;
   const vt=(v,x)=>[...new Set([...(v.tags||[]),...(x?.tags||[]).slice(1)])];
-  $('#main').innerHTML=`<div class="content tl-page">${days.length?`<div class="tl-dates" role="list">${days.map(v=>`<button role="listitem" class="tl-day${v.date===selDate?' sel':''}" data-visit-toggle="${v.id}" aria-label="${esc(v.date)}"><span class="tl-dot">${v.date.slice(8)}</span><small>${wd(v.date)}</small></button>`).join('')}</div>`:''}${latest?`<div class="tl-latest-wrap"><small class="tl-eyebrow">Latest visit</small>${tlCardHtml(latest,latestOpen,'tl-card-latest','data-latest-toggle="1"')}</div>`:''}<div class="section-title tl-title"><h2>All Visits <small>(${all.length})</small></h2><select id="timeline-sort" aria-label="Sort visits"><option value="newest" ${sort!=='oldest'?'selected':''}>Newest First</option><option value="oldest" ${sort==='oldest'?'selected':''}>Oldest First</option></select></div><div class="timeline-list tl-list" aria-label="Visit history">${all.length?all.map((v,i)=>{const open=expandedVisitId===v.id;return `<div class="tl-row${v.id===latest?.id?' first':''}"><div class="tl-date">${v.date.slice(8)}<small>${wd(v.date)}</small></div><span class="tl-node" aria-hidden="true"></span>${tlCardHtml(v,open,'',`data-visit-toggle="${v.id}"`)}</div>`}).join(''):'<div class="empty">Your story starts with a good meal.<br>Log your first visit!</div>'}</div></div>`;
+  $('#main').innerHTML=`<div class="content tl-page">${days.length?`<div class="tl-dates" role="list">${days.map(v=>`<button role="listitem" class="tl-day${v.date===selDate?' sel':''}" data-visit-toggle="${v.id}" aria-label="${esc(v.date)}"><span class="tl-dot">${v.date.slice(8)}</span><small>${wd(v.date)}</small></button>`).join('')}</div>`:''}${latest?`<div class="tl-latest-wrap"><small class="tl-eyebrow">Latest visit</small>${tlCardHtml(latest,latestOpen,'tl-card-latest','data-latest-toggle="1"')}</div>`:''}<div class="section-title tl-title"><h2>All Visits <small>(${all.length})</small></h2><select id="timeline-sort" aria-label="Sort visits"><option value="newest" ${sort!=='oldest'?'selected':''}>Newest First</option><option value="oldest" ${sort==='oldest'?'selected':''}>Oldest First</option></select></div><div class="timeline-list tl-list" aria-label="Visit history">${(all.length||pendList().length)?mixPending(all).map((v,i)=>{if(v._pend)return pendingRowHtml(v,wd);const open=expandedVisitId===v.id;return `<div class="tl-row${v.id===latest?.id?' first':''}"><div class="tl-date">${v.date.slice(8)}<small>${wd(v.date)}</small></div><span class="tl-node" aria-hidden="true"></span>${tlCardHtml(v,open,'',`data-visit-toggle="${v.id}"`)}</div>`}).join(''):'<div class="empty">Your story starts with a good meal.<br>Log your first visit!</div>'}</div></div>`;
 }
 
 function renderMap(){
@@ -360,7 +376,7 @@ function loadExplore(force){
     }
   },delay);
 }
-// ui20261015dl: Explore reuses the Nearby results sheet + blue search pins (no separate explore layer)
+// ui20261015dm: Explore reuses the Nearby results sheet + blue search pins (no separate explore layer)
 function showExplore(list){
   if(!map||!exploreOn||!map.getContainer()?.isConnected)return;
   if(exploreLayer){try{exploreLayer.remove()}catch{}exploreLayer=null}
@@ -374,11 +390,11 @@ function showExplore(list){
 function pinTier(){const z=map?map.getZoom():mapZoom;return z>=14?'full':z>=12?'mini':'meow'}
 function searchPinTier(){const z=map?map.getZoom():mapZoom;return z>=16?'full':'meow'}
 // ui20261015cy: three meow marker styles (visited · wishlist · search/explore), all switching pin↔label with searchPinTier() (label at zoom ≥ 16)
-// ui20261015dl: visited/wishlist markers are always meow pins (selected = enlarged); details live in the sheet
+// ui20261015dm: visited/wishlist markers are always meow pins (selected = enlarged); details live in the sheet
 function markerIcon(r){const isSel=r.id===selected||(r.id===searchLinkId&&searchFocusIdx!=null&&searchResults.length>0);const wishy=!!r.wish&&!visits(r.id)[0];const sz=isSel?[30,41]:[24,33];
   return window.L.icon({iconUrl:wishy?'assets/meow-map-pin-wish.png?v=ui20261015dk':'assets/meow-map-pin.png?v=ui20261015x',iconSize:sz,iconAnchor:[sz[0]/2,sz[1]],className:'meow-pin '+(wishy?'meow-pin-wish':'meow-pin-visited')+(isSel?' selected':'')})}
 function updateMarkerIcons(){markers.forEach(m=>m.setIcon(markerIcon(m._r)));searchMarkers.forEach((m,i)=>{if(m&&searchResults[i])m.setIcon(searchResultIcon(searchResults[i],i))});if(exploreLayer)exploreLayer.eachLayer(m=>{if(m&&m._explore)m.setIcon(exploreResultIcon(m._explore))})}
-// ui20261015dl: Wishlist card → Map tab, pin drawn (clear hide-visited/explore that could hide it), centred above sheet, place sheet open
+// ui20261015dm: Wishlist card → Map tab, pin drawn (clear hide-visited/explore that could hide it), centred above sheet, place sheet open
 function openOnMap(id){const r=rest(id);if(!r)return;if(!Number.isFinite(r.lat)||!Number.isFinite(r.lng)){toast('No location saved for this place');return}
   if(hideVisited&&visits(id).length)hideVisited=false;if(exploreOn){exploreOn=false;if(exploreLayer){try{exploreLayer.remove()}catch{}exploreLayer=null}}
   searchResults=[];searchFocusIdx=null;closePanel();wlSheetClose?.();tab='map';selected=null;render();
@@ -440,7 +456,7 @@ function searchHitHidden(f){
   return true;
 }
 function searchResultIcon(f,i){
-  const sel=searchFocusIdx!=null&&Number(i)===Number(searchFocusIdx),t=sel?'full':'meow'; // ui20261015dl: result pins stay pins; only the selected one shows its label
+  const sel=searchFocusIdx!=null&&Number(i)===Number(searchFocusIdx),t=sel?'full':'meow'; // ui20261015dm: result pins stay pins; only the selected one shows its label
   if(t==='meow'){
     return window.L.icon({iconUrl:'assets/meow-map-pin-search.png?v=ui20261015cb',iconSize:[24,33],iconAnchor:[12,33],className:'meow-pin meow-pin-search'+(sel?' search-pin-active':'')});
   }
@@ -545,9 +561,9 @@ function restaurantForm(id,defaults={}){
   $('#restaurant-form').onsubmit=e=>{e.preventDefault();const f=new FormData(e.target);let lat=f.get('lat'),lng=f.get('lng');if(lat==null||lat==='')lat=(r.lat==null||r.lat===undefined)?'':String(r.lat);if(lng==null||lng==='')lng=(r.lng==null||r.lng===undefined)?'':String(r.lng);if((lat==='')!==(lng===''))return toast('Enter both latitude and longitude, or leave both empty.');const now=Date.now();const item={...r,id:id||uid(),name:f.get('name').trim(),address:f.get('address').trim(),kind:f.get('kind'),rating:f.get('rating')?Number(f.get('rating')):null,lat:lat===''?null:Number(lat),lng:lng===''?null:Number(lng),tags:String(f.get('tags')||r.tags&&r.tags.join(', ')||'').split(',').map(t=>t.trim()).filter(Boolean),note:f.get('note')!=null?String(f.get('note')).trim():(r.note||''),wish:f.has('wish'),added:r.added||today(),demo:false,u:now};if(!item.name)return toast('Please enter a restaurant name.');if(!commit(()=>{if(id)state.restaurants=state.restaurants.map(x=>x.id===id?item:x);else state.restaurants.push(item)}))return;selected=item.id;if(Number.isFinite(item.lat)){mapCenter=[item.lat,item.lng];mapZoom=16;if(map)map.setView(mapCenter,mapZoom)}closePanel();render();if(pendingVisit){pendingVisit=false;visitForm(item.id)}else toast('Restaurant saved!')};
 }
 
-function visitForm(restaurantId,visitId,seedDraft){
+function visitForm(restaurantId,visitId,seedDraft,pre={}){
   const old=state.visits.find(v=>v.id===visitId);
-  const v=old||{restaurantId:restaurantId||selected||null,date:today(),time:new Date().toTimeString().slice(0,5),meal:(h=>h<11?'Breakfast':h<15?'Lunch':h<17?'Snack':'Dinner')(new Date().getHours()),rating:null,note:'',photos:[]};
+  const v=old||{restaurantId:restaurantId||selected||null,date:pre.date||today(),time:pre.time||new Date().toTimeString().slice(0,5),meal:pre.meal||mealFromHour(new Date().getHours()),rating:null,note:'',photos:[]};
   let place=rest(v.restaurantId)?{...rest(v.restaurantId)}:null,draft=null,iconKey=place?foodKey(place):'shop',iconTouched=false,ratingVal=v.rating?Math.round(v.rating):0,meal=v.meal,date=v.date,hits=[];
   if(!place&&seedDraft&&seedDraft.name){draft={...seedDraft};iconKey=foodKey(draft)}
   const MEALS=['Breakfast','Brunch','Lunch','Dinner','Cafe','Dessert','Snack'];
@@ -612,6 +628,7 @@ function visitForm(restaurantId,visitId,seedDraft){
       else{const r=rest(rid);if(r&&foodKey(r)!==iconKey){r.kind=iconKey;r.u=now}if(r&&(r.tags||[]).join('|')!==vtags.join('|')){r.tags=vtags;r.u=now}}
       const item={...(old||{}),id:visitId||uid(),restaurantId:rid,date,time:old?.time||v.time,meal,rating:ratingVal||null,note:old?.note||'',photos:old?.photos||[],tags:vtags,u:now};
       if(visitId)state.visits=state.visits.map(x=>x.id===visitId?item:x);else state.visits.push(item);
+      if(pre.pendingId)removePendingGo(pre.pendingId);
     });
     if(!ok)return;
     // ui20261015cg: logged from the Nearby matches sheet → bring that sheet back after render() so '+' keeps working
@@ -769,7 +786,7 @@ function dismissSearchSheet(){
   const sheet=$('#sheet');if(sheet)renderSheet();
   syncHideVisitedChip();
 }
-// ui20261015dl: one shared animated sheet close (translateY + 220ms), used by drag, handle tap and Cancel
+// ui20261015dm: one shared animated sheet close (translateY + 220ms), used by drag, handle tap and Cancel
 function sheetCloseAnim(root,cb){if(!root){cb&&cb();return}if(root.dataset.closing)return;root.dataset.closing='1';root.style.transition='transform .22s ease,opacity .22s ease';requestAnimationFrame(()=>{root.style.transform=`translateY(${root.offsetHeight+40}px)`;root.style.opacity='0'});setTimeout(()=>{root.style.transition='';root.style.transform='';root.style.opacity='';delete root.dataset.closing;cb&&cb()},230)}
 function closePanelAnimated(){const inner=document.querySelector('#panel:not([hidden]) .panel-inner');if(!inner)return closePanel();sheetCloseAnim(inner,()=>{pendingVisit=false;closePanel()})}
 function bindSheetDismiss(root,onDismiss){
@@ -777,7 +794,7 @@ function bindSheetDismiss(root,onDismiss){
   root.dataset.dismissBound='1';
   const grips=[root.querySelector('.handle'),root.querySelector('.search-sheet-head,.sheet-head,.panel-head,.wl-ts-head')].filter(Boolean);
   if(!grips.length)return;
-  // ui20261015dl: 1:1 drag; close if dy>60px or flick >0.4px/ms; no tap-to-close
+  // ui20261015dm: 1:1 drag; close if dy>60px or flick >0.4px/ms; no tap-to-close
   let startY=0,dy=0,dragging=false,pid=null,lastY=0,lastT=0,vel=0;
   const onMove=e=>{
     if(!dragging||e.pointerId!==pid)return;
@@ -868,7 +885,7 @@ function renderPlaceHits(output,features,opts={}){
     if(row){
       const rh=row.getBoundingClientRect().height||48;
       hits.style.setProperty('--place-hit-h',rh+'px');
-      hits.style.maxHeight='';output.style.maxHeight=Math.round(rh*3.5)+'px'; // ui20261015dl: rows + Can't find it scroll together
+      hits.style.maxHeight='';output.style.maxHeight=Math.round(rh*3.5)+'px'; // ui20261015dm: rows + Can't find it scroll together
     }
     output.classList.toggle('can-scroll',output.scrollHeight>output.clientHeight+4);
   });
@@ -1158,7 +1175,7 @@ document.addEventListener('change',e=>{
 let wlTagScrollAt=0;document.addEventListener('scroll',e=>{if(e.target.classList?.contains('wl-tags')||e.target.classList?.contains('tl-tags'))wlTagScrollAt=Date.now()},true);
 document.addEventListener('click',e=>{
   if(Date.now()-wlTagScrollAt<350&&e.target.closest?.('.wl-tags,.tl-tags')){e.preventDefault();e.stopPropagation();return}
-  if(e.target.closest('a.hit-go,a.sheet-nav'))return; // ui20261015dl: directions links open externally, never select the row
+  if(e.target.closest('a.hit-go,a.sheet-nav'))return; // ui20261015dm: directions links open externally, never select the row
   const b=e.target.closest('button,[data-detail],[data-visit-toggle],[data-latest-toggle],[data-hit-focus],[data-wl-open]');if(!b)return;const d=b.dataset;
   if(d.page==='prev'){listPage=Math.max(0,listPage-1);if(tab==='wishlist'){renderWishlist();enhanceIcons()}return}
   if(d.page==='next'){listPage++;if(tab==='wishlist'){renderWishlist();enhanceIcons()}return}
@@ -1176,6 +1193,8 @@ document.addEventListener('click',e=>{
   if(d.visitToggle){toggleTimelineVisit(d.visitToggle);return}
   if(d.visit)return visitDetail(d.visit);
   if(d.editvisit)return visitForm(null,d.editvisit);
+  if(d.pendYes){const p=pendList().find(x=>x.id===d.pendYes);if(!p)return;const r=p.restaurantId&&rest(p.restaurantId);return visitForm(r?r.id:null,null,r?null:{name:p.name,address:p.address,lat:p.lat,lng:p.lng,sourceId:p.sourceId||undefined,kind:p.kind||'shop',tags:[]},{date:p.date,meal:p.meal,time:p.time,pendingId:p.id})}
+  if(d.pendNo){if(!commit(()=>removePendingGo(d.pendNo)))return;render();return toast('Removed')}
   if(d.deletevisit)return confirmAction('Delete this visit?','This visit and its photos will be removed.',()=>{state.del=state.del||{};state.del['v:'+d.deletevisit]=Date.now();state.visits=state.visits.filter(v=>v.id!==d.deletevisit);if(expandedVisitId===d.deletevisit)expandedVisitId=null});
   if(d.delete)return confirmAction('Delete restaurant?','This restaurant and all its visits will be removed.',()=>{state.del=state.del||{};state.del['r:'+d.delete]=Date.now();state.restaurants=state.restaurants.filter(r=>r.id!==d.delete);state.visits=state.visits.filter(v=>v.restaurantId!==d.delete)});
   if(d.explore!=null){const x=exploreResults[+d.explore];if(x){map?.closePopup();savePlaceToWishlist({name:x.name,address:x.address||'',lat:x.lat,lng:x.lng,kind:x.amenity==='cafe'?'cafe':'shop',tags:[]})}return}
@@ -1288,8 +1307,8 @@ fit();addEventListener('resize',fit);addEventListener('orientationchange',()=>se
 // ui20261015ck: compact Wishlist cards, single scrollable tag row.
 // ui20261015cj: removed zoom-in gate from runMapPlaceSearch; search works at any zoom.
 
-// ui20261015dl: temporary tap debug overlay, only with ?debugtap=1
+// ui20261015dm: temporary tap debug overlay, only with ?debugtap=1
 (function(){if(!/[?&]debugtap=1\b/.test(location.search))return;const box=document.createElement('div');box.id='debugtap';box.style.cssText='position:fixed;left:6px;right:6px;bottom:calc(6px + env(safe-area-inset-bottom,0px));z-index:2147483646;background:rgba(20,20,20,.82);color:#fff;font:11px/1.35 ui-monospace,Menlo,monospace;padding:6px 8px;border-radius:8px;pointer-events:none;white-space:pre-wrap;word-break:break-all';const pr=document.createElement('div');pr.style.cssText='position:fixed;top:env(safe-area-inset-top,0px);height:1px;width:1px;visibility:hidden';document.documentElement.appendChild(pr);const dot=document.createElement('div');dot.style.cssText='position:fixed;width:14px;height:14px;margin:-7px 0 0 -7px;border-radius:50%;background:#f00a;z-index:2147483646;pointer-events:none;display:none';const d=e=>e?e.tagName.toLowerCase()+(e.id?'#'+e.id:'')+(typeof e.className==='string'&&e.className.trim()?'.'+e.className.trim().split(/\s+/).slice(0,3).join('.'):''):'-';let last='(tap anywhere)';function info(){const vv=window.visualViewport,de=document.documentElement,app=document.querySelector('.app');return 'tap: '+last+'\ninnerH '+innerHeight+' vvH '+(vv?Math.round(vv.height)+' vvTop '+Math.round(vv.offsetTop):'-')+' screenH '+screen.height+'\n--shell-h '+(getComputedStyle(de).getPropertyValue('--shell-h').trim()||'-')+' shell-fit '+de.classList.contains('shell-fit')+' safeTop '+Math.round(pr.getBoundingClientRect().top)+'\napp '+(app?Math.round(app.getBoundingClientRect().top)+'..'+Math.round(app.getBoundingClientRect().bottom)+' scrollTop '+app.scrollTop:'-')+' bodyScroll '+document.body.scrollTop+' winY '+scrollY}function up(){box.textContent=info()}addEventListener('pointerdown',e=>{const t=document.elementFromPoint(e.clientX,e.clientY);const btn=t&&t.closest('button,a,[data-tab]');last=Math.round(e.clientX)+','+Math.round(e.clientY)+' '+d(t)+(btn&&btn!==t?' < '+d(btn):'');dot.style.left=e.clientX+'px';dot.style.top=e.clientY+'px';dot.style.display='block';up()},true);addEventListener('resize',up);if(window.visualViewport)visualViewport.addEventListener('resize',up);function mount(){document.body.appendChild(box);document.body.appendChild(dot);up()}document.body?mount():addEventListener('DOMContentLoaded',mount)})();
 
-// ui20261015dl: panel sheet drag/handle close
+// ui20261015dm: panel sheet drag/handle close
 (function(){const go=()=>{const i=document.querySelector('#panel .panel-inner');if(i)bindSheetDismiss(i,()=>{pendingVisit=false;closePanel()})};document.readyState==='loading'?addEventListener('DOMContentLoaded',go):go()})();
