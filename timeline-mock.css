@@ -309,3 +309,45 @@
 .vs-sheet .vs-when .vs-mealrow #vs-meals.vs-mealroll>.vs-mealopt{flex-shrink:0}
 @media (max-width:360px){.vs-sheet .vs-when .vs-mealrow #vs-meals.vs-mealroll{height:38px}}
 .panel .form-scroll .page-list{overflow:visible!important;flex:none!important}
+
+/* ui20261015cj: Wishlist redesign — cuisine chips + flat cards + meow heart saved/unsaved */
+.view-wishlist .wl-page{padding:4px 14px 24px;display:flex;flex-direction:column;gap:12px;min-width:0}
+.wl-chips{display:flex;flex-wrap:wrap;gap:8px;min-width:0}
+.wl-chip{display:inline-flex;align-items:center;gap:6px;max-width:100%;min-height:36px;padding:5px 14px;border:1.5px solid #e3dccb;border-radius:999px;background:#fffdf6;color:#38271f;font:700 14px/1.1 Nunito,sans-serif;box-shadow:none;cursor:pointer}
+.wl-chip img{width:22px;height:22px;object-fit:contain;flex:none}
+.wl-chip span{overflow:hidden;text-overflow:ellipsis;white-space:nowrap;min-width:0}
+.wl-chip.active{background:#5f8a5f;border-color:#5f8a5f;color:#fff;padding:5px 20px}
+.wl-list{display:flex;flex-direction:column;gap:12px;min-width:0}
+.wl-card{position:relative;display:flex;align-items:flex-start;gap:4px;min-width:0;padding:14px 10px 14px 12px;background:#fffdf6;border:1.5px solid #ebe4d3;border-radius:18px;box-shadow:0 2px 0 #38271f0d;transition:opacity .2s}
+.wl-main{flex:1;min-width:0;display:flex;align-items:center;gap:12px;cursor:pointer;outline:none}
+.wl-food{flex:none;width:76px;height:76px;border-radius:50%;display:grid;place-items:center;background:#f3e4cf}
+.wl-food img{width:60px;height:60px;object-fit:contain}
+.wl-body{flex:1;min-width:0}
+.wl-name{margin:0;font:700 22px/1.1 Gaegu,cursive;color:#38271f;overflow:hidden;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow-wrap:anywhere}
+.wl-meta{margin:4px 0 0;display:flex;align-items:center;gap:5px;min-width:0;font:600 13px/1.3 Nunito,sans-serif;color:#81796e;white-space:nowrap}
+.wl-meta i{font-style:normal;flex:none}
+.wl-meta b{color:#38271f;flex:none}
+.wl-star{color:#f2a93b;flex:none}
+.wl-cui{flex:none;max-width:45%;overflow:hidden;text-overflow:ellipsis}
+.wl-area{min-width:0;overflow:hidden;text-overflow:ellipsis}
+.wl-pin{flex:none;width:9px;height:12px;background:#e8725f;border-radius:50% 50% 50% 50%/40% 40% 60% 60%;clip-path:polygon(0 0,100% 0,100% 55%,50% 100%,0 55%);position:relative}
+.wl-tags{display:flex;flex-wrap:wrap;gap:6px;margin-top:8px;min-width:0}
+.wl-tag{display:inline-flex;align-items:center;gap:4px;max-width:100%;min-width:0;padding:3px 10px;border-radius:999px;background:#f1eee3;color:#5c534a;font:600 12px/1.3 Nunito,sans-serif}
+.wl-tag>span{overflow:hidden;text-overflow:ellipsis;white-space:nowrap;min-width:0}
+.wl-tag .ui-icon{width:13px;height:13px;flex:none;color:#5f8a5f}
+.wl-heart{flex:none;width:44px;height:44px;margin:-4px -2px 0 0;padding:0;display:grid;place-items:center;border:0;background:none;box-shadow:none;cursor:pointer}
+.wl-heart img{width:34px;height:34px;object-fit:contain;transition:transform .15s}
+.wl-heart:active img{transform:scale(.88)}
+.wl-card.wl-off{opacity:.72}
+.wl-card.wl-off .wl-food{filter:saturate(.4)}
+.wl-empty{margin:28px 8px;text-align:center;font:600 15px/1.5 Nunito,sans-serif;color:#81796e}
+.place-hit-actions .hit-icon:not(.wish-on) img[src*="wish-meow-off"]{filter:none}
+.wl-card{display:grid;grid-template-columns:68px minmax(0,1fr) 40px;column-gap:12px;align-items:center;padding:12px 10px 12px 12px}
+.wl-main{display:contents}
+.wl-food{grid-column:1;grid-row:1/span 2;align-self:center;width:68px;height:68px;cursor:pointer}
+.wl-food img{width:54px;height:54px}
+.wl-body{grid-column:2;grid-row:1;cursor:pointer;align-self:end}
+.wl-tags{grid-column:2/span 2;grid-row:2;margin-top:6px;align-self:start;cursor:pointer}
+.wl-heart{grid-column:3;grid-row:1;align-self:start;width:40px;height:40px;margin:0}
+.wl-heart img{width:32px;height:32px}
+.view-wishlist .wl-page{padding-top:12px}

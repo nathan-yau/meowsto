@@ -182,7 +182,7 @@ function render(){
   $$('[data-tab]').forEach(b=>{const on=b.dataset.tab===tab;b.classList.toggle('active',on);b.setAttribute('aria-pressed',String(on))});
   $('#main').className='view-'+tab+(tab==='timeline'?' timeline':'');
   listPage=0;
-  if(tab==='map')renderMap();else if(tab==='timeline')renderTimeline();else renderWishlist();
+  if(tab!=='wishlist')wishKeepTab=tab;if(tab==='map')renderMap();else if(tab==='timeline')renderTimeline();else renderWishlist();
   enhanceIcons();
 }
 
@@ -191,13 +191,29 @@ function pagerHtml(pages,total,label){if(total<=PAGE_SIZE)return '';return `<div
 
 function card(r){const vv=visits(r.id);return `<article class="restaurant no-tile"><div class="info" role="button" tabindex="0" data-detail="${r.id}"><h3>${esc(r.name)}</h3>${rating(r)}<p class="visit-meta">♜ ${vv.length} visit${vv.length===1?'':'s'}${vv[0]?` · last ${fmt(vv[0].date)}`:''}</p><p class="address">♧ ${esc(r.address||'Location not added')}</p>${tags(r)}<p class="note">▤ ${esc(r.note||'Add a little note…')}</p></div><div class="right-meta"><button class="save" data-save="${r.id}" aria-label="${r.wish?'Remove from':'Add to'} wishlist">${r.wish?'▮':'♧'}</button></div><button class="chevron" data-detail="${r.id}" aria-label="Open ${esc(r.name)}">›</button></article>`}
 
+let wishKeep=new Set(),wishKeepTab=null;
+const HEART_ON='assets/icon-wish-meow.png?v=ui20261015cj',HEART_OFF='assets/icon-wish-meow-off.png?v=ui20261015cj';
+const CUISINE_LABEL={ramen:'Ramen',sushi:'Sushi',japanese:'Japanese',cafe:'Cafe',matcha:'Matcha',tea:'Tea',boba:'Boba',dessert:'Dessert',bakery:'Bakery',burger:'Burger',pasta:'Italian',pizza:'Pizza',steak:'Steak',chinese:'Chinese',korean:'Korean',thai:'Thai',indian:'Indian',hongkong:'Hong Kong',singaporean:'Singaporean',mideast:'Middle Eastern',shop:'Restaurant'};
+function cuisineOf(r){const k=foodKey(r);if(k.startsWith('icon/')){const d=k.split('/')[1]||'';return {key:k,label:d.split('-').map(w=>w[0]?.toUpperCase()+w.slice(1)).join(' ')||tlCat(r)}}return {key:k,label:CUISINE_LABEL[k]||tlCat(r)}}
+function areaOf(r){const parts=String(r.address||'').split(',').map(x=>x.trim()).filter(x=>x&&!/^[A-Z]\d[A-Z]\s?\d[A-Z]\d$/i.test(x)&&!/^(BC|British Columbia|Canada|ON|Ontario|AB|WA|USA)(\s+[A-Z]\d[A-Z].*)?$/i.test(x));if(!parts.length)return '';if(parts.length>=3)return parts[1];if(parts.length===2&&/^\d/.test(parts[0]))return parts[1];return parts[0]}
+function wishCard(r){const c=cuisineOf(r),area=areaOf(r),val=personalRating(r),on=!!r.wish,tg=(r.tags||[]).filter(t=>t&&t!=='demo').slice(0,4);
+  return `<article class="wl-card${on?'':' wl-off'}"><div class="wl-main" role="button" tabindex="0" data-detail="${r.id}"><span class="wl-food tl-bg-${foodBg(c.key)}"><img src="${foodSrc(c.key)}" alt="" loading="lazy"></span><div class="wl-body"><h3 class="wl-name">${esc(r.name)}</h3><p class="wl-meta">${val?`<span class="wl-star">★</span><b>${val}</b><i>·</i>`:''}<span class="wl-cui">${esc(c.label)}</span>${area?`<i>·</i><span class="wl-pin" aria-hidden="true"></span><span class="wl-area">${esc(area)}</span>`:''}</p></div>${tg.length?`<div class="wl-tags">${tg.map(t=>`<span class="wl-tag">${vibeIcon(t)}<span>${esc(t)}</span></span>`).join('')}</div>`:''}</div><button type="button" class="wl-heart${on?' on':''}" data-wl-heart="${r.id}" aria-pressed="${on}" aria-label="${on?'Remove from':'Add to'} wishlist"><img src="${on?HEART_ON:HEART_OFF}" alt="" width="34" height="34"></button></article>`}
 function renderWishlist(){
-  let rows=state.restaurants.filter(r=>r.wish&&(filter==='All'||r.tags.some(t=>t.toLowerCase()===filter.toLowerCase())));
-  rows.sort((a,b)=>sort==='rating'?(personalRating(b)||0)-(personalRating(a)||0):sort==='name'?a.name.localeCompare(b.name):b.added.localeCompare(a.added));
-  const {slice,pages,total}=pageSlice(rows);
-  const chips=['All',...new Set(['Ramen','Cafe','Japanese','Dessert',...state.restaurants.filter(r=>r.wish).flatMap(r=>r.tags)])];
-  $('#main').innerHTML=`<div class="content"><section class="hero"><div class="art-box">${logo()}</div><div><h2>Places to Try</h2><p>Good food is always<br>a good idea!</p></div><button class="primary" data-action="search-wish">⊕ Add to Wishlist</button></section><div class="filters">${chips.slice(0,6).map(t=>`<button data-filter="${esc(t)}" class="${filter===t?'active':''}">${t==='Ramen'?'🍜 ':t==='Cafe'?'☕ ':''}${esc(t)}</button>`).join('')}${chips.length>6?`<button data-action="more-filters">＋${chips.length-6}</button>`:''}<button data-action="filters" aria-label="Sort wishlist">☷</button></div><div class="restaurant-list" aria-label="Saved restaurants">${total?slice.map(card).join(''):'<div class="empty">A delicious adventure awaits.<br>Add a restaurant to your wishlist!</div>'}</div>${pagerHtml(pages,total,'Wishlist')}</div>`;
+  if(wishKeepTab!=='wishlist'){wishKeep=new Set()}wishKeepTab='wishlist';
+  const pool=state.restaurants.filter(r=>r.wish||wishKeep.has(r.id));
+  const cuisines=new Map();pool.forEach(r=>{const c=cuisineOf(r);if(!cuisines.has(c.label))cuisines.set(c.label,c.key)});
+  if(filter!=='All'&&!cuisines.has(filter))filter='All';
+  let rows=pool.filter(r=>filter==='All'||cuisineOf(r).label===filter);
+  rows.sort((a,b)=>sort==='rating'?(personalRating(b)||0)-(personalRating(a)||0):sort==='name'?a.name.localeCompare(b.name):String(b.added||'').localeCompare(String(a.added||'')));
+  const chips=[...cuisines.entries()].sort((a,b)=>a[0].localeCompare(b[0]));
+  const chipHtml=pool.length?`<div class="wl-chips" role="toolbar" aria-label="Filter by cuisine"><button type="button" data-filter="All" class="wl-chip${filter==='All'?' active':''}" aria-pressed="${filter==='All'}">All</button>${chips.map(([l,k])=>`<button type="button" data-filter="${esc(l)}" class="wl-chip${filter===l?' active':''}" aria-pressed="${filter===l}"><img src="${foodSrc(k)}" alt="" loading="lazy"><span>${esc(l)}</span></button>`).join('')}</div>`:'';
+  $('#main').innerHTML=`<div class="content wl-page">${chipHtml}<div class="wl-list" aria-label="Wishlist">${rows.length?rows.map(wishCard).join(''):`<p class="wl-empty">Nothing on your wishlist yet — tap the meow heart on a search result to save a place to try.</p>`}</div></div>`;
 }
+function toggleWishFromList(id){const r=rest(id);if(!r)return;const on=!r.wish;if(!commit(()=>{const x=rest(id);x.wish=on;x.u=Date.now()}))return;
+  if(!on)wishKeep.add(id);
+  const card=document.querySelector(`[data-wl-heart="${CSS.escape(id)}"]`)?.closest('.wl-card');
+  if(card){card.outerHTML=wishCard(rest(id))}else renderWishlist();
+  toast(on?'Saved to wishlist':'Removed — tap the heart again to undo');}
 
 const FOOD_ICONS=['ramen','sushi','japanese','cafe','matcha','tea','boba','dessert','bakery','burger','pasta','pizza','steak','chinese','korean','thai','indian','hongkong','singaporean','mideast','shop'];
 function foodKey(r){if(typeof r?.kind==='string'&&r.kind.startsWith('icon/'))return r.kind;if(r?.kind&&!['shop','cafe'].includes(r.kind)&&FOOD_ICONS.includes(r.kind))return r.kind;const blob=((r?.kind||'')+' '+(r?.tags||[]).join(' ')+' '+(r?.name||'')).toLowerCase();const rules=[[/ramen|noodle|udon|soba/,'ramen'],[/sushi|sashimi|omakase/,'sushi'],[/matcha/,'matcha'],[/boba|bubble/,'boba'],[/\btea\b/,'tea'],[/cafe|café|coffee|espresso/,'cafe'],[/dessert|ice cream|sweet|gelato|cake/,'dessert'],[/bakery|bread|pastry|croissant/,'bakery'],[/burger/,'burger'],[/pizza/,'pizza'],[/pasta|italian/,'pasta'],[/steak|grill|bbq/,'steak'],[/hong ?kong|dim sum|cantonese|cha chaan/,'hongkong'],[/chinese|sichuan|szechuan|dumpling/,'chinese'],[/korean|bibimbap|kbbq/,'korean'],[/thai/,'thai'],[/indian|curry/,'indian'],[/singapore|malay|hainan/,'singaporean'],[/middle ?east|turkish|lebanese|kebab|falafel|mediterranean/,'mideast'],[/japanese|izakaya/,'japanese']];for(const[re,k]of rules)if(re.test(blob))return k;return FOOD_ICONS.includes(r?.kind)?r.kind:'shop'}
@@ -763,7 +779,7 @@ function placeHitHtml(f,i){
   const p=f.properties,dist=hitDistanceLabel(f),addr=placeAddress(p);
   const meta=`${dist?`<span class="hit-dist">${esc(dist)}</span>${addr?' · ':''}`:''}${esc(addr)}`;
   const wished=!!matchRestaurantByDraft(draftFromSearchFeature(f))?.wish;
-  return `<article class="place-hit" data-hit="${i}" data-hit-focus="${i}" role="button" tabindex="0"><div class="place-hit-info"><div class="place-hit-title"><b>${esc(p.name||p.street||'Place')}</b><div class="place-hit-actions"><button type="button" class="hit-icon${wished?' wish-on':''}" data-result-wish="${i}" aria-label="${wished?'Saved to wishlist':'Save to wishlist'}" title="${wished?'Saved':'Wishlist'}"><img src="assets/icon-wish-meow.png?v=ui20261015ar" alt="" width="26" height="26" decoding="async"></button><button type="button" class="hit-icon" data-result-add="${i}" aria-label="Add restaurant" title="Add"><img src="assets/icon-add-meow.png?v=ui20261015ar" alt="" width="26" height="26" decoding="async"></button></div></div><small>${meta}</small></div></article>`;
+  return `<article class="place-hit" data-hit="${i}" data-hit-focus="${i}" role="button" tabindex="0"><div class="place-hit-info"><div class="place-hit-title"><b>${esc(p.name||p.street||'Place')}</b><div class="place-hit-actions"><button type="button" class="hit-icon${wished?' wish-on':''}" data-result-wish="${i}" aria-label="${wished?'Saved to wishlist':'Save to wishlist'}" title="${wished?'Saved':'Wishlist'}"><img src="${wished?HEART_ON:HEART_OFF}" alt="" width="26" height="26" decoding="async"></button><button type="button" class="hit-icon" data-result-add="${i}" aria-label="Add restaurant" title="Add"><img src="assets/icon-add-meow.png?v=ui20261015ar" alt="" width="26" height="26" decoding="async"></button></div></div><small>${meta}</small></div></article>`;
 }
 function renderPlaceHits(output,features,opts={}){
   searchResults=(features||[]).filter(validPlace);
@@ -970,7 +986,7 @@ function draftFromSearchFeature(f){
 function markSearchWishHit(i,on){
   const btn=document.querySelector(`button[data-result-wish="${i}"]`);
   if(!btn)return;
-  btn.classList.toggle('wish-on',!!on);
+  btn.classList.toggle('wish-on',!!on);{const im=btn.querySelector('img');if(im)im.src=on?HEART_ON:HEART_OFF}
   btn.setAttribute('aria-label',on?'Saved to wishlist':'Save to wishlist');
   btn.title=on?'Saved':'Wishlist';
 }
@@ -1075,6 +1091,7 @@ document.addEventListener('click',e=>{
   if(d.page==='next'){listPage++;if(tab==='wishlist'){renderWishlist();enhanceIcons()}return}
 
   if(d.tab){if(d.tab!=='timeline')expandedVisitId=null;if(d.tab!=='map'){searchResults=[];searchFocusIdx=null;clearSearchMarkers()}tab=d.tab;closePanel();render();return}
+  if(d.wlHeart){return toggleWishFromList(d.wlHeart)}
   if(d.filter){filter=d.filter;listPage=0;render();return}
   if(d.detail)return restaurantDetail(d.detail);
   if(d.edit)return restaurantForm(d.edit);
@@ -1192,4 +1209,4 @@ $('#uf').onsubmit=async e=>{
 (function(){const de=document.documentElement;const sa=()=>navigator.standalone===true||matchMedia('(display-mode: standalone)').matches||matchMedia('(display-mode: fullscreen)').matches;
 function fit(){if(!sa()){de.classList.remove('shell-fit');return}const land=matchMedia('(orientation: landscape)').matches;const sh=land?Math.min(screen.width,screen.height):Math.max(screen.width,screen.height);const ih=window.innerHeight;const h=(sh>ih&&sh-ih<140)?sh:ih;de.style.setProperty('--shell-h',h+'px');de.classList.add('shell-fit');if(typeof map!=='undefined'&&map&&map.invalidateSize)setTimeout(()=>{try{map.invalidateSize()}catch{}},50)}
 fit();addEventListener('resize',fit);addEventListener('orientationchange',()=>setTimeout(fit,250));window.__fitShell=fit})();
-// ui20261015ci: removed zoom-in gate from runMapPlaceSearch; search works at any zoom.
+// ui20261015cj: removed zoom-in gate from runMapPlaceSearch; search works at any zoom.
