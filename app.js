@@ -192,7 +192,7 @@ function pagerHtml(pages,total,label){if(total<=PAGE_SIZE)return '';return `<div
 function card(r){const vv=visits(r.id);return `<article class="restaurant no-tile"><div class="info" role="button" tabindex="0" data-detail="${r.id}"><h3>${esc(r.name)}</h3>${rating(r)}<p class="visit-meta">♜ ${vv.length} visit${vv.length===1?'':'s'}${vv[0]?` · last ${fmt(vv[0].date)}`:''}</p><p class="address">♧ ${esc(r.address||'Location not added')}</p>${tags(r)}<p class="note">▤ ${esc(r.note||'Add a little note…')}</p></div><div class="right-meta"><button class="save" data-save="${r.id}" aria-label="${r.wish?'Remove from':'Add to'} wishlist">${r.wish?'▮':'♧'}</button></div><button class="chevron" data-detail="${r.id}" aria-label="Open ${esc(r.name)}">›</button></article>`}
 
 let wishKeep=new Set(),wishKeepTab=null;
-const HEART_ON='assets/icon-wish-meow.png?v=ui20261015cw',HEART_OFF='assets/icon-wish-meow-off.png?v=ui20261015cw';
+const HEART_ON='assets/icon-wish-meow.png?v=ui20261015cx',HEART_OFF='assets/icon-wish-meow-off.png?v=ui20261015cx';
 const CUISINE_LABEL={ramen:'Ramen',sushi:'Sushi',japanese:'Japanese',cafe:'Cafe',matcha:'Matcha',tea:'Tea',boba:'Boba',dessert:'Dessert',bakery:'Bakery',burger:'Burger',pasta:'Italian',pizza:'Pizza',steak:'Steak',chinese:'Chinese',korean:'Korean',thai:'Thai',indian:'Indian',hongkong:'Hong Kong',singaporean:'Singaporean',mideast:'Middle Eastern',shop:'Restaurant'};
 function cuisineOf(r){const k=foodKey(r);if(k.startsWith('icon/')){const d=k.split('/')[1]||'';return {key:k,label:d.split('-').map(w=>w[0]?.toUpperCase()+w.slice(1)).join(' ')||tlCat(r)}}return {key:k,label:CUISINE_LABEL[k]||tlCat(r)}}
 function areaOf(r){const parts=String(r.address||'').split(',').map(x=>x.trim()).filter(x=>x&&!/^[A-Z]\d[A-Z]\s?\d[A-Z]\d$/i.test(x)&&!/^(BC|British Columbia|Canada|ON|Ontario|AB|WA|USA)(\s+[A-Z]\d[A-Z].*)?$/i.test(x));if(!parts.length)return '';if(parts.length>=3)return parts[1];if(parts.length===2&&/^\d/.test(parts[0]))return parts[1];return parts[0]}
@@ -363,6 +363,7 @@ function showExplore(list){
   if(exploreOn)markAreaSearch('explore');
   exploreResults.forEach((x,i)=>{
     if(!Number.isFinite(x.lat)||!Number.isFinite(x.lng))return;
+    if(savedOnMapFor(x.name,x.lat,x.lng,null))return;
     const m=window.L.marker([x.lat,x.lng],{title:x.name,icon:exploreResultIcon(x),riseOnHover:true,zIndexOffset:500,bubblingMouseEvents:false})
       .bindPopup(`<div class="explore-pop"><b>${esc(x.name)}</b><small>${esc((x.amenity||'').replace('_',' '))}${x.cuisine?' · '+esc(String(x.cuisine).replace(/;/g,', ')):''}</small><button data-explore="${i}">♡ Save to wishlist</button></div>`)
       .addTo(exploreLayer);
@@ -371,7 +372,7 @@ function showExplore(list){
 }
 function pinTier(){const z=map?map.getZoom():mapZoom;return z>=14?'full':z>=12?'mini':'meow'}
 function searchPinTier(){const z=map?map.getZoom():mapZoom;return z>=16?'full':'meow'}
-function markerIcon(r){const t=pinTier(),sel=r.id===selected?' selected':'';if(t==='meow'){const sz=r.id===selected?[30,41]:[22,30];return window.L.icon({iconUrl:'assets/meow-map-pin.png?v=ui20261015x',iconSize:sz,iconAnchor:[sz[0]/2,sz[1]],className:'meow-pin'+sel})}const last=visits(r.id)[0],nv=!last?' never-visited':'';let meta='';if(t==='full'){if(last)meta=mapChipRelativeLabel(last.date);else meta=r.wish?'♡ never visited':'never visited'}return window.L.divIcon({className:'restaurant-pin pin-'+t,html:`<div class="map-chip${sel}${nv}">${sel?'<i class="pin-burst" aria-hidden="true"></i>':''}<b>${esc(r.name)}</b>${meta?`<small>${esc(meta)}</small>`:''}</div>`,iconSize:null,iconAnchor:[0,0]})}
+function markerIcon(r){const isSel=r.id===selected||(r.id===searchLinkId&&searchFocusIdx!=null&&searchResults.length>0);const t=pinTier(),sel=isSel?' selected':'';if(t==='meow'){const sz=isSel?[30,41]:[22,30];return window.L.icon({iconUrl:'assets/meow-map-pin.png?v=ui20261015x',iconSize:sz,iconAnchor:[sz[0]/2,sz[1]],className:'meow-pin'+sel})}const last=visits(r.id)[0],nv=!last?' never-visited':'';let meta='';if(t==='full'){if(last)meta=mapChipRelativeLabel(last.date);else meta=r.wish?'♡ never visited':'never visited'}return window.L.divIcon({className:'restaurant-pin pin-'+t,html:`<div class="map-chip${sel}${nv}">${sel?'<i class="pin-burst" aria-hidden="true"></i>':''}<b>${esc(r.name)}</b>${meta?`<small>${esc(meta)}</small>`:''}</div>`,iconSize:null,iconAnchor:[0,0]})}
 function updateMarkerIcons(){markers.forEach(m=>m.setIcon(markerIcon(m._r)));searchMarkers.forEach((m,i)=>{if(m&&searchResults[i])m.setIcon(searchResultIcon(searchResults[i],i))});if(exploreLayer)exploreLayer.eachLayer(m=>{if(m&&m._explore)m.setIcon(exploreResultIcon(m._explore))})}
 function selectPin(id){
   selected=selected===id?null:id;
@@ -445,6 +446,7 @@ function drawSearchMarkers(){
   if(!map||!searchResults.length)return;
   searchResults.forEach((f,i)=>{
     if(searchHitHidden(f))return;
+    if(savedForHit(f))return;
     const c=f.geometry?.coordinates;if(!c||!Number.isFinite(c[0])||!Number.isFinite(c[1]))return;
     const name=f.properties?.name||'Result';
     const m=window.L.marker([c[1],c[0]],{icon:searchResultIcon(f,i),title:name,riseOnHover:true,zIndexOffset:600,bubblingMouseEvents:false}).addTo(map);
@@ -454,6 +456,11 @@ function drawSearchMarkers(){
 }
 // ui20261015cn: a place that only exists because it was wishlisted (from search) and is now unsaved, with no visits,
 // is not one of "your" places any more → no map label; the plain search pin shows instead.
+// ui20261015cx: a search/explore result that is already one of your on-map places → no second (blue) marker
+let searchLinkId=null;
+function savedOnMapFor(name,lat,lng,sourceId){if(!Number.isFinite(lat)||!Number.isFinite(lng))return null;const nn=s=>String(s||'').toLowerCase().replace(/[^a-z0-9\u3400-\u9fff]+/g,'');const n=nn(name);
+  return state.restaurants.find(r=>Number.isFinite(r.lat)&&Number.isFinite(r.lng)&&onMap(r)&&((sourceId&&r.sourceId===sourceId)||(n&&nn(r.name)===n&&Math.abs(r.lat-lat)<0.0008&&Math.abs(r.lng-lng)<0.0011)))||null}
+function savedForHit(f){const c=f?.geometry?.coordinates,p=f?.properties||{};if(!c)return null;const d=draftFromSearchFeature(f);return savedOnMapFor(p.name||p.street,c[1],c[0],d?.sourceId)}
 function wishOnly(r){return !!r.viaWish||(!!r.sourceId&&!r.note&&r.rating==null&&!(r.photos||[]).length)}
 function onMap(r){return !!r.wish||visits(r.id).length>0||!wishOnly(r)}
 function drawMarkers(){if(!map)return;markers.forEach(m=>m.remove());markers=[];if(exploreOn){clearSearchMarkers();const stale=!exploreLayer||exploreLayer._map!==map;loadExplore(stale||!Object.keys(exploreCache).length);bindMapEvents();return}state.restaurants.filter(r=>Number.isFinite(r.lat)&&Number.isFinite(r.lng)&&onMap(r)&&!(hideVisited&&visits(r.id).length)).forEach(r=>{const m=window.L.marker([r.lat,r.lng],{icon:markerIcon(r),title:r.name,riseOnHover:true,bubblingMouseEvents:false}).addTo(map).on('click',e=>{window.L.DomEvent.stopPropagation(e);selectPin(r.id)});m._r=r;markers.push(m)});drawSearchMarkers();bindMapEvents()}
@@ -818,6 +825,7 @@ function focusSearchHit(i,opts={}){
   el?.classList.add('hit-focus');
   el?.scrollIntoView({block:'nearest',behavior:'smooth'});
   searchFocusIdx=Number(i);
+  {const s=savedForHit(f),prev=searchLinkId;searchLinkId=s?s.id:null;if(prev!==searchLinkId)updateMarkerIcons()}
   searchMarkers.forEach((mk,j)=>{if(mk&&searchResults[j])mk.setIcon(searchResultIcon(searchResults[j],j))});
 }
 function placeHitHtml(f,i){
@@ -1086,16 +1094,17 @@ function openFromSearchFeature(f,mode){
   return visitForm(null,null,draft);
 }
 
+// ui20261015cx: no default tags — category only picks the icon kind; tags come from the user.
 function placeCategory(p){
   const cats=(p.poi_category||[]).join(' ').toLowerCase();
   const type=String(p.osm_value||'').toLowerCase(),name=String(p.name||'').toLowerCase();
   const blob=type+' '+name+' '+cats;
-  if(/cafe|coffee/.test(blob))return {kind:'cafe',tags:['Cafe']};
-  if(/ramen/.test(blob))return {kind:'ramen',tags:['Ramen','Japanese']};
-  if(/sushi/.test(blob))return {kind:'sushi',tags:['Sushi','Japanese']};
-  if(/burger/.test(blob))return {kind:'burger',tags:['Burgers']};
-  if(/ice_cream|bakery|cake|dessert|sweet/.test(blob))return {kind:'dessert',tags:['Dessert']};
-  if(/pizza|pasta|italian/.test(blob))return {kind:'pasta',tags:['Italian']};
+  if(/cafe|coffee/.test(blob))return {kind:'cafe',tags:[]};
+  if(/ramen/.test(blob))return {kind:'ramen',tags:[]};
+  if(/sushi/.test(blob))return {kind:'sushi',tags:[]};
+  if(/burger/.test(blob))return {kind:'burger',tags:[]};
+  if(/ice_cream|bakery|cake|dessert|sweet/.test(blob))return {kind:'dessert',tags:[]};
+  if(/pizza|pasta|italian/.test(blob))return {kind:'pasta',tags:[]};
   return {kind:'shop',tags:[]};
 }
 function placeAddress(p){
