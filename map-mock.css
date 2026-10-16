@@ -23,7 +23,7 @@ header .avatar .avatar-initial{font-size:22px}
 .map-toolbar .chip-near .ui-icon:first-child{fill:var(--mm-ink);stroke:var(--mm-ink)}
 .map-toolbar .chip-near .ui-icon:first-child circle{fill:#fff;stroke:none}
 .map-toolbar .ui-icon:last-child{width:14px;height:14px;stroke-width:2.4}
-.map-toolbar .explore-toggle.active{background:#548ac1!important;color:#fff!important;border-color:#3f6e9e!important}
+
 /* Search bar */
 .map-search-bar{top:62px!important;left:12px!important;right:12px!important;padding:4px 4px 4px 14px!important;gap:8px!important;border:2px solid var(--mm-line)!important;border-radius:999px!important;background:var(--mm-cream)!important;box-shadow:0 3px 12px #38271f14!important;align-items:center}
 .map-search-ico{display:inline-flex;color:#6d655c}.map-search-ico .ui-icon{width:20px;height:20px}
