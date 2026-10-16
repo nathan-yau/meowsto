@@ -176,7 +176,7 @@ function enhanceIcons(){
   $$('#bnav [data-tab]').forEach(b=>b.classList.toggle('active',b.dataset.tab===tab));
 }
 
-function render(){
+function render(){if(tab!=='wishlist')wlSheetClose();
   mapSizeObserver?.disconnect();
   if(map){mapCenter=[map.getCenter().lat,map.getCenter().lng];mapZoom=map.getZoom();map.remove();map=null}
   $$('[data-tab]').forEach(b=>{const on=b.dataset.tab===tab;b.classList.toggle('active',on);b.setAttribute('aria-pressed',String(on))});
@@ -192,7 +192,7 @@ function pagerHtml(pages,total,label){if(total<=PAGE_SIZE)return '';return `<div
 function card(r){const vv=visits(r.id);return `<article class="restaurant no-tile"><div class="info" role="button" tabindex="0" data-detail="${r.id}"><h3>${esc(r.name)}</h3>${rating(r)}<p class="visit-meta">♜ ${vv.length} visit${vv.length===1?'':'s'}${vv[0]?` · last ${fmt(vv[0].date)}`:''}</p><p class="address">♧ ${esc(r.address||'Location not added')}</p>${tags(r)}<p class="note">▤ ${esc(r.note||'Add a little note…')}</p></div><div class="right-meta"><button class="save" data-save="${r.id}" aria-label="${r.wish?'Remove from':'Add to'} wishlist">${r.wish?'▮':'♧'}</button></div><button class="chevron" data-detail="${r.id}" aria-label="Open ${esc(r.name)}">›</button></article>`}
 
 let wishKeep=new Set(),wishKeepTab=null;
-const HEART_ON='assets/icon-wish-meow.png?v=ui20261015ck',HEART_OFF='assets/icon-wish-meow-off.png?v=ui20261015ck';
+const HEART_ON='assets/icon-wish-meow.png?v=ui20261015cl',HEART_OFF='assets/icon-wish-meow-off.png?v=ui20261015cl';
 const CUISINE_LABEL={ramen:'Ramen',sushi:'Sushi',japanese:'Japanese',cafe:'Cafe',matcha:'Matcha',tea:'Tea',boba:'Boba',dessert:'Dessert',bakery:'Bakery',burger:'Burger',pasta:'Italian',pizza:'Pizza',steak:'Steak',chinese:'Chinese',korean:'Korean',thai:'Thai',indian:'Indian',hongkong:'Hong Kong',singaporean:'Singaporean',mideast:'Middle Eastern',shop:'Restaurant'};
 function cuisineOf(r){const k=foodKey(r);if(k.startsWith('icon/')){const d=k.split('/')[1]||'';return {key:k,label:d.split('-').map(w=>w[0]?.toUpperCase()+w.slice(1)).join(' ')||tlCat(r)}}return {key:k,label:CUISINE_LABEL[k]||tlCat(r)}}
 function areaOf(r){const parts=String(r.address||'').split(',').map(x=>x.trim()).filter(x=>x&&!/^[A-Z]\d[A-Z]\s?\d[A-Z]\d$/i.test(x)&&!/^(BC|British Columbia|Canada|ON|Ontario|AB|WA|USA)(\s+[A-Z]\d[A-Z].*)?$/i.test(x));if(!parts.length)return '';if(parts.length>=3)return parts[1];if(parts.length===2&&/^\d/.test(parts[0]))return parts[1];return parts[0]}
@@ -203,12 +203,38 @@ function renderWishlist(){
   const pool=state.restaurants.filter(r=>r.wish||wishKeep.has(r.id));
   const cuisines=new Map();pool.forEach(r=>{const c=cuisineOf(r);if(!cuisines.has(c.label))cuisines.set(c.label,c.key)});
   if(filter!=='All'&&!cuisines.has(filter))filter='All';
-  let rows=pool.filter(r=>filter==='All'||cuisineOf(r).label===filter);
+  const allTags=wlAllTags(pool);wlTags=wlTags.filter(t=>allTags.includes(t));
+  let rows=pool.filter(r=>(filter==='All'||cuisineOf(r).label===filter)&&(!wlTags.length||wlTags.some(t=>(r.tags||[]).includes(t))));
   rows.sort((a,b)=>sort==='rating'?(personalRating(b)||0)-(personalRating(a)||0):sort==='name'?a.name.localeCompare(b.name):String(b.added||'').localeCompare(String(a.added||'')));
   const chips=[...cuisines.entries()].sort((a,b)=>a[0].localeCompare(b[0]));
-  const chipHtml=pool.length?`<div class="wl-chips" role="toolbar" aria-label="Filter by cuisine"><button type="button" data-filter="All" class="wl-chip${filter==='All'?' active':''}" aria-pressed="${filter==='All'}">All</button>${chips.map(([l,k])=>`<button type="button" data-filter="${esc(l)}" class="wl-chip${filter===l?' active':''}" aria-pressed="${filter===l}"><img src="${foodSrc(k)}" alt="" loading="lazy"><span>${esc(l)}</span></button>`).join('')}</div>`:'';
+  const chipHtml=pool.length?`<div class="wl-chips" role="toolbar" aria-label="Filter wishlist"><button type="button" data-wl-tagsheet="1" class="wl-chip wl-tagchip${wlTags.length?' active':''}" aria-haspopup="dialog" aria-pressed="${!!wlTags.length}"><span>${wlTags.length?`Tags · ${wlTags.length}`:'Tags'}</span></button><button type="button" data-filter="All" class="wl-chip${filter==='All'?' active':''}" aria-pressed="${filter==='All'}">All</button>${chips.map(([l,k])=>`<button type="button" data-filter="${esc(l)}" class="wl-chip${filter===l?' active':''}" aria-pressed="${filter===l}"><img src="${foodSrc(k)}" alt="" loading="lazy"><span>${esc(l)}</span></button>`).join('')}</div>`:'';
   $('#main').innerHTML=`<div class="content wl-page">${chipHtml}<div class="wl-list" aria-label="Wishlist">${rows.length?rows.map(wishCard).join(''):`<p class="wl-empty">Nothing on your wishlist yet — tap the meow heart on a search result to save a place to try.</p>`}</div></div>`;
 }
+// ui20261015cl: Wishlist tag filter — one-row chip bar + mini slide-up tag sheet (applies on Apply)
+let wlTags=[],wlDraft=[];
+function wlAllTags(pool){const s=new Set();(pool||state.restaurants.filter(r=>r.wish||wishKeep.has(r.id))).forEach(r=>(r.tags||[]).forEach(t=>{if(t&&t!=='demo')s.add(t)}));return [...s].sort((x,y)=>x.localeCompare(y))}
+function wlSheetEl(){let el=document.getElementById('wl-tagsheet');if(el)return el;el=document.createElement('section');el.id='wl-tagsheet';el.className='wl-ts';el.setAttribute('role','dialog');el.setAttribute('aria-label','Filter by tags');el.hidden=true;
+  el.innerHTML=`<div class="wl-ts-head"><b>Filter by tags</b><button type="button" class="wl-ts-x" data-ts="close" aria-label="Close">×</button></div><div class="wl-ts-sel" aria-label="Selected tags"></div><input class="wl-ts-q" type="search" inputmode="search" enterkeyhint="done" autocomplete="off" autocapitalize="off" spellcheck="false" placeholder="Search tags…" aria-label="Search tags"><div class="wl-ts-sug" role="listbox"></div><div class="wl-ts-foot"><button type="button" class="wl-ts-clear" data-ts="clear">Clear</button><button type="button" class="wl-ts-apply" data-ts="apply">Apply</button></div>`;
+  document.body.appendChild(el);const q=el.querySelector('.wl-ts-q');
+  q.addEventListener('input',wlSheetPaint);
+  q.addEventListener('keydown',e=>{if(e.key==='Enter'){e.preventDefault();const f=el.querySelector('.wl-ts-sug [data-ts-add]');if(f){wlDraft.push(f.dataset.tsAdd);q.value='';wlSheetPaint()}else q.blur()}else if(e.key==='Backspace'&&!q.value&&wlDraft.length){wlDraft.pop();wlSheetPaint()}else if(e.key==='Escape')wlSheetClose()});
+  el.addEventListener('click',e=>{e.stopPropagation();const b=e.target.closest('button');if(!b)return;const d=b.dataset;
+    if(d.tsAdd){wlDraft.push(d.tsAdd);q.value='';wlSheetPaint();q.focus({preventScroll:true})}
+    else if(d.tsDel){wlDraft=wlDraft.filter(t=>t!==d.tsDel);wlSheetPaint()}
+    else if(d.ts==='clear'){wlDraft=[];q.value='';wlSheetPaint()}
+    else if(d.ts==='apply'){wlTags=[...wlDraft];wlSheetClose();listPage=0;render()}
+    else if(d.ts==='close')wlSheetClose()});
+  const vv=window.visualViewport;if(vv){const fit=()=>{if(el.hidden)return;const kb=Math.max(0,innerHeight-vv.height-vv.offsetTop);el.style.bottom=kb+'px';el.style.maxHeight=Math.max(160,vv.height-12)+'px';wlToastLift(el)};vv.addEventListener('resize',fit);vv.addEventListener('scroll',fit);el._fit=fit}
+  return el}
+function wlSheetPaint(){const el=wlSheetEl(),q=el.querySelector('.wl-ts-q').value.trim().toLowerCase();
+  el.querySelector('.wl-ts-sel').innerHTML=wlDraft.length?wlDraft.map(t=>`<button type="button" class="wl-ts-on" data-ts-del="${esc(t)}" aria-label="Remove ${esc(t)}"><span>${esc(t)}</span><i aria-hidden="true">×</i></button>`).join(''):'<span class="wl-ts-none">No tags selected</span>';
+  const sug=wlAllTags().filter(t=>!wlDraft.includes(t)&&(!q||t.toLowerCase().includes(q))).sort((x,y)=>q?(x.toLowerCase().startsWith(q)?0:1)-(y.toLowerCase().startsWith(q)?0:1)||x.localeCompare(y):x.localeCompare(y));
+  el.querySelector('.wl-ts-sug').innerHTML=sug.length?sug.map(t=>`<button type="button" role="option" class="wl-ts-opt" data-ts-add="${esc(t)}">${esc(t)}</button>`).join(''):`<span class="wl-ts-none">${q?'No matching tags':'No more tags'}</span>`;
+  el.querySelector('.wl-ts-clear').disabled=!wlDraft.length&&!q;
+  const same=wlDraft.length===wlTags.length&&wlDraft.every(t=>wlTags.includes(t));el.querySelector('.wl-ts-apply').textContent=same?'Apply':`Apply (${wlDraft.length})`;if(!el.hidden)wlToastLift(el)}
+function wlToastLift(el){document.body.style.setProperty('--wl-ts-lift',(el.offsetHeight+(parseFloat(el.style.bottom)||0)+10)+'px')}
+function wlSheetOpen(){const el=wlSheetEl();wlDraft=[...wlTags];el.querySelector('.wl-ts-q').value='';wlSheetPaint();el.hidden=false;el.style.bottom='0px';el._fit?.();document.body.classList.add('wl-ts-up');requestAnimationFrame(()=>{el.classList.add('open');wlToastLift(el)})}
+function wlSheetClose(){const el=document.getElementById('wl-tagsheet');if(!el||el.hidden)return;el.querySelector('.wl-ts-q').blur();el.classList.remove('open');document.body.classList.remove('wl-ts-up');setTimeout(()=>{if(!el.classList.contains('open'))el.hidden=true},220)}
 function toggleWishFromList(id){const r=rest(id);if(!r)return;const on=!r.wish;if(!commit(()=>{const x=rest(id);x.wish=on;x.u=Date.now()}))return;
   if(!on)wishKeep.add(id);
   const card=document.querySelector(`[data-wl-heart="${CSS.escape(id)}"]`)?.closest('.wl-card');
@@ -1095,6 +1121,7 @@ document.addEventListener('click',e=>{
 
   if(d.tab){if(d.tab!=='timeline')expandedVisitId=null;if(d.tab!=='map'){searchResults=[];searchFocusIdx=null;clearSearchMarkers()}tab=d.tab;closePanel();render();return}
   if(d.wlHeart){return toggleWishFromList(d.wlHeart)}
+  if(d.wlTagsheet){const el=document.getElementById('wl-tagsheet');if(el&&!el.hidden)wlSheetClose();else wlSheetOpen();return}
   if(d.filter){filter=d.filter;listPage=0;render();return}
   if(d.detail)return restaurantDetail(d.detail);
   if(d.edit)return restaurantForm(d.edit);
