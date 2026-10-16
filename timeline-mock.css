@@ -540,3 +540,13 @@ header h1.app-name,.lockcard h1,.lockcard .lock-title{font-family:var(--font-tit
 .tl-pend-actions button{flex:1 1 0;height:34px!important;min-height:34px!important;padding:0 10px!important;border-radius:999px!important;font:800 14px/1 Nunito,sans-serif!important;white-space:nowrap}
 .tl-pend-actions .secondary{background:#fffdf6!important;border:2px solid #38271f!important;color:#38271f!important}
 .tl-row-pending .tl-node{opacity:.5}
+/* ui20261015dn: meow heart leads the row; meow Go + meow plus on the right */
+.place-hit-title{display:flex;align-items:center;gap:6px;min-width:0}
+.place-hit-title>b{flex:1 1 auto;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.place-hit-title>.hit-wish-lead{flex:none;order:-1}
+.place-hit-actions .hit-go{width:26px!important;height:26px!important;min-width:26px!important;border:0!important;background:none!important;padding:0!important}
+.place-hit-actions .hit-go img{width:26px;height:26px;display:block}
+#sheet .detail-sheet .sheet-ic.sheet-nav{border:0!important;background:none!important}
+#sheet .detail-sheet .sheet-ic.sheet-nav img{width:32px;height:32px;display:block}
+.search-results .place-hit-title>.hit-wish-lead{width:26px!important;height:26px!important;min-width:26px!important;margin:0!important;padding:0!important;display:inline-grid!important;place-items:center;border:0!important;background:none!important}.search-results .place-hit-title>.hit-wish-lead img{width:26px;height:26px}
+.view-map .search-sheet .search-results .place-hit-title>button.hit-wish-lead{min-height:0!important;height:28px!important;width:28px!important;min-width:28px!important}
