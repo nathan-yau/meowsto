@@ -612,3 +612,14 @@ html body .sheet-expanded>.handle,html body .sheet-expanded>.search-sheet-head,h
 .sh-list li.sh-empty{color:#81796e;font-weight:600;font-size:14px;justify-content:center;border-style:dashed}
 .sh-del{flex:none;width:32px!important;height:32px!important;min-height:0!important;padding:0!important;border:0!important;border-radius:50%!important;background:#f3eee2!important;color:#7a6e62!important;font:700 18px/1 Nunito,sans-serif!important;box-shadow:none!important}
 .sh-in li{border-color:#e4dafb;background:#fbf9ff}
+
+/* ui20261015ea: 'time to gooo' badge — 2+ people want the same place */
+.wl-gooo{flex:none;display:inline-flex;align-items:center;gap:3px;padding:2px 8px 2px 9px;border-radius:999px;background:#fff1c9;border:1.5px solid #f2c45a;color:#8a5a12;font:800 11px/1.25 Nunito,sans-serif;white-space:nowrap;letter-spacing:.01em}
+.gooo-paw{display:inline-block;font-size:11px;transform-origin:50% 90%;animation:goooHop 1.8s ease-in-out infinite}
+@keyframes goooHop{0%,62%,100%{transform:translateY(0) rotate(0)}70%{transform:translateY(-3px) rotate(-10deg)}78%{transform:translateY(0) rotate(0)}86%{transform:translateY(-1.5px) rotate(8deg)}}
+@media (prefers-reduced-motion:reduce){.gooo-paw{animation:none}}
+.wl-also{background:#f1ecfd;color:#5b45a8}
+.wl-card.wl-goooing:not(.wl-shared){border-color:#f2d58f}
+.sheet-from{flex-wrap:nowrap;min-width:0}.sheet-from .sf-txt{min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.sheet-from .wl-gooo{margin-left:4px}
+.sheet-also{display:flex;align-items:center;gap:6px;color:#5b45a8;font-weight:700}.sheet-also .wl-gooo{margin-left:0}
