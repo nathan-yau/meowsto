@@ -8,7 +8,7 @@ const AUTH_ORIGIN=(typeof location!=='undefined'&&/^localhost$|^127\.0\.0\.1$/.t
   ? (localStorage.getItem('rl.authOrigin')||'https://shared-auth-nshyau.netlify.app')
   : 'https://shared-auth-nshyau.netlify.app';
 const DATA_ORIGIN=(typeof location!=='undefined'&&/\.github\.io$/.test(location.hostname))?'https://wonderful-parfait-18a140.netlify.app':'';
-const AUTH_PATHS=new Set(['params','register','login','refresh','logout','password','account']);
+const AUTH_PATHS=new Set(['params','register','login','refresh','logout','password','account','pubkey','share','shared']);
 const DEFAULT_CENTER=[49.2827,-123.1207], DEFAULT_ZOOM=13;
 /* Public Mapbox token — Search Box only (basemap stays Leaflet/MapLibre/OSM) */
 const MAPBOX_TOKEN='pk.eyJ1IjoibmF0aGFueWF1IiwiYSI6ImNtdjl1eW53YjA4ZWQyd3EwMzJ3ZHQ5d3QifQ.wfFv9UcvOOqXlUX__A0Lrg';
@@ -24,7 +24,7 @@ function sync(m){/* sync status intentionally not shown in UI */}
 const ERR={'bad credentials':'Wrong username or password','locked':'Too many attempts — try again in 15 minutes','username taken':'That username is taken','bad invite code':'Invalid invite code','bad username':'Username must be 3–32 letters, numbers, or _ . -','offline':'Can’t reach the server'};
 function errMsg(j){return ERR[j.error]||j.error||('HTTP '+j._s)}
 async function api(path,method,body,noAuth){const h={'Content-Type':'application/json'};if(TOK&&!noAuth)h.Authorization='Bearer '+TOK;
-  const base=AUTH_PATHS.has(path)?AUTH_ORIGIN:DATA_ORIGIN;
+  const base=AUTH_PATHS.has(path.split('?')[0])?AUTH_ORIGIN:DATA_ORIGIN;
   let r;try{r=await fetch(base+'/api/'+path,{method,cache:'no-store',headers:h,body:body&&JSON.stringify(body)})}catch(e){return {_s:0,error:'offline'}}
   const j=await r.json().catch(()=>({}));j._s=r.status;return j}
 function idb(){return new Promise((res,rej)=>{const r=indexedDB.open('rl-vault',1);r.onupgradeneeded=()=>r.result.createObjectStore('k');r.onsuccess=()=>res(r.result);r.onerror=()=>rej(r.error)})}
@@ -58,19 +58,65 @@ async function loadData(){let cached=localStorage.getItem(K('env')),local=null;
   if(j.empty){
     // First login: migrate legacy localStorage if present
     if(!local){let db=RL.defaults();try{const raw=localStorage.getItem(LEGACY_KEY);if(raw){const legacy=JSON.parse(raw);if(RL.validDb(legacy)){db=RL.migrate(legacy);localStorage.setItem(LEGACY_KEY+'-migrated-at',String(Date.now()))}}}catch{}state=db;bootApp()}
-    dirty=true;save();return}
+    dirty=true;save();shareInit();return}
   if(j.etag!==ETAG||!local){const remote=await RL.decrypt(j.env,PASS);state=(local&&dirty)?RL.merge(local,remote):RL.migrate(remote);ETAG=j.etag;if(!dirty)cacheEnv(j.env,j.etag);if(!local)bootApp();else refreshAfterSync()}
-  sync(dirty?'Unsynced changes…':'Synced ✓');if(dirty)save()}
+  sync(dirty?'Unsynced changes…':'Synced ✓');if(dirty)save();shareInit()}
 async function save(){if(!TOK)return false;if(saving){clearTimeout(tmr);tmr=setTimeout(save,800);return}saving=true;
-  try{const env=await RL.encrypt(state,PASS,SALT);cacheEnv(env);
+  try{const u0=state.u,env=await RL.encrypt(state,PASS,SALT);cacheEnv(env);
     for(let i=0;i<4;i++){const j=await api('data','PUT',{env,etag:ETAG});
-      if(j._s===200){ETAG=j.etag;cacheEnv(env,ETAG);dirty=false;localStorage.removeItem(K('dirty'));sync('Synced ✓ '+RL.hm(Date.now()));return true}
+      if(j._s===200){ETAG=j.etag;cacheEnv(env,ETAG);if(state.u===u0){dirty=false;localStorage.removeItem(K('dirty'))}else{clearTimeout(tmr);tmr=setTimeout(save,400)}/* ui20261015dz: edits made while this PUT was in flight stay dirty */sync('Synced ✓ '+RL.hm(Date.now()));return true}
       if(j._s===409&&j.env){state=RL.merge(state,await RL.decrypt(j.env,PASS));ETAG=j.etag;const env2=await RL.encrypt(state,PASS,SALT);cacheEnv(env2);refreshAfterSync();continue}
       if(j._s===401){const tr=await tryRefresh();if(tr===true)continue;if(tr==='off'){sync('Can’t sync right now — saved on this device');return false}expired();return false}
       sync('Can’t sync right now — saved on this device');return false}
     sync('Can’t sync right now — saved on this device');return false}
   catch(e){sync('Can’t sync right now — saved on this device');return false}finally{saving=false}}
-function markDirty(){state.u=Date.now();dirty=true;localStorage.setItem(K('dirty'),'1');clearTimeout(tmr);tmr=setTimeout(save,1200);sync('Saving…')}
+function markDirty(){state.u=Date.now();dirty=true;localStorage.setItem(K('dirty'),'1');clearTimeout(tmr);tmr=setTimeout(save,1200);sync('Saving…');scheduleShare()}
+/* ---------- ui20261015dz: shared wishlists (read-only, E2E; see SHARING.md) ---------- */
+let sharedPlaces=[],sharedOwners=[],sharedLoaded=false,shareTimer=null,shareRun=null,shareInitOn=false;
+async function authed(path,method,body){let j=await api(path,method,body);if(j._s===401&&await tryRefresh()===true)j=await api(path,method,body);return j}
+async function shaHex(str){const b=await crypto.subtle.digest('SHA-256',new TextEncoder().encode(str));return [...new Uint8Array(b)].map(x=>x.toString(16).padStart(2,'0')).join('').slice(0,32)}
+async function shareInit(){if(shareInitOn||!TOK||!state)return;shareInitOn=true;
+  try{if(!state.share||!state.share.keys?.priv){const keys=await RL.shareGenKeys();state.share={...(state.share||{}),keys,wk:state.share?.wk||RL.shareNewWk(),to:Array.isArray(state.share?.to)?state.share.to:[],u:Date.now()};markDirty()}
+    if(!state.share.wk)state.share.wk=RL.shareNewWk();
+    const pub=state.share.keys.pub,th=pub.x+'.'+pub.y;
+    if(localStorage.getItem(K('shpub'))!==th){const j=await authed('pubkey','PUT',{jwk:pub});if(j._s===200)localStorage.setItem(K('shpub'),th)}
+    await loadShared();scheduleShare(300)}
+  catch(e){console.warn('share init',e)}finally{shareInitOn=false}}
+function scheduleShare(ms){if(!state?.share?.keys||!TOK)return;clearTimeout(shareTimer);shareTimer=setTimeout(()=>{shareRun=(shareRun||Promise.resolve()).then(()=>publishShare()).catch(e=>console.warn('share publish',e))},ms??2500)}
+async function publishShare(force){const sh=state.share;if(!TOK||!sh?.keys)return false;const to=Array.isArray(sh.to)?sh.to:[];
+  if(!to.length){if(localStorage.getItem(K('shhash'))==='none')return true;const j=await authed('share','DELETE');if(j._s===200){localStorage.setItem(K('shhash'),'none');return true}return false}
+  const places=RL.sharePlaces(state.restaurants),jwks={};
+  for(const v of to){const j=await authed('pubkey?u='+encodeURIComponent(v),'GET');if(j._s===200&&j.jwk)jwks[v]=j.jwk;else if(j._s!==404)return false}
+  const h=await shaHex(JSON.stringify([USER,places,jwks,sh.wk,sh.keys.pub]));if(!force&&h===localStorage.getItem(K('shhash')))return true;
+  const sealed=await RL.shareSeal(places,USER,sh.wk,sh.keys.priv,jwks);
+  const j=await authed('share','PUT',sealed);if(j._s===200){localStorage.setItem(K('shhash'),h);return true}return false}
+function shareDup(a,b){if(a.sourceId&&b.sourceId&&a.sourceId===b.sourceId)return true;if(!Number.isFinite(a.lat)||!Number.isFinite(b.lat))return false;const na=normName(a.name),nb=normName(b.name);if(!na||na!==nb)return false;const dy=(a.lat-b.lat)*111e3,dx=(a.lng-b.lng)*111e3*Math.cos(a.lat*Math.PI/180);return Math.hypot(dx,dy)<=90}
+// shared places not already in my own journal (any of my restaurants, visited or wishlist)
+function sharedVisible(){if(!sharedPlaces.length)return [];return sharedPlaces.filter(p=>!state.restaurants.some(r=>shareDup(p,r)))}
+async function loadShared(){if(!TOK||!state?.share?.keys?.priv)return;const j=await authed('shared','GET');if(j._s!==200)return;const out=[],owners=[];
+  for(const it of j.shares||[]){try{const ps=await RL.shareOpen(it,state.share.keys.priv,USER);owners.push({owner:it.owner,n:ps.length});
+      ps.forEach(p=>{const q={...p,id:'sh-'+it.owner.replace(/[^-\w]/g,'_')+'-'+p.id,_shared:true,_owner:it.owner,wish:true,note:'',rating:null,added:'',photos:[]};if(!out.some(o=>shareDup(o,q)))out.push(q)})}
+    catch(e){owners.push({owner:it.owner,n:0,err:true})}}
+  const before=JSON.stringify(sharedPlaces.map(p=>[p.id,p.name,p.lat,p.lng,p.address,p.kind,p.tags]));sharedPlaces=out;sharedOwners=owners;const first=!sharedLoaded;sharedLoaded=true;
+  if(selected&&String(selected).startsWith('sh-')&&!rest(selected))selected=null;
+  if(first||before!==JSON.stringify(out.map(p=>[p.id,p.name,p.lat,p.lng,p.address,p.kind,p.tags]))){if(tab==='wishlist'&&$('#panel').hidden)render();else if(tab==='map'&&map){drawMarkers();if(selected)renderSheet()}}}
+document.addEventListener('visibilitychange',()=>{if(document.visibilityState==='visible'&&TOK&&state?.share?.keys)loadShared()});
+function sharePanel(msg,bad){const to=state.share?.to||[];
+  openPanel('Share wishlist',`<div class="share-panel"><p class="sh-note">🔒 People you add see your wishlist places (name, location, address, cuisine &amp; tags) — never your visits, ratings, notes or photos. It’s end-to-end encrypted; they can’t edit it.</p><form id="share-form" class="sh-add" autocomplete="off"><input id="share-user" type="text" inputmode="text" autocapitalize="off" autocorrect="off" spellcheck="false" maxlength="32" placeholder="Add a username" aria-label="Username to share with"><button class="primary" type="submit">Share</button></form><p class="sh-msg${bad?' bad':''}" role="status">${esc(msg||'')}</p><h4 class="sh-h">Shared with</h4><ul class="sh-list">${to.length?to.map(u=>`<li><span>@${esc(u)}</span><button type="button" class="sh-del" data-share-del="${esc(u)}" aria-label="Stop sharing with ${esc(u)}">×</button></li>`).join(''):'<li class="sh-empty">Not shared with anyone yet</li>'}</ul>${sharedOwners.length?`<h4 class="sh-h">Shared with you</h4><ul class="sh-list sh-in">${sharedOwners.map(o=>`<li><span>@${esc(o.owner)}</span><small>${o.err?'waiting for an update':o.n+' place'+(o.n===1?'':'s')}</small></li>`).join('')}</ul>`:''}</div>`,{cls:'entry-panel profile-sheet share-sheet'});
+  $('#share-form').onsubmit=async e=>{e.preventDefault();const name=RL.normUser($('#share-user').value),btn=e.target.querySelector('button');if(!name)return;
+    if(name===USER)return sharePanel('That’s you 🙂',true);if((state.share?.to||[]).includes(name))return sharePanel('Already shared with @'+name);
+    if(!state.share?.keys){await shareInit();if(!state.share?.keys)return sharePanel('Can’t reach the server — try again',true)}
+    btn.disabled=true;const j=await authed('pubkey?u='+encodeURIComponent(name),'GET');btn.disabled=false;
+    if(j._s===404)return sharePanel('@'+name+' hasn’t opened Meowsto yet — ask them to log in once, then try again.',true);
+    if(j._s!==200)return sharePanel(j._s===400?'That username doesn’t look right':'Can’t reach the server — try again',true);
+    if(!commit(()=>{state.share.to=[...(state.share.to||[]),name];state.share.u=Date.now()}))return;clearTimeout(shareTimer);
+    sharePanel('Sharing…');const ok=await publishShare(true);sharePanel(ok?'Shared with @'+name+' ✓':'Saved — will share when you’re back online',!ok)};
+}
+async function shareRemove(name){if(!commit(()=>{state.share.to=(state.share.to||[]).filter(u=>u!==name);state.share.wk=RL.shareNewWk();state.share.u=Date.now()}))return;clearTimeout(shareTimer);
+  sharePanel('Removing…');const ok=await publishShare(true);sharePanel(ok?'@'+name+' can no longer see your wishlist':'Saved — will update when you’re back online',!ok)}
+function addSharedToWishlist(id){const r=rest(id);if(!r||!r._shared)return;
+  const nid=savePlaceToWishlist({name:r.name,address:r.address||'',lat:r.lat,lng:r.lng,kind:r.kind||'shop',tags:[...(r.tags||[])],sourceId:r.sourceId||null});if(!nid)return;
+  const go=()=>{if(!map)return setTimeout(go,80);drawMarkers();selected=null;selectPin(nid)};setTimeout(go,60)}
 async function doLogout(){if(dirty&&!(await save())&&!confirm('Some changes haven’t synced yet (they’re encrypted on this device). Log out anyway?'))return;
   await api('logout','POST',{refresh:REFRESH});await vault('del');REFRESH=null;location.reload()}
 window.addEventListener('online',()=>{if(dirty)save()});
@@ -111,7 +157,7 @@ function syncHideVisitedChip(){
   }
 }
 let listPage=0, PAGE_SIZE=4, panelMode='sheet', expandedVisitId=null, latestOpen=false;
-const rest=id=>state.restaurants.find(r=>r.id===id), visits=id=>state.visits.filter(v=>v.restaurantId===id).sort((a,b)=>(b.date+b.time).localeCompare(a.date+a.time));
+const rest=id=>state.restaurants.find(r=>r.id===id)||(typeof id==='string'&&id.startsWith('sh-')?sharedPlaces.find(r=>r.id===id):undefined), visits=id=>state.visits.filter(v=>v.restaurantId===id).sort((a,b)=>(b.date+b.time).localeCompare(a.date+a.time));
 function validBackup(d){return RL.validDb(d)}
 function persist(){if(!USER)return false;try{markDirty();const envPlaceholder=true;cacheEnv;return true}catch{toast('Save failed');return false}}
 // ui20261015dc: fill harmless gaps (missing address/note/tags, undefined coords/time) before whole-journal validation
@@ -196,7 +242,7 @@ function pagerHtml(pages,total,label){if(total<=PAGE_SIZE)return '';return `<div
 function card(r){const vv=visits(r.id);return `<article class="restaurant no-tile"><div class="info" role="button" tabindex="0" data-detail="${r.id}"><h3>${esc(r.name)}</h3>${rating(r)}<p class="visit-meta">♜ ${vv.length} visit${vv.length===1?'':'s'}${vv[0]?` · last ${fmt(vv[0].date)}`:''}</p><p class="address">♧ ${esc(r.address||'Location not added')}</p>${tags(r)}<p class="note">▤ ${esc(r.note||'Add a little note…')}</p></div><div class="right-meta"><button class="save" data-save="${r.id}" aria-label="${r.wish?'Remove from':'Add to'} wishlist">${r.wish?'▮':'♧'}</button></div><button class="chevron" data-detail="${r.id}" aria-label="Open ${esc(r.name)}">›</button></article>`}
 
 let wishKeep=new Set(),wishKeepTab=null;
-const HEART_ON='assets/icon-wish-meow.png?v=ui20261015dy',HEART_OFF='assets/icon-wish-meow-off.png?v=ui20261015dy';
+const HEART_ON='assets/icon-wish-meow.png?v=ui20261015dz',HEART_OFF='assets/icon-wish-meow-off.png?v=ui20261015dz';
 const CUISINE_LABEL={ramen:'Ramen',sushi:'Sushi',japanese:'Japanese',cafe:'Cafe',matcha:'Matcha',tea:'Tea',boba:'Boba',dessert:'Dessert',bakery:'Bakery',burger:'Burger',pasta:'Italian',pizza:'Pizza',steak:'Steak',chinese:'Chinese',korean:'Korean',thai:'Thai',indian:'Indian',hongkong:'Hong Kong',singaporean:'Singaporean',mideast:'Middle Eastern',shop:'Restaurant'};
 function cuisineOf(r){const k=foodKey(r);if(k.startsWith('icon/')){const d=k.split('/')[1]||'';return {key:k,label:d.split('-').map(w=>w[0]?.toUpperCase()+w.slice(1)).join(' ')||tlCat(r)}}return {key:k,label:CUISINE_LABEL[k]||tlCat(r)}}
 function areaOf(r){const parts=String(r.address||'').split(',').map(x=>x.trim()).filter(x=>x&&!/^[A-Z]\d[A-Z]\s?\d[A-Z]\d$/i.test(x)&&!/^(BC|British Columbia|Canada|ON|Ontario|AB|WA|USA)(\s+[A-Z]\d[A-Z].*)?$/i.test(x));if(!parts.length)return '';if(parts.length>=3)return parts[1];if(parts.length===2&&/^\d/.test(parts[0]))return parts[1];return parts[0]}
@@ -204,6 +250,7 @@ function areaOf(r){const parts=String(r.address||'').split(',').map(x=>x.trim())
 function saveHeart(on){return `<img class="save-heart" src="${on?HEART_ON:HEART_OFF}" alt="" width="30" height="30">`}
 function paintSaveBtn(b){const on=!!rest(b.dataset.save)?.wish;b.classList.toggle('saved',on);b.setAttribute('aria-pressed',on);b.setAttribute('aria-label',(on?'Remove from':'Add to')+' wishlist');b.innerHTML=saveHeart(on)}
 function wishCard(r){const c=cuisineOf(r),area=areaOf(r),val=personalRating(r),on=!!r.wish,tg=(r.tags||[]).filter(t=>t&&t!=='demo');
+  if(r._shared)return `<article class="wl-card wl-shared"><div class="wl-main" role="button" tabindex="0" data-wl-open="${esc(r.id)}"><span class="wl-food tl-bg-${foodBg(c.key)}"><img src="${foodSrc(c.key)}" alt="" loading="lazy"></span><div class="wl-body"><h3 class="wl-name">${esc(r.name)}</h3><p class="wl-meta"><span class="wl-cui">${esc(c.label)}</span>${area?`<i>·</i><span class="wl-pin" aria-hidden="true"></span><span class="wl-area">${esc(area)}</span>`:''}</p></div><div class="wl-tags"><span class="wl-from">from @${esc(r._owner)}</span>${tg.map(t=>`<span class="wl-tag">${vibeIcon(t)}<span>${esc(t)}</span></span>`).join('')}</div></div></article>`;
   return `<article class="wl-card${on?'':' wl-off'}"><div class="wl-main" role="button" tabindex="0" data-wl-open="${r.id}"><span class="wl-food tl-bg-${foodBg(c.key)}"><img src="${foodSrc(c.key)}" alt="" loading="lazy"></span><div class="wl-body"><h3 class="wl-name">${esc(r.name)}</h3><p class="wl-meta">${val?`<span class="wl-star">★</span><b>${val}</b><i>·</i>`:''}<span class="wl-cui">${esc(c.label)}</span>${area?`<i>·</i><span class="wl-pin" aria-hidden="true"></span><span class="wl-area">${esc(area)}</span>`:''}</p></div>${tg.length?`<div class="wl-tags">${tg.map(t=>`<span class="wl-tag">${vibeIcon(t)}<span>${esc(t)}</span></span>`).join('')}</div>`:''}</div><button type="button" class="wl-heart${on?' on':''}" data-wl-heart="${r.id}" aria-pressed="${on}" aria-label="${on?'Remove from':'Add to'} wishlist"><img src="${on?HEART_ON:HEART_OFF}" alt="" width="28" height="28"></button></article>`}
 // ui20261015cm: Wishlist cuisine chips use the icon cuisine folders (site/icon/*), mapped exactly like the card icon:
 // foodKey(r) → 'icon/<set>/…' uses <set>; legacy food keys go through SET_FOR; anything unmapped (dessert, bakery, shop) → 'mixed'.
@@ -211,14 +258,15 @@ const WL_CUISINES=[['chinese','Chinese','17bb14f864525ceab02c7bfd31131f948903ee7
 function wlSetOf(r){const k=foodKey(r);if(k.startsWith('icon/'))return k.split('/')[1]||'mixed';return SET_FOR[k]||'mixed'}
 function renderWishlist(){
   if(wishKeepTab!=='wishlist'){wishKeep=new Set()}wishKeepTab='wishlist';
-  const pool=state.restaurants.filter(r=>r.wish||wishKeep.has(r.id));
+  const shv=sharedVisible(),pool=state.restaurants.filter(r=>r.wish||wishKeep.has(r.id)).concat(shv);
   const counts=new Map();pool.forEach(r=>{const s=wlSetOf(r);counts.set(s,(counts.get(s)||0)+1)});
-  if(filter!=='All'&&!counts.has(filter))filter='All';
+  // ui20261015dz: 'Shared' chip — kept while shares are still loading so it doesn't snap back to All
+  if(filter==='Shared'){if(sharedLoaded&&!shv.length)filter='All'}else if(filter!=='All'&&!counts.has(filter))filter='All';
   const allTags=wlAllTags(pool);wlTags=wlTags.filter(t=>allTags.includes(t));
-  let rows=pool.filter(r=>(filter==='All'||wlSetOf(r)===filter)&&(!wlTags.length||wlTags.some(t=>(r.tags||[]).includes(t))));
+  let rows=pool.filter(r=>(filter==='All'||(filter==='Shared'?!!r._shared:wlSetOf(r)===filter))&&(!wlTags.length||wlTags.some(t=>(r.tags||[]).includes(t))));
   rows.sort((a,b)=>sort==='rating'?(personalRating(b)||0)-(personalRating(a)||0):sort==='name'?a.name.localeCompare(b.name):String(b.added||'').localeCompare(String(a.added||'')));
   const chips=WL_CUISINES.filter(([s])=>counts.has(s)).map(([s,l,f])=>[s,l,f]);
-  const chipHtml=pool.length?`<div class="wl-chips" role="toolbar" aria-label="Filter wishlist"><button type="button" data-wl-tagsheet="1" class="wl-chip wl-tagchip${wlTags.length?' active':''}" aria-haspopup="dialog" aria-pressed="${!!wlTags.length}"><span>${wlTags.length?`Tags · ${wlTags.length}`:'Tags'}</span></button><button type="button" data-filter="All" class="wl-chip${filter==='All'?' active':''}" aria-pressed="${filter==='All'}">All</button>${chips.map(([s,l,f])=>`<button type="button" data-filter="${s}" class="wl-chip${filter===s?' active':''}" aria-pressed="${filter===s}" aria-label="${esc(l)} (${counts.get(s)})"><img src="icon/${s}/${f}.png" alt="" loading="lazy"><span>${esc(l)}</span></button>`).join('')}</div>`:'';
+  const chipHtml=pool.length?`<div class="wl-chips" role="toolbar" aria-label="Filter wishlist"><button type="button" data-wl-tagsheet="1" class="wl-chip wl-tagchip${wlTags.length?' active':''}" aria-haspopup="dialog" aria-pressed="${!!wlTags.length}"><span>${wlTags.length?`Tags · ${wlTags.length}`:'Tags'}</span></button><button type="button" data-filter="All" class="wl-chip${filter==='All'?' active':''}" aria-pressed="${filter==='All'}">All</button>${shv.length||filter==='Shared'?`<button type="button" data-filter="Shared" class="wl-chip wl-chip-shared${filter==='Shared'?' active':''}" aria-pressed="${filter==='Shared'}" aria-label="Shared with you (${shv.length})"><span class="wl-chip-dot" aria-hidden="true"></span><span>Shared</span></button>`:''}${chips.map(([s,l,f])=>`<button type="button" data-filter="${s}" class="wl-chip${filter===s?' active':''}" aria-pressed="${filter===s}" aria-label="${esc(l)} (${counts.get(s)})"><img src="icon/${s}/${f}.png" alt="" loading="lazy"><span>${esc(l)}</span></button>`).join('')}</div>`:'';
   $('#main').innerHTML=`<div class="content wl-page">${chipHtml}<div class="wl-list" aria-label="Wishlist">${rows.length?rows.map(wishCard).join(''):`<p class="wl-empty">Nothing on your wishlist yet — tap the meow heart on a search result to save a place to try.</p>`}</div></div>`;
 }
 // ui20261015cl: Wishlist tag filter — one-row chip bar + mini slide-up tag sheet (applies on Apply)
@@ -260,11 +308,11 @@ let ICON_SETS=null;const iconSets=()=>ICON_SETS||(ICON_SETS=fetch('icon/index.js
 const SET_FOR={chinese:'chinese',hongkong:'hong-kong',japanese:'japanese',sushi:'japanese',ramen:'japanese',matcha:'japanese',korean:'korean',thai:'thai',indian:'indian',singaporean:'singaporean',mideast:'middle-eastern',tea:'drinks',boba:'drinks',cafe:'drinks',burger:'western',pasta:'western',pizza:'western',steak:'western'};
 function vibeIcon(t){t=t.toLowerCase();if(/sweet|cute|sparkle|vibe/.test(t))return icon('sparkle');if(/friend|solo|date|group|people/.test(t))return icon('users');if(/comfort|cozy|love|heart/.test(t))return icon('heart');return `<svg class="ui-icon leaf-ico" viewBox="0 0 24 24" aria-hidden="true"><path d="M5 19C5 10 11 5 20 4c0 9-5 15-14 15Z"/><path d="M5 19 13 11"/></svg>`}
 function vibeTags(list,max=3){list=(list||[]).filter(t=>t&&t!=='demo').slice(0,max);return list.length?`<div class="tl-tags">${list.map(t=>`<span class="tl-tag">${vibeIcon(t)}${esc(t)}</span>`).join('')}</div>`:''}
-// ui20261015dy: friendly kind label — icon/<cuisine>/<file> → 'Hong Kong' etc.; never show a path
+// ui20261015dz: friendly kind label — icon/<cuisine>/<file> → 'Hong Kong' etc.; never show a path
 function kindLabel(k){k=String(k||'').trim();if(!k||k==='shop')return '';if(k.includes('/')){const parts=k.split('/').filter(Boolean);if(parts[0].toLowerCase()==='icon')parts.shift();const d=(parts[0]||'');if(!d||/^[0-9a-f]{12,}$/i.test(d))return '';return d.split(/[-_ ]+/).filter(Boolean).map(w=>w[0].toUpperCase()+w.slice(1).toLowerCase()).join(' ')}return k[0].toUpperCase()+k.slice(1)}
 function tlCat(r){return (r?.tags||[]).find(t=>t!=='demo')||kindLabel(r?.kind)||'Restaurant'}
 function tlCardHtml(v,open,cls,attr){const x=rest(v.restaurantId);const vt=[...new Set([...(v.tags||[]),...(x?.tags||[]).slice(1)])];return `<div class="tl-card${cls?' '+cls:''}${open?' expanded':''}" ${attr} role="button" tabindex="0" aria-expanded="${open?'true':'false'}"><div class="tl-card-main">${foodImg(x)}<div class="tl-card-body"><h3>${esc(x?.name||'Restaurant')}</h3><p class="tl-meta">${v.rating?'<span class="star">★</span> ':''}${v.rating?v.rating+' · ':''}${esc(tlCat(x))} · ${esc(v.meal||'')}</p></div><span class="tl-chev" aria-hidden="true">${open?'⌄':'›'}</span></div>${open?vibeTags(vt)+visitExpandHtml(v):''}</div>`}
-// ui20261015dy: 'Did you go?' pending entries (state.pendingGo), recorded on every Go tap; never counted as visits
+// ui20261015dz: 'Did you go?' pending entries (state.pendingGo), recorded on every Go tap; never counted as visits
 function mealFromHour(h){return h<11?'Breakfast':h<15?'Lunch':h<17?'Snack':'Dinner'}
 function pendList(){return Array.isArray(state.pendingGo)?state.pendingGo:[]}
 function mixPending(all){const ps=pendList().map(p=>({...p,_pend:true}));if(!ps.length)return all;const k=x=>x.date+(x.time||'');return [...all,...ps].sort((a,b)=>sort==='oldest'?k(a).localeCompare(k(b)):k(b).localeCompare(k(a)))}
@@ -336,13 +384,13 @@ function createMapTiles(target,statusSelector='#map-status'){
   load();
   return {redraw:load};
 }
-// ui20261015dy: Explore is one-shot (no on/off mode); exploreSeq invalidates stale responses
+// ui20261015dz: Explore is one-shot (no on/off mode); exploreSeq invalidates stale responses
 let exploreLayer=null,exploreTimer,exploreAbort,exploreResults=[],exploreSeq=0;
 function exploreProxyURL(){return (DATA_ORIGIN||'')+'/api/overpass'}
 function overpassEndpoints(){return ['https://overpass.kumi.systems/api/interpreter','https://maps.mail.ru/osm/tools/overpass/api/interpreter','https://overpass.private.coffee/api/interpreter','https://lz4.overpass-api.de/api/interpreter','https://overpass-api.de/api/interpreter',exploreProxyURL()]}
 function parseOverpassElements(j){return (j?.elements||[]).map(e=>({name:e.tags?.name,lat:e.lat??e.center?.lat,lng:e.lon??e.center?.lon,amenity:e.tags?.amenity||e.tags?.shop||'',cuisine:e.tags?.cuisine||'',address:[e.tags?.['addr:housenumber'],e.tags?.['addr:street']].filter(Boolean).join(' ')})).filter(x=>x.name&&Number.isFinite(x.lat)&&Number.isFinite(x.lng)&&FOOD_OSM.test(x.amenity))}
 async function fetchExploreOverpass(bb,signal){const q=`[out:json][timeout:15];(nwr["amenity"~"^(restaurant|fast_food|cafe|food_court|ice_cream)$"]["name"](${bb});nwr["amenity"~"^(pub|bar|biergarten)$"]["food"="yes"]["name"](${bb});nwr["amenity"="pub"]["kitchen_hours"]["name"](${bb});nwr["shop"~"^(bakery|pastry|confectionery|ice_cream|bubble_tea)$"]["name"](${bb}););out center 80;`;const body='data='+encodeURIComponent(q);const t0=Date.now();for(const ep of overpassEndpoints()){if(Date.now()-t0>24000)break;const local=new AbortController();const onAbort=()=>local.abort();signal?.addEventListener('abort',onAbort,{once:true});const timer=setTimeout(()=>local.abort(),9000);try{const res=await fetch(ep,{method:'POST',body,headers:{'Content-Type':'application/x-www-form-urlencoded'},signal:local.signal});if(!res.ok)continue;const j=await res.json();if(j&&Array.isArray(j.elements)){const list=parseOverpassElements(j);if(list.length)return list}}catch(e){if(signal?.aborted)throw e;/* try next mirror */}finally{clearTimeout(timer);signal?.removeEventListener('abort',onAbort)}}return null}
-// ui20261015dy: Mapbox Search Box /category fallback (limit max 25 per call; comma-joined ids accepted). 3 parallel calls merged by mapbox_id.
+// ui20261015dz: Mapbox Search Box /category fallback (limit max 25 per call; comma-joined ids accepted). 3 parallel calls merged by mapbox_id.
 const MB_CAT_SETS=['restaurant,cafe,coffee,fast_food,food_court,bakery,ice_cream,dessert_shop,bubble_tea,teahouse','restaurant','cafe,coffee,bakery,dessert_shop,bubble_tea,teahouse,ice_cream'];
 function mapboxCategoryURL(cats,b,c){const p=new URLSearchParams({access_token:MAPBOX_TOKEN,language:'en',limit:'25',proximity:`${c.lng.toFixed(5)},${c.lat.toFixed(5)}`,bbox:[b.getWest(),b.getSouth(),b.getEast(),b.getNorth()].map(x=>x.toFixed(5)).join(',')});return 'https://api.mapbox.com/search/searchbox/v1/category/'+cats+'?'+p.toString()}
 async function fetchExploreMapboxCategory(signal,sets=MB_CAT_SETS){if(!map)return null;const b=map.getBounds(),c=map.getCenter();window.__exploreMbCalls=(window.__exploreMbCalls||0)+sets.length;
@@ -360,18 +408,18 @@ function exploreResultIcon(x){
   }
   return window.L.divIcon({className:'restaurant-pin explore-pin pin-'+t,html:`<div class="map-chip chip-search explore-chip"><b>${esc(x.name)}</b></div>`,iconSize:null,iconAnchor:[0,0]});
 }
-// ui20261015dy: Explore = ONE Mapbox /category call (restaurant, limit 25) + Overpass in parallel. Mapbox shows at once; a paw progress bar
+// ui20261015dz: Explore = ONE Mapbox /category call (restaurant, limit 25) + Overpass in parallel. Mapbox shows at once; a paw progress bar
 // ("Fetching more…") runs until Overpass merges. Only if Overpass fails/empty → the other two category calls. Photon only if everything fails.
 function exploreBar(state){
   let el=$('#explore-progress');const wrap=$('.map-wrap');
-  if(state==='start'){if(!wrap)return;if(!el){el=document.createElement('div');el.id='explore-progress';el.className='explore-progress';el.setAttribute('role','status');el.innerHTML='<div class="ep-track"><div class="ep-fill"></div><img class="ep-cat" src="assets/icon-go-meow.png?v=ui20261015dy" alt="" aria-hidden="true"></div><span class="ep-text">Fetching more…</span>';wrap.appendChild(el)}
+  if(state==='start'){if(!wrap)return;if(!el){el=document.createElement('div');el.id='explore-progress';el.className='explore-progress';el.setAttribute('role','status');el.innerHTML='<div class="ep-track"><div class="ep-fill"></div><img class="ep-cat" src="assets/icon-go-meow.png?v=ui20261015dz" alt="" aria-hidden="true"></div><span class="ep-text">Fetching more…</span>';wrap.appendChild(el)}
     el.classList.remove('done','fade');el.style.setProperty('--ep',0);void el.offsetWidth;el.classList.add('run');
     const pos=()=>{const e=$('#explore-progress');if(!e)return;const s=$('#sheet .search-sheet'),w=wrap.getBoundingClientRect();const top=s?s.getBoundingClientRect().top:w.bottom-40;e.style.top=Math.max(0,top-w.top-30)+'px';if(!e.classList.contains('fade'))e._raf=requestAnimationFrame(pos)};cancelAnimationFrame(el._raf);pos();return}
   if(!el)return;
   if(state==='done'){const f=el.querySelector('.ep-fill'),c=el.querySelector('.ep-cat');const fw=getComputedStyle(f).width,cl=getComputedStyle(c).left;el.classList.remove('run');f.style.width=fw;c.style.left=cl;void el.offsetWidth;el.classList.add('done');f.style.width='';c.style.left='';setTimeout(()=>{el.classList.add('fade');setTimeout(()=>{cancelAnimationFrame(el._raf);el.remove()},350)},450);return}
   if(state==='cancel'){cancelAnimationFrame(el._raf);el.remove()}
 }
-// ui20261015dy: one entry for Explore and Near me (one-shot; new tap cancels older)
+// ui20261015dz: one entry for Explore and Near me (one-shot; new tap cancels older)
 function startExplore(){searchResults=[];searchFocusIdx=null;clearSearchMarkers();if(selected){selected=null;updateMarkerIcons();renderSheet();enhanceIcons()}loadExplore();}
 function loadExplore(){
   clearTimeout(exploreTimer);exploreAbort?.abort();exploreBar('cancel');
@@ -420,7 +468,7 @@ function mergeExplore(list){
   const st=out.scrollTop;renderPlaceHits(out,feats,{noFit:true,keepMarkers:true});out.scrollTop=st;
   drawSearchMarkers();
 }
-// ui20261015dy: hex "conquered area" layer — axial pointy-top hex grid in Web Mercator metres (pure JS), drawn in a pane under the pins.
+// ui20261015dz: hex "conquered area" layer — axial pointy-top hex grid in Web Mercator metres (pure JS), drawn in a pane under the pins.
 // On/off kept per device in localStorage 'meowsto-hex' (default ON).
 let hexOn=(()=>{try{return localStorage.getItem('meowsto-hex')!=='0'}catch{return true}})(),hexLayer=null,hexTierDrawn=null;
 function hexAcrossM(z){return z<=9?8000:z<=12?2000:500}
@@ -456,11 +504,12 @@ function setHexOn(on){hexOn=!!on;try{localStorage.setItem('meowsto-hex',hexOn?'1
 function pinTier(){const z=map?map.getZoom():mapZoom;return z>=14?'full':z>=12?'mini':'meow'}
 function searchPinTier(){const z=map?map.getZoom():mapZoom;return z>=16?'full':'meow'}
 // ui20261015cy: three meow marker styles (visited · wishlist · search/explore), all switching pin↔label with searchPinTier() (label at zoom ≥ 16)
-// ui20261015dy: visited/wishlist markers are always meow pins (selected = enlarged); details live in the sheet
+// ui20261015dz: visited/wishlist markers are always meow pins (selected = enlarged); details live in the sheet
 function markerIcon(r){const isSel=r.id===selected||(r.id===searchLinkId&&searchFocusIdx!=null&&searchResults.length>0);const wishy=!!r.wish&&!visits(r.id)[0];const sz=isSel?[30,41]:[24,33];
+  if(r._shared)return window.L.icon({iconUrl:'assets/meow-map-pin-shared.png?v=ui20261015dz',iconSize:sz,iconAnchor:[sz[0]/2,sz[1]],className:'meow-pin meow-pin-shared'+(isSel?' selected':'')});
   return window.L.icon({iconUrl:wishy?'assets/meow-map-pin-wish.png?v=ui20261015dk':'assets/meow-map-pin.png?v=ui20261015x',iconSize:sz,iconAnchor:[sz[0]/2,sz[1]],className:'meow-pin '+(wishy?'meow-pin-wish':'meow-pin-visited')+(isSel?' selected':'')})}
 function updateMarkerIcons(){markers.forEach(m=>m.setIcon(markerIcon(m._r)));searchMarkers.forEach((m,i)=>{if(m&&searchResults[i])m.setIcon(searchResultIcon(searchResults[i],i))});if(exploreLayer)exploreLayer.eachLayer(m=>{if(m&&m._explore)m.setIcon(exploreResultIcon(m._explore))})}
-// ui20261015dy: Wishlist card → Map tab, pin drawn (clear hide-visited/explore that could hide it), centred above sheet, place sheet open
+// ui20261015dz: Wishlist card → Map tab, pin drawn (clear hide-visited/explore that could hide it), centred above sheet, place sheet open
 function openOnMap(id){const r=rest(id);if(!r)return;if(!Number.isFinite(r.lat)||!Number.isFinite(r.lng)){toast('No location saved for this place');return}
   if(hideVisited&&visits(id).length)hideVisited=false;exploreSeq++;clearTimeout(exploreTimer);exploreAbort?.abort();
   searchResults=[];searchFocusIdx=null;closePanel();wlSheetClose?.();tab='map';selected=null;render();
@@ -522,7 +571,7 @@ function searchHitHidden(f){
   return true;
 }
 function searchResultIcon(f,i){
-  const sel=searchFocusIdx!=null&&Number(i)===Number(searchFocusIdx),t=sel?'full':'meow'; // ui20261015dy: result pins stay pins; only the selected one shows its label
+  const sel=searchFocusIdx!=null&&Number(i)===Number(searchFocusIdx),t=sel?'full':'meow'; // ui20261015dz: result pins stay pins; only the selected one shows its label
   if(t==='meow'){
     return window.L.icon({iconUrl:'assets/meow-map-pin-search.png?v=ui20261015cb',iconSize:[24,33],iconAnchor:[12,33],className:'meow-pin meow-pin-search'+(sel?' search-pin-active':'')});
   }
@@ -555,7 +604,7 @@ function savedOnMapFor(name,lat,lng,sourceId){if(!Number.isFinite(lat)||!Number.
 function savedForHit(f){const c=f?.geometry?.coordinates,p=f?.properties||{};if(!c)return null;const d=draftFromSearchFeature(f);return savedOnMapFor(p.name||p.street,c[1],c[0],d?.sourceId)}
 function wishOnly(r){return !!r.viaWish||(!!r.sourceId&&!r.note&&r.rating==null&&!(r.photos||[]).length)}
 function onMap(r){return !!r.wish||visits(r.id).length>0||!wishOnly(r)}
-function drawMarkers(){if(!map)return;drawHexes(true);markers.forEach(m=>m.remove());markers=[];state.restaurants.filter(r=>Number.isFinite(r.lat)&&Number.isFinite(r.lng)&&onMap(r)&&!(hideVisited&&visits(r.id).length)).forEach(r=>{const m=window.L.marker([r.lat,r.lng],{icon:markerIcon(r),title:r.name,riseOnHover:true,bubblingMouseEvents:false}).addTo(map).on('click',e=>{window.L.DomEvent.stopPropagation(e);selectPin(r.id)});m._r=r;markers.push(m)});drawSearchMarkers();bindMapEvents()}
+function drawMarkers(){if(!map)return;drawHexes(true);markers.forEach(m=>m.remove());markers=[];state.restaurants.filter(r=>Number.isFinite(r.lat)&&Number.isFinite(r.lng)&&onMap(r)&&!(hideVisited&&visits(r.id).length)).concat(sharedVisible().filter(r=>Number.isFinite(r.lat)&&Number.isFinite(r.lng))).forEach(r=>{const m=window.L.marker([r.lat,r.lng],{icon:markerIcon(r),title:r.name,riseOnHover:true,bubblingMouseEvents:false}).addTo(map).on('click',e=>{window.L.DomEvent.stopPropagation(e);selectPin(r.id)});m._r=r;markers.push(m)});drawSearchMarkers();bindMapEvents()}
 function bindMapEvents(){if(!map._meowZoom){map._meowZoom=1;let last=pinTier(),lastS=searchPinTier();map.on('zoomend',()=>{mapZoom=map.getZoom();drawHexes();const t=pinTier(),s=searchPinTier();if(t!==last||s!==lastS){last=t;lastS=s;updateMarkerIcons()}});map.on('moveend',()=>{const c=map.getCenter();mapCenter=[c.lat,c.lng]});map.on('click',()=>{if(selected){selected=null;updateMarkerIcons();renderSheet();enhanceIcons()}})}}
 function distance(r){if(!userLocation||!Number.isFinite(r.lat))return '';const rad=x=>x*Math.PI/180,dlat=rad(r.lat-userLocation[0]),dlng=rad(r.lng-userLocation[1]),a=Math.sin(dlat/2)**2+Math.cos(rad(r.lat))*Math.cos(rad(userLocation[0]))*Math.sin(dlng/2)**2;let km=6371*2*Math.atan2(Math.sqrt(a),Math.sqrt(1-a));return `${km<1?Math.round(km*1000)+' m':km.toFixed(1)+' km'} · `}
 function renderSheet(){
@@ -563,7 +612,16 @@ function renderSheet(){
   const r=rest(selected);
   if(!r&&state.restaurants.length){el.innerHTML='';return}
   if(!r){el.innerHTML='<section class="empty onboarding"><div class="onboarding-art">'+logo()+'</div><h2>Your next favorite starts here</h2><p>Find a real restaurant, save it to your map, and make your first food memory.</p><div class="actions"><button class="primary" data-action="search">Find a restaurant</button><button data-action="locate">◎ Use my location</button></div></section>';return}
-  selected=r.id;const vv=visits(r.id);
+  selected=r.id;
+  if(r._shared){el.innerHTML=`<section class="detail-sheet sheet-compact sheet-shared">
+    <div class="handle" aria-hidden="true"></div>
+    <div class="sheet-head"><div class="info"><h2>${esc(r.name)}</h2><p class="sheet-sub"><span class="sheet-loc">${icon('pin')}</span>${distance(r)}${esc(r.address||'Pinned location')}</p>${tags(r)}</div>
+      <div class="sheet-tools"><a class="sheet-ic sheet-nav" href="${esc(navURL(r))}" target="_blank" rel="noopener" aria-label="Directions in Google Maps"><img src="assets/icon-go-meow.png?v=ui20261015dn" alt="" width="30" height="30" decoding="async"></a></div></div>
+    <p class="sheet-stats sheet-from"><span class="sh-dot" aria-hidden="true"></span> from @${esc(r._owner)}’s wishlist</p>
+    <div class="sheet-actions"><button type="button" class="primary" data-shared-add="${esc(r.id)}">${icon('plus')} My wishlist</button></div>
+  </section>`;
+    bindSheetDismiss(el.querySelector('.detail-sheet'),()=>{selected=null;updateMarkerIcons();renderSheet();enhanceIcons()});return}
+  const vv=visits(r.id);
   const pr=personalRating(r);
   el.innerHTML=`<section class="detail-sheet sheet-compact">
     <div class="handle" aria-hidden="true"></div>
@@ -852,7 +910,7 @@ function dismissSearchSheet(){
   const sheet=$('#sheet');if(sheet)renderSheet();
   syncHideVisitedChip();
 }
-// ui20261015dy: one shared animated sheet close (translateY + 220ms), used by drag, handle tap and Cancel
+// ui20261015dz: one shared animated sheet close (translateY + 220ms), used by drag, handle tap and Cancel
 function sheetCloseAnim(root,cb){if(!root){cb&&cb();return}if(root.dataset.closing)return;root.dataset.closing='1';root.style.transition='transform .22s ease,opacity .22s ease';requestAnimationFrame(()=>{root.style.transform=`translateY(${root.offsetHeight+40}px)`;root.style.opacity='0'});setTimeout(()=>{root.style.transition='';root.style.transform='';root.style.opacity='';delete root.dataset.closing;cb&&cb()},230)}
 function closePanelAnimated(){const inner=document.querySelector('#panel:not([hidden]) .panel-inner');if(!inner)return closePanel();sheetCloseAnim(inner,()=>{pendingVisit=false;closePanel()})}
 function sheetViewH(){const de=document.documentElement;if(de.classList.contains('shell-fit')){const v=parseFloat(getComputedStyle(de).getPropertyValue('--shell-h'));if(v>0)return v}return Math.round(window.visualViewport?.height||innerHeight)}
@@ -862,7 +920,7 @@ function bindSheetDismiss(root,onDismiss){
   root.dataset.dismissBound='1';
   const grips=[root.querySelector('.handle'),root.querySelector('.search-sheet-head,.sheet-head,.panel-head,.wl-ts-head')].filter(Boolean);
   if(!grips.length)return;
-  // ui20261015dy: 1:1 drag. Up (if natural < 50% of visible height) grows the sheet to ≤50%, snaps natural|50% on release.
+  // ui20261015dz: 1:1 drag. Up (if natural < 50% of visible height) grows the sheet to ≤50%, snaps natural|50% on release.
   // Down from expanded → natural; further down translates; close if translate >60px or flick >0.4px/ms; no tap-to-close.
   let startY=0,dy=0,dragging=false,pid=null,lastY=0,lastT=0,vel=0,nat=0,maxH=0,base=0,curH=0;
   const setH=h=>{if(h>nat+0.5){root.style.setProperty('--sx-h',h+'px');root.classList.add('sheet-expanded')}else{root.style.removeProperty('--sx-h');root.classList.remove('sheet-expanded')}curH=Math.max(h,nat)};
@@ -935,7 +993,7 @@ function placeHitHtml(f,i){
   const p=f.properties,dist=hitDistanceLabel(f),addr=placeAddress(p);
   const meta=`${dist?`<span class="hit-dist">${esc(dist)}</span>${addr?' · ':''}`:''}${esc(addr)}`;
   const wished=!!matchRestaurantByDraft(draftFromSearchFeature(f))?.wish;
-  return `<article class="place-hit" data-hit="${i}" data-hit-focus="${i}" role="button" tabindex="0"><div class="place-hit-info"><div class="place-hit-title"><button type="button" class="hit-icon hit-wish-lead${wished?' wish-on':''}" data-result-wish="${i}" aria-label="${wished?'Saved to wishlist':'Save to wishlist'}" title="${wished?'Saved':'Wishlist'}"><img src="${wished?HEART_ON:HEART_OFF}" alt="" width="26" height="26" decoding="async"></button><b>${esc(p.name||p.street||'Place')}</b><div class="place-hit-actions"><a class="hit-go" href="${esc(navURL(draftFromSearchFeature(f)))}" target="_blank" rel="noopener" aria-label="Directions to ${esc(p.name||'place')} in Google Maps"><img src="assets/icon-go-meow.png?v=ui20261015dn" alt="" width="26" height="26" decoding="async"></a><button type="button" class="hit-icon" data-result-add="${i}" aria-label="Add restaurant" title="Add"><img src="assets/icon-add-meow.png?v=ui20261015dy" alt="" width="26" height="26" decoding="async"></button></div></div><small>${meta}</small></div></article>`;
+  return `<article class="place-hit" data-hit="${i}" data-hit-focus="${i}" role="button" tabindex="0"><div class="place-hit-info"><div class="place-hit-title"><button type="button" class="hit-icon hit-wish-lead${wished?' wish-on':''}" data-result-wish="${i}" aria-label="${wished?'Saved to wishlist':'Save to wishlist'}" title="${wished?'Saved':'Wishlist'}"><img src="${wished?HEART_ON:HEART_OFF}" alt="" width="26" height="26" decoding="async"></button><b>${esc(p.name||p.street||'Place')}</b><div class="place-hit-actions"><a class="hit-go" href="${esc(navURL(draftFromSearchFeature(f)))}" target="_blank" rel="noopener" aria-label="Directions to ${esc(p.name||'place')} in Google Maps"><img src="assets/icon-go-meow.png?v=ui20261015dn" alt="" width="26" height="26" decoding="async"></a><button type="button" class="hit-icon" data-result-add="${i}" aria-label="Add restaurant" title="Add"><img src="assets/icon-add-meow.png?v=ui20261015dz" alt="" width="26" height="26" decoding="async"></button></div></div><small>${meta}</small></div></article>`;
 }
 function renderPlaceHits(output,features,opts={}){
   searchResults=(features||[]).filter(validPlace);
@@ -961,7 +1019,7 @@ function renderPlaceHits(output,features,opts={}){
     if(row){
       const rh=row.getBoundingClientRect().height||48;
       hits.style.setProperty('--place-hit-h',rh+'px');
-      hits.style.maxHeight='';output.style.maxHeight=Math.round(rh*3.5)+'px'; // ui20261015dy: rows + Can't find it scroll together
+      hits.style.maxHeight='';output.style.maxHeight=Math.round(rh*3.5)+'px'; // ui20261015dz: rows + Can't find it scroll together
     }
     output.classList.toggle('can-scroll',output.scrollHeight>output.clientHeight+4);
   });
@@ -1024,7 +1082,7 @@ async function fetchPlaceFeaturesLive(q,center,signal){
     return data.features.filter(validPlace).filter(isFoodFeature);
   }
 }
-// ui20261015dy: partial-name rescue. Only when Mapbox /forward has no name match: Mapbox /suggest (+/retrieve for matching names) and Photon,
+// ui20261015dz: partial-name rescue. Only when Mapbox /forward has no name match: Mapbox /suggest (+/retrieve for matching names) and Photon,
 // 3s timeout each, appended after first results (never blocks them). Overpass name-regex skipped: mirrors too slow/unreliable for 3s.
 function normName(x){return String(x||'').toLowerCase().normalize('NFKD').replace(/[\u0300-\u036f]/g,'').replace(/[^\p{L}\p{N}]+/gu,' ').trim()}
 function nameMatchRank(name,q){const n=normName(name),t=normName(q);if(!n||!t)return 3;if(n===t)return 0;if(n.startsWith(t))return 1;if(n.includes(t))return 2;return 3}
@@ -1253,17 +1311,17 @@ function avatarHtml(){const p=state.avatar;return (typeof p==='string'&&/^data:i
 function renderAvatar(){const b=document.querySelector('header .avatar');if(b)b.innerHTML=avatarHtml()}
 async function avatarImage(file){if(!/^image\/(jpeg|png|webp)$/.test(file.type)||file.size>15000000)throw Error('Choose a JPG, PNG, or WebP under 15 MB.');const bmp=await createImageBitmap(file),s=Math.min(bmp.width,bmp.height),c=document.createElement('canvas');c.width=c.height=192;c.getContext('2d').drawImage(bmp,(bmp.width-s)/2,(bmp.height-s)/2,s,s,0,0,192,192);bmp.close();return c.toDataURL('image/jpeg',.8)}
 function profile(){
-  openPanel('Your profile',`<div class="profile-panel pf-lite"><div class="pf-head"><button type="button" class="pf-av" data-action="avatar-upload" aria-label="Change photo">${avatarHtml()}<span class="pf-cam">✎</span></button><div class="pf-id"><b>${esc(String(USER||state.profile||'You'))}</b><small>🐾 ${hexAreaCount()} area${hexAreaCount()===1?'':'s'} conquered</small></div><button type="button" class="hex-switch${hexOn?' on':''}" role="switch" aria-checked="${hexOn}" aria-label="Show conquered areas on map" data-action="hex-toggle"><svg class="hex-ic" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 2.8 20 7.4v9.2L12 21.2 4 16.6V7.4z" fill="currentColor" fill-opacity=".25" stroke="currentColor" stroke-width="2" stroke-linejoin="round"/></svg><span class="hex-track"><span class="hex-knob"></span></span></button></div><input type="file" id="avatar-file" accept="image/jpeg,image/png,image/webp" hidden><p class="pf-lock">🔒 Your journal is encrypted on this device. Keep your password safe; we can’t recover it.</p><div class="pf-actions"><button data-action="export">↓ Export</button><button data-action="import">↑ Import</button><button data-action="logout" class="danger">Log out</button></div><input type="file" id="import-file" accept="application/json,.json" hidden><details class="pf-more"><summary>More</summary><p class="pf-stats">${state.restaurants.length} places · ${state.visits.length} visits · ${state.restaurants.filter(r=>r.wish).length} to try</p>${state.avatar?'<button data-action="avatar-letter">Use initial instead of photo</button>':''}</details></div>`,{cls:'entry-panel profile-sheet'});
+  openPanel('Your profile',`<div class="profile-panel pf-lite"><div class="pf-head"><button type="button" class="pf-av" data-action="avatar-upload" aria-label="Change photo">${avatarHtml()}<span class="pf-cam">✎</span></button><div class="pf-id"><b>${esc(String(USER||state.profile||'You'))}</b><small>🐾 ${hexAreaCount()} area${hexAreaCount()===1?'':'s'} conquered</small></div><button type="button" class="hex-switch${hexOn?' on':''}" role="switch" aria-checked="${hexOn}" aria-label="Show conquered areas on map" data-action="hex-toggle"><svg class="hex-ic" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 2.8 20 7.4v9.2L12 21.2 4 16.6V7.4z" fill="currentColor" fill-opacity=".25" stroke="currentColor" stroke-width="2" stroke-linejoin="round"/></svg><span class="hex-track"><span class="hex-knob"></span></span></button></div><input type="file" id="avatar-file" accept="image/jpeg,image/png,image/webp" hidden><p class="pf-lock">🔒 Your journal is encrypted on this device. Keep your password safe; we can’t recover it.</p><button type="button" class="pf-share" data-action="share-panel"><span class="sh-dot" aria-hidden="true"></span><span>Share wishlist</span><small>${(state.share?.to||[]).length?`${(state.share.to.length)} ${state.share.to.length===1?'person':'people'}`:''}</small><b aria-hidden="true">›</b></button><div class="pf-actions"><button data-action="export">↓ Export</button><button data-action="import">↑ Import</button><button data-action="logout" class="danger">Log out</button></div><input type="file" id="import-file" accept="application/json,.json" hidden><details class="pf-more"><summary>More</summary><p class="pf-stats">${state.restaurants.length} places · ${state.visits.length} visits · ${state.restaurants.filter(r=>r.wish).length} to try</p>${state.avatar?'<button data-action="avatar-letter">Use initial instead of photo</button>':''}</details></div>`,{cls:'entry-panel profile-sheet'});
   $('#import-file').onchange=importBackup;
   $('#avatar-file').onchange=async e=>{const f=e.target.files[0];if(!f)return;try{const url=await avatarImage(f);if(commit(()=>{state.avatar=url})){renderAvatar();profile();toast('Profile photo updated')}}catch(err){toast(err.message||'Could not use that image')}};
 }
 function downloadJson(text,name){const url=URL.createObjectURL(new Blob([text],{type:'application/json'}));const a=document.createElement('a');a.href=url;a.download=name;a.click();setTimeout(()=>URL.revokeObjectURL(url),1000)}
-function exportBackup(){downloadJson(JSON.stringify(state,null,2),`meowsto-${today()}.json`);toast('Backup exported')}
-async function importBackup(e){const file=e.target.files[0];if(!file)return;try{if(file.size>15000000)throw Error();let d=JSON.parse(await file.text());if(!validBackup(d))throw Error();d=removeLegacySamples(d);openPanel('Replace your journal?',`<p>This backup contains ${d.restaurants.length} restaurants and ${d.visits.length} visits. Importing replaces your cloud journal.</p><div class="form-actions"><button data-action="export">Export current</button><button class="primary" id="confirm-import">Replace journal</button></div>`,{full:true});$('#confirm-import').onclick=()=>{if(!commit(()=>{state=RL.migrate(d)}))return;selected=state.restaurants[0]?.id;closePanel();render();toast('Journal imported')}}catch{toast('Not a valid Meowsto backup.')}}
+function exportBackup(){const{share,...plain}=state;downloadJson(JSON.stringify(plain,null,2),`meowsto-${today()}.json`);toast('Backup exported')}
+async function importBackup(e){const file=e.target.files[0];if(!file)return;try{if(file.size>15000000)throw Error();let d=JSON.parse(await file.text());if(!validBackup(d))throw Error();d=removeLegacySamples(d);openPanel('Replace your journal?',`<p>This backup contains ${d.restaurants.length} restaurants and ${d.visits.length} visits. Importing replaces your cloud journal.</p><div class="form-actions"><button data-action="export">Export current</button><button class="primary" id="confirm-import">Replace journal</button></div>`,{full:true});$('#confirm-import').onclick=()=>{const keepShare=state.share;if(!commit(()=>{state=RL.migrate(d);if(keepShare)state.share=keepShare;else delete state.share}))return;selected=state.restaurants[0]?.id;closePanel();render();toast('Journal imported')}}catch{toast('Not a valid Meowsto backup.')}}
 function confirmSheet(title,message,okLabel,onOk){openPanel(title,`<p class="cf-msg">${message}</p><div class="cf-row"><button type="button" class="secondary" data-action="close-panel">Cancel</button><button type="button" class="danger cf-ok" id="confirm-action">${esc(okLabel||'Confirm')}</button></div>`,{cls:'confirm-sheet'});$('#confirm-action').onclick=onOk}
 function confirmAction(title,message,fn,okLabel='Delete'){confirmSheet(title,message,okLabel,()=>{if(!commit(fn))return;closePanel();render();toast('Done')})}
 function locateGeoError(err){const c=err&&err.code;if(c===1)return toast('Location permission denied. Allow location for this site in browser settings.');if(c===2)return toast('Location unavailable. Check GPS/network and try again.');if(c===3)return toast('Location timed out. Try again.');toast('Location unavailable or denied.')}
-// ui20261015dy: Near me → centre on user (z15) then the same one-shot Explore pipeline around that view
+// ui20261015dz: Near me → centre on user (z15) then the same one-shot Explore pipeline around that view
 function applyUserLocation(lat,lng){userLocation=[lat,lng];mapCenter=userLocation;mapZoom=15;if(tab!=='map'){tab='map';render()}if(map){map.setView(userLocation,15,{animate:false});mapZoom=15;if(selected){selected=null;updateMarkerIcons();renderSheet()}startExplore()}}
 let locateSeq=0;
 function locate(){if(typeof window!=='undefined'&&window.isSecureContext===false)return toast('Location needs HTTPS — open the live Meowsto site.');if(!navigator.geolocation)return toast('Location unavailable on this browser.');const seq=++locateSeq;toast('Finding your location…');const onOk=p=>{if(seq!==locateSeq)return;const lat=p.coords.latitude,lng=p.coords.longitude;if(!Number.isFinite(lat)||!Number.isFinite(lng))return toast('Location unavailable.');applyUserLocation(lat,lng)};const hi={enableHighAccuracy:true,timeout:12000,maximumAge:60000};const lo={enableHighAccuracy:false,timeout:20000,maximumAge:300000};navigator.geolocation.getCurrentPosition(onOk,err=>{if(err&&(err.code===2||err.code===3))navigator.geolocation.getCurrentPosition(onOk,locateGeoError,lo);else locateGeoError(err)},hi)}
@@ -1283,7 +1341,7 @@ document.addEventListener('change',e=>{
 let wlTagScrollAt=0;document.addEventListener('scroll',e=>{if(e.target.classList?.contains('wl-tags')||e.target.classList?.contains('tl-tags'))wlTagScrollAt=Date.now()},true);
 document.addEventListener('click',e=>{
   if(Date.now()-wlTagScrollAt<350&&e.target.closest?.('.wl-tags,.tl-tags')){e.preventDefault();e.stopPropagation();return}
-  if(e.target.closest('a.hit-go,a.sheet-nav'))return; // ui20261015dy: directions links open externally, never select the row
+  if(e.target.closest('a.hit-go,a.sheet-nav'))return; // ui20261015dz: directions links open externally, never select the row
   const b=e.target.closest('button,[data-detail],[data-visit-toggle],[data-latest-toggle],[data-hit-focus],[data-wl-open]');if(!b)return;const d=b.dataset;
   if(d.page==='prev'){listPage=Math.max(0,listPage-1);if(tab==='wishlist'){renderWishlist();enhanceIcons()}return}
   if(d.page==='next'){listPage++;if(tab==='wishlist'){renderWishlist();enhanceIcons()}return}
@@ -1297,6 +1355,8 @@ document.addEventListener('click',e=>{
   if(d.map){const r=rest(d.map);selected=r.id;mapCenter=[r.lat,r.lng];mapZoom=16;if(map)map.setView(mapCenter,mapZoom);tab='map';closePanel();render();return}
   if(d.addvisit)return visitForm(d.addvisit);
   if(d.wlOpen){openOnMap(d.wlOpen);return}
+  if(d.sharedAdd){addSharedToWishlist(d.sharedAdd);return}
+  if(d.shareDel){shareRemove(d.shareDel);return}
   if(d.latestToggle){latestOpen=!latestOpen;if(tab==='timeline')renderTimeline();return}
   if(d.visitToggle){toggleTimelineVisit(d.visitToggle);return}
   if(d.visit)return visitDetail(d.visit);
@@ -1325,6 +1385,7 @@ document.addEventListener('click',e=>{
     case'locate':locate();break;
     case'profile':profile();break;
     case'hex-toggle':setHexOn(!hexOn);break;
+    case'share-panel':sharePanel();break;
     case'export':exportBackup();break;
     case'avatar-upload':$('#avatar-file')?.click();break;
     case'avatar-letter':if(commit(()=>{delete state.avatar}))profile(),renderAvatar();break;
@@ -1415,8 +1476,8 @@ fit();addEventListener('resize',fit);addEventListener('orientationchange',()=>se
 // ui20261015ck: compact Wishlist cards, single scrollable tag row.
 // ui20261015cj: removed zoom-in gate from runMapPlaceSearch; search works at any zoom.
 
-// ui20261015dy: temporary tap debug overlay, only with ?debugtap=1
+// ui20261015dz: temporary tap debug overlay, only with ?debugtap=1
 (function(){if(!/[?&]debugtap=1\b/.test(location.search))return;const box=document.createElement('div');box.id='debugtap';box.style.cssText='position:fixed;left:6px;right:6px;bottom:calc(6px + env(safe-area-inset-bottom,0px));z-index:2147483646;background:rgba(20,20,20,.82);color:#fff;font:11px/1.35 ui-monospace,Menlo,monospace;padding:6px 8px;border-radius:8px;pointer-events:none;white-space:pre-wrap;word-break:break-all';const pr=document.createElement('div');pr.style.cssText='position:fixed;top:env(safe-area-inset-top,0px);height:1px;width:1px;visibility:hidden';document.documentElement.appendChild(pr);const dot=document.createElement('div');dot.style.cssText='position:fixed;width:14px;height:14px;margin:-7px 0 0 -7px;border-radius:50%;background:#f00a;z-index:2147483646;pointer-events:none;display:none';const d=e=>e?e.tagName.toLowerCase()+(e.id?'#'+e.id:'')+(typeof e.className==='string'&&e.className.trim()?'.'+e.className.trim().split(/\s+/).slice(0,3).join('.'):''):'-';let last='(tap anywhere)';function info(){const vv=window.visualViewport,de=document.documentElement,app=document.querySelector('.app');return 'tap: '+last+'\ninnerH '+innerHeight+' vvH '+(vv?Math.round(vv.height)+' vvTop '+Math.round(vv.offsetTop):'-')+' screenH '+screen.height+'\n--shell-h '+(getComputedStyle(de).getPropertyValue('--shell-h').trim()||'-')+' shell-fit '+de.classList.contains('shell-fit')+' safeTop '+Math.round(pr.getBoundingClientRect().top)+'\napp '+(app?Math.round(app.getBoundingClientRect().top)+'..'+Math.round(app.getBoundingClientRect().bottom)+' scrollTop '+app.scrollTop:'-')+' bodyScroll '+document.body.scrollTop+' winY '+scrollY}function up(){box.textContent=info()}addEventListener('pointerdown',e=>{const t=document.elementFromPoint(e.clientX,e.clientY);const btn=t&&t.closest('button,a,[data-tab]');last=Math.round(e.clientX)+','+Math.round(e.clientY)+' '+d(t)+(btn&&btn!==t?' < '+d(btn):'');dot.style.left=e.clientX+'px';dot.style.top=e.clientY+'px';dot.style.display='block';up()},true);addEventListener('resize',up);if(window.visualViewport)visualViewport.addEventListener('resize',up);function mount(){document.body.appendChild(box);document.body.appendChild(dot);up()}document.body?mount():addEventListener('DOMContentLoaded',mount)})();
 
-// ui20261015dy: panel sheet drag/handle close
+// ui20261015dz: panel sheet drag/handle close
 (function(){const go=()=>{const i=document.querySelector('#panel .panel-inner');if(i)bindSheetDismiss(i,()=>{pendingVisit=false;closePanel()})};document.readyState==='loading'?addEventListener('DOMContentLoaded',go):go()})();
