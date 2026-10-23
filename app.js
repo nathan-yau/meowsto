@@ -879,9 +879,29 @@ function visitExpandHtml(v){
 }
 function toggleTimelineVisit(id){
   expandedVisitId=expandedVisitId===id?null:id;
-  // re-render list in place when possible
-  if(tab==='timeline')renderTimeline();
+  if(tab==='timeline')tlPatch(expandedVisitId);
 }
+// ui20261015eg: toggling a visit patches only the affected cards (no #main innerHTML → .timeline-list keeps its scrollTop on iOS); opened card is nudged into view (nearest), never back to top
+function tlPatch(focusId,latest){
+  const main=document.getElementById('main'),L=main&&main.querySelector('.timeline-list');
+  if(!L){renderTimeline();return}
+  const st=L.scrollTop,ae=document.activeElement,newest=[...state.visits].sort((a,b)=>(b.date+b.time).localeCompare(a.date+a.time)),lv=newest[0];
+  let opened=null,fk=null;
+  const swap=(el,v,open,cls,attr)=>{if(!el||!v)return el;if(el.classList.contains('expanded')===open)return el;const t=document.createElement('div');t.innerHTML=tlCardHtml(v,open,cls,attr);const n=t.firstElementChild;const had=ae&&(ae===el||el.contains(ae));el.replaceWith(n);if(had)fk=n;if(open)opened=n;return n};
+  L.querySelectorAll('.tl-card[data-visit-toggle]').forEach(c=>{const id=c.dataset.visitToggle,v=state.visits.find(x=>x.id===id);swap(c,v,expandedVisitId===id,'',`data-visit-toggle="${id}"`)});
+  const lc=main.querySelector('.tl-latest-wrap [data-latest-toggle]');if(lc&&lv){const n=swap(lc,lv,latestOpen,'tl-card-latest','data-latest-toggle="1"');if(!latest&&opened===n)opened=null}
+  const exp=expandedVisitId&&state.visits.find(v=>v.id===expandedVisitId),selDate=(exp||lv)?.date;
+  main.querySelectorAll('.tl-dates .tl-day').forEach(b=>{const v=state.visits.find(x=>x.id===b.dataset.visitToggle);b.classList.toggle('sel',!!v&&v.date===selDate)});
+  if(L.scrollTop!==st)L.scrollTop=st;
+  if(fk)fk.focus({preventScroll:true});
+  if(opened)requestAnimationFrame(()=>tlKeepInView(opened));
+}
+function tlKeepInView(card){if(!card||!card.isConnected)return;const L=card.closest('.timeline-list');
+  if(!L)return
+  const lr=L.getBoundingClientRect(),cr=card.getBoundingClientRect(),nav=document.querySelector('nav.tabs')?.getBoundingClientRect();
+  const top=lr.top+8,bot=Math.min(lr.bottom,nav&&nav.top>lr.top?nav.top:innerHeight)-8;let d=0;
+  if(cr.top<top)d=cr.top-top;else if(cr.bottom>bot)d=Math.min(cr.bottom-bot,cr.top-top);
+  if(Math.abs(d)>1)L.scrollBy({top:d,behavior:'smooth'})}
 function visitDetail(id){const v=state.visits.find(v=>v.id===id);if(!v)return;openPanel(rest(v.restaurantId)?.name||'Visit',`<div class="form-scroll"><p>${v.date} · ${esc(v.time)} · ${esc(v.meal)}</p>${v.rating?`<p class="rating"><span class="star">★</span> ${v.rating}</p>`:''}<p>${esc(v.note)}</p><div class="photos">${(v.photos||[]).map(p=>`<img src="${p}" alt="Food from this visit">`).join('')}</div><div class="form-actions"><button data-editvisit="${id}">Edit Visit</button><button class="danger" data-deletevisit="${id}">Delete Visit</button></div></div>`,{full:true,cls:'entry-panel'})}
 
 let activeSearch=null, searchGeneration=0, autocompleteTimer=null, lastSearchAt=0, placePreviewMap=null, searchResultPage=0;
@@ -1470,7 +1490,7 @@ document.addEventListener('click',e=>{
   if(d.wlView){wlMiniDestroy();wlExpanded=null;openOnMap(d.wlView);return}
   if(d.sharedAdd){addSharedToWishlist(d.sharedAdd);return}
   if(d.shareDel){shareRemove(d.shareDel);return}
-  if(d.latestToggle){latestOpen=!latestOpen;if(tab==='timeline')renderTimeline();return}
+  if(d.latestToggle){latestOpen=!latestOpen;if(tab==='timeline')tlPatch(null,true);return}
   if(d.visitToggle){toggleTimelineVisit(d.visitToggle);return}
   if(d.visit)return visitDetail(d.visit);
   if(d.editvisit)return visitForm(null,d.editvisit);
