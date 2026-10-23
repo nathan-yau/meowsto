@@ -623,3 +623,26 @@ html body .sheet-expanded>.handle,html body .sheet-expanded>.search-sheet-head,h
 .sheet-from{flex-wrap:nowrap;min-width:0}.sheet-from .sf-txt{min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
 .sheet-from .wl-gooo{margin-left:4px}
 .sheet-also{display:flex;align-items:center;gap:6px;color:#5b45a8;font-weight:700}.sheet-also .wl-gooo{margin-left:0}
+/* ui20261015eb: Wishlist card → inline mini map */
+.wl-card.wl-open{border-color:#e0d3b8;box-shadow:0 3px 0 #38271f12}
+.wl-card.wl-shared.wl-open{border-color:#a891ea}
+.wl-x{grid-column:1/-1;grid-row:3;margin:8px 0 2px;min-width:0;animation:wlxIn .18s ease-out}
+@keyframes wlxIn{from{opacity:0;transform:translateY(-4px)}to{opacity:1;transform:none}}
+@media (prefers-reduced-motion:reduce){.wl-x{animation:none}}
+.wl-mini{position:relative;height:150px;border-radius:12px;overflow:hidden;border:1.5px solid #ebe4d3;background:#eef0e4;isolation:isolate}
+.wl-shared .wl-mini{border-color:#dcd0f7;background:#f1eefb}
+.wl-mini-map{position:absolute;inset:0;z-index:0;pointer-events:none}
+.wl-mini-map .leaflet-control-container{display:none}
+.wl-mini-none{display:grid;place-items:center;height:72px}
+.wl-mini-none p{margin:0;font:700 13px Nunito,sans-serif;color:#81796e}
+.wl-mini-status{position:absolute;inset:auto 8px 8px 8px;z-index:2;padding:6px 10px;border-radius:10px;background:#fffdf6e6;font:600 11.5px/1.3 Nunito,sans-serif;color:#81796e}
+.wl-mini-status p{margin:0}.wl-mini-status div{display:none}
+.wl-go{position:absolute;right:8px;bottom:8px;z-index:3;width:40px;height:40px;display:grid;place-items:center;border-radius:50%;background:#fffdf6;border:1.5px solid #e3dccd;box-shadow:0 2px 0 #38271f14}
+.wl-go img{width:30px;height:30px;object-fit:contain}
+.wl-go:active{transform:scale(.94)}
+.wl-mini-none .wl-go{top:50%;bottom:auto;transform:translateY(-50%)}
+.wl-x-actions{display:flex;align-items:center;justify-content:space-between;gap:8px;margin-top:6px}
+.wl-x-btn{height:32px!important;min-height:32px!important;padding:0 12px!important;border-radius:999px!important;font:800 13px Nunito,sans-serif!important;box-shadow:none!important;width:auto!important}
+.wl-x-view{background:none!important;border:0!important;color:#5b8a63!important;padding-left:2px!important}
+.wl-x-add{background:#8a6fdc!important;border:1.5px solid #8a6fdc!important;color:#fff!important}
+.wl-card:focus{outline:none}.wl-card:focus-visible{outline:2.5px solid #5b8a63;outline-offset:2px}
