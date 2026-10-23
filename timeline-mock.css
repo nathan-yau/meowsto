@@ -646,3 +646,5 @@ html body .sheet-expanded>.handle,html body .sheet-expanded>.search-sheet-head,h
 .wl-x-view{background:none!important;border:0!important;color:#5b8a63!important;padding-left:2px!important}
 .wl-x-add{background:#8a6fdc!important;border:1.5px solid #8a6fdc!important;color:#fff!important}
 .wl-card:focus{outline:none}.wl-card:focus-visible{outline:2.5px solid #5b8a63;outline-offset:2px}
+/* ui20261015ec: address line on wishlist cards */
+.wl-addr{margin:1px 0 0;font:600 11.5px/1.25 Nunito,sans-serif;color:#9a9186;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;min-width:0;max-width:100%}
