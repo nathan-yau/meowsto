@@ -48,7 +48,7 @@ async function doRegister(u,p,code){const name=RL.normUser(u),salt=RL.newSalt();
   if(j.username!==USER)resetShareCache();USER=j.username;TOK=j.token;SALT=salt;PASS=await toKey(p,SALT);REFRESH=j.refresh||null;localStorage.setItem('rl.lastUser',USER);await keep();localStorage.removeItem(K('env'));
   state=db;dirty=true;await loadData()}
 let refreshP=null;
-// ui20261015ee: single-flight — refresh tokens rotate, so two parallel refreshes (save + shared poll) used to burn the session
+// ui20261015ef: single-flight — refresh tokens rotate, so two parallel refreshes (save + shared poll) used to burn the session
 function tryRefresh(){return refreshP||(refreshP=tryRefresh1().finally(()=>{refreshP=null}))}
 async function tryRefresh1(){if(!REFRESH)return false;const j=await api('refresh','POST',{refresh:REFRESH},true);if(j._s!==200){if(j._s===401){REFRESH=null;await vault('del');return false}return 'off'}TOK=j.token;REFRESH=j.refresh;await keep();return true}
 function expired(){TOK=null;PASS=null;$('#un').value=USER||localStorage.getItem('rl.lastUser')||'';document.body.classList.add('locked');$('#app').hidden=true;lockMsg('Session expired — please log in again (unsynced changes are still on this device)',true)}
@@ -67,19 +67,19 @@ async function loadData(){let cached=localStorage.getItem(K('env')),local=null;
 async function save(){if(!TOK)return false;if(saving){clearTimeout(tmr);tmr=setTimeout(save,800);return}saving=true;
   try{const u0=state.u,env=await RL.encrypt(state,PASS,SALT);cacheEnv(env);
     for(let i=0;i<4;i++){const j=await api('data','PUT',{env,etag:ETAG});
-      if(j._s===200){ETAG=j.etag;cacheEnv(env,ETAG);if(state.u===u0){dirty=false;localStorage.removeItem(K('dirty'))}else{clearTimeout(tmr);tmr=setTimeout(save,400)}/* ui20261015ee: edits made while this PUT was in flight stay dirty */sync('Synced ✓ '+RL.hm(Date.now()));return true}
+      if(j._s===200){ETAG=j.etag;cacheEnv(env,ETAG);if(state.u===u0){dirty=false;localStorage.removeItem(K('dirty'))}else{clearTimeout(tmr);tmr=setTimeout(save,400)}/* ui20261015ef: edits made while this PUT was in flight stay dirty */sync('Synced ✓ '+RL.hm(Date.now()));return true}
       if(j._s===409&&j.env){state=RL.merge(state,await RL.decrypt(j.env,PASS));ETAG=j.etag;const env2=await RL.encrypt(state,PASS,SALT);cacheEnv(env2);refreshAfterSync();continue}
       if(j._s===401){const tr=await tryRefresh();if(tr===true)continue;if(tr==='off'){sync('Can’t sync right now — saved on this device');return false}expired();return false}
       sync('Can’t sync right now — saved on this device');return false}
     sync('Can’t sync right now — saved on this device');return false}
   catch(e){sync('Can’t sync right now — saved on this device');return false}finally{saving=false}}
 function markDirty(){state.u=Date.now();dirty=true;localStorage.setItem(K('dirty'),'1');clearTimeout(tmr);tmr=setTimeout(save,1200);sync('Saving…');scheduleShare()}
-/* ---------- ui20261015ee: shared wishlists (read-only, E2E; see SHARING.md) ---------- */
+/* ---------- ui20261015ef: shared wishlists (read-only, E2E; see SHARING.md) ---------- */
 let sharedPlaces=[],sharedOwners=[],sharedLoaded=false,shareTimer=null,shareRun=null,shareInitOn=false;
-// ui20261015ee: live shared wishlists — poll state (visible-only), raw-response key (skip decrypt when unchanged), retry flag for failed publishes
+// ui20261015ef: live shared wishlists — poll state (visible-only), raw-response key (skip decrypt when unchanged), retry flag for failed publishes
 let sharedRawKey='',sharedViewStale=false,sharePollT=null,sharePollBusy=false,sharePollLast=0,shareRetry=false;
-// ui20261015ee: switching account without a reload (session expired → log in as someone else) must not show the previous user's friends
-function resetShareCache(){sharedPlaces=[];sharedOwners=[];sharedLoaded=false;clearTimeout(shareTimer);shareTimer=null;shareGen++;sharedRawKey='';sharedViewStale=false;sharePollLast=0;clearTimeout(sharePollT);sharePollT=null;shareRetry=false;wlExpanded=null;wishKeep=new Set();if(selected&&String(selected).startsWith('sh-'))selected=null}
+// ui20261015ef: switching account without a reload (session expired → log in as someone else) must not show the previous user's friends
+function resetShareCache(){sharedPlaces=[];sharedOwners=[];sharedLoaded=false;clearTimeout(shareTimer);shareTimer=null;shareGen++;sharedRawKey='';sharedViewStale=false;wlSyncTried=false;if(wlSync){wlSync=null;document.getElementById('wl-sync')?.remove()}sharePollLast=0;clearTimeout(sharePollT);sharePollT=null;shareRetry=false;wlExpanded=null;wishKeep=new Set();if(selected&&String(selected).startsWith('sh-'))selected=null}
 let shareGen=0;
 async function authed(path,method,body){let j=await api(path,method,body);if(j._s===401&&await tryRefresh()===true)j=await api(path,method,body);return j}
 async function shaHex(str){const b=await crypto.subtle.digest('SHA-256',new TextEncoder().encode(str));return [...new Uint8Array(b)].map(x=>x.toString(16).padStart(2,'0')).join('').slice(0,32)}
@@ -89,11 +89,11 @@ async function shareInit(){if(shareInitOn||!TOK||!state)return;shareInitOn=true;
     const pub=state.share.keys.pub,th=pub.x+'.'+pub.y;
     if(localStorage.getItem(K('shpub'))!==th){const j=await authed('pubkey','PUT',{jwk:pub});if(j._s===200)localStorage.setItem(K('shpub'),th)}
     await loadShared();sharePollLast=Date.now();scheduleShare(300)}
-  catch(e){console.warn('share init',e)}finally{shareInitOn=false;sharePollArm()}}
+  catch(e){console.warn('share init',e)}finally{shareInitOn=false;sharePollArm();if(wlSync?.phase==='run'&&!sharedLoaded)wlSyncEnd('err')}}
 function scheduleShare(ms){if(!state?.share?.keys||!TOK)return;clearTimeout(shareTimer);shareTimer=setTimeout(()=>{queueShare(false)},ms??2500)}
-// ui20261015ee: every publish (debounced or forced from the panel) runs in one queue, so an older PUT can't land after a removal and re-grant access
+// ui20261015ef: every publish (debounced or forced from the panel) runs in one queue, so an older PUT can't land after a removal and re-grant access
 function queueShare(force){const run=(shareRun||Promise.resolve()).catch(()=>{}).then(()=>publishShare(force)).catch(e=>{console.warn('share publish',e);return false}).then(ok=>{shareRetry=!ok;if(ok&&Object.values(shareRows).includes('retry')){for(const k in shareRows)if(shareRows[k]==='retry')delete shareRows[k];sharePanelPatch()}return ok});shareRun=run;return run}
-// ui20261015ee: a pending debounced publish is flushed when the app is backgrounded (iOS may freeze timers), failed publishes retry on 'online' / next poll
+// ui20261015ef: a pending debounced publish is flushed when the app is backgrounded (iOS may freeze timers), failed publishes retry on 'online' / next poll
 function shareFlush(){if(shareTimer){clearTimeout(shareTimer);shareTimer=null;queueShare(false)}}
 async function publishShare(force){const sh=state.share;if(!TOK||!sh?.keys)return false;const to=Array.isArray(sh.to)?sh.to:[];
   if(!to.length){if(localStorage.getItem(K('shhash'))==='none')return true;const j=await authed('share','DELETE');if(j._s===200){localStorage.setItem(K('shhash'),'none');return true}return false}
@@ -104,25 +104,57 @@ async function publishShare(force){const sh=state.share;if(!TOK||!sh?.keys)retur
   const j=await authed('share','PUT',sealed);if(j._s===200){localStorage.setItem(K('shhash'),h);return true}return false}
 function shareDup(a,b){if(a.sourceId&&b.sourceId&&a.sourceId===b.sourceId)return true;if(!Number.isFinite(a.lat)||!Number.isFinite(b.lat))return false;const na=normName(a.name),nb=normName(b.name);if(!na||na!==nb)return false;const dy=(a.lat-b.lat)*111e3,dx=(a.lng-b.lng)*111e3*Math.cos(a.lat*Math.PI/180);return Math.hypot(dx,dy)<=90}
 // shared places not already in my own journal (any of my restaurants, visited or wishlist)
-// ui20261015ee: an own place I un-saved (wish off, never visited) no longer hides the friend's card — it reappears once the list re-opens
+// ui20261015ef: an own place I un-saved (wish off, never visited) no longer hides the friend's card — it reappears once the list re-opens
 function ownLive(r){return onMap(r)||(tab==='wishlist'&&wishKeep.has(r.id))}
 function sharedVisible(){if(!sharedPlaces.length)return [];const own=state.restaurants.filter(ownLive);return sharedPlaces.filter(p=>!own.some(r=>shareDup(p,r)))}
-// ui20261015ee: several friends wanting the same place → one card/pin 'from @a, @b'; 2+ people → 'time to gooo'
+// ui20261015ef: several friends wanting the same place → one card/pin 'from @a, @b'; 2+ people → 'time to gooo'
 function friendsFor(r){if(!r)return [];if(r._shared)return r._owners||[r._owner];const s=new Set();sharedPlaces.forEach(p=>{if(shareDup(p,r))(p._owners||[p._owner]).forEach(o=>s.add(o))});return [...s]}
 function ownersLabel(list){const a=(list||[]).map(o=>'@'+o);if(a.length<=1)return a[0]||'';if(a.length===2&&a.join(', ').length<=24)return a.join(', ');return a[0]+' +'+(a.length-1)}
 function gooo(r){if(!r)return false;return r._shared?friendsFor(r).length>=2:(!!r.wish&&friendsFor(r).length>=1)}
 const GOOO_HTML='<span class="wl-gooo" role="note" aria-label="Time to go — friends want this too"><span>time to gooo</span><span class="gooo-paw" aria-hidden="true">🐾</span></span>';
-async function loadShared(){if(!TOK||!state?.share?.keys?.priv)return;const g=shareGen,me=USER;const j=await authed('shared','GET');if(j._s!==200||g!==shareGen||me!==USER)return;
-  const raw=JSON.stringify((j.shares||[]).map(it=>[it.owner,it.u,it.iv,String(it.ct||'').length,it.wrap&&JSON.stringify(it.wrap).length])).slice(0,4e4);if(sharedLoaded&&raw===sharedRawKey){if(sharedViewStale)sharedRefreshView();return}
-  const out=[],owners=[];
-  for(const it of j.shares||[]){try{const ps=await RL.shareOpen(it,state.share.keys.priv,USER);owners.push({owner:it.owner,n:ps.length});
-      ps.forEach(p=>{const q={...p,id:'sh-'+it.owner+':'+p.id,_shared:true,_owner:it.owner,_owners:[it.owner],wish:true,note:'',rating:null,added:'',photos:[]};const o=out.find(o=>shareDup(o,q));if(!o)out.push(q);else if(!o._owners.includes(it.owner))o._owners.push(it.owner)})}
-    catch(e){owners.push({owner:it.owner,n:0,err:true})}}
-  if(g!==shareGen||me!==USER)return;const sig=a=>JSON.stringify(a.map(p=>[p.id,p.name,p.lat,p.lng,p.address,p.kind,p.cuisine,p.tags,p._owners]));const before=sig(sharedPlaces);sharedPlaces=out;sharedOwners=owners;const first=!sharedLoaded;sharedLoaded=true;
+async function loadShared(){if(!TOK||!state?.share?.keys?.priv)return;const g=shareGen,me=USER,initial=!sharedLoaded;if(initial)wlSyncStart();
+  let j;try{j=await authed('shared','GET')}catch(e){j={_s:0}}
+  if(g!==shareGen||me!==USER){wlSyncEnd('cancel');return}if(j._s!==200){if(initial)wlSyncEnd('err');return}
+  const list=Array.isArray(j.shares)?j.shares:[];
+  const raw=JSON.stringify(list.map(it=>[it.owner,it.u,it.iv,String(it.ct||'').length,it.wrap&&JSON.stringify(it.wrap).length])).slice(0,4e4);if(sharedLoaded&&raw===sharedRawKey){if(sharedViewStale)sharedRefreshView();return}
+  // ui20261015ef: every friend's share is decrypted in parallel (was one after another); merge order stays the server's order
+  if(initial)wlSyncProgress(0,list.length);let done=0;
+  const opened=await Promise.all(list.map(it=>RL.shareOpen(it,state.share.keys.priv,USER).then(ps=>({it,ps}),e=>({it,err:true})).finally(()=>{done++;if(initial)wlSyncProgress(done,list.length)})));
+  const out=[],owners=[],bySrc=new Map(),byName=new Map();
+  // bucketed dedupe (same sourceId, or same normalized name ≤90 m) — same result as scanning every earlier place, without the O(n²) scan
+  const find=q=>{const c=[];if(q.sourceId&&bySrc.has(q.sourceId))c.push(...bySrc.get(q.sourceId));const nn=normName(q.name);if(nn&&byName.has(nn))c.push(...byName.get(nn));let best=null;for(const o of c)if((best===null||o._i<best._i)&&shareDup(o,q))best=o;return best};
+  const add=q=>{q._i=out.length;out.push(q);if(q.sourceId){if(!bySrc.has(q.sourceId))bySrc.set(q.sourceId,[]);bySrc.get(q.sourceId).push(q)}const nn=normName(q.name);if(nn){if(!byName.has(nn))byName.set(nn,[]);byName.get(nn).push(q)}};
+  for(const {it,ps,err} of opened){if(err){owners.push({owner:it.owner,n:0,err:true});continue}owners.push({owner:it.owner,n:ps.length});
+    ps.forEach(p=>{const q={...p,id:'sh-'+it.owner+':'+p.id,_shared:true,_owner:it.owner,_owners:[it.owner],wish:true,note:'',rating:null,added:'',photos:[]};const o=find(q);if(!o)add(q);else if(!o._owners.includes(it.owner))o._owners.push(it.owner)})}
+  out.forEach(q=>{delete q._i});
+  if(g!==shareGen||me!==USER){wlSyncEnd('cancel');return}const sig=a=>JSON.stringify(a.map(p=>[p.id,p.name,p.lat,p.lng,p.address,p.kind,p.cuisine,p.tags,p._owners]));const before=sig(sharedPlaces);sharedPlaces=out;sharedOwners=owners;const first=!sharedLoaded;sharedLoaded=true;
+  try{localStorage.setItem(K('shn'),String(owners.length))}catch(e){}
   if(selected&&String(selected).startsWith('sh-')&&!rest(selected))selected=null;
   sharedRawKey=raw;sharePanelIn();
-  if(first||before!==sig(out))sharedRefreshView()}
-// ui20261015ee: re-render in place — keeps the open card (wlExpanded), list scroll and chip scroll; deferred while a panel/sheet covers the list
+  if(first||before!==sig(out))sharedRefreshView();if(initial)wlSyncEnd(owners.length?'ok':'none')}
+// ui20261015ef: Wishlist 'Syncing friends…' bar (Explore bar style) — only for the first load of friends' lists, never for background polls.
+// Skipped entirely when you share with nobody and nobody shared with you last time; always gone ≤0.6 s after the load ends; 20 s hard stop.
+let wlSync=null,wlSyncTried=false;
+function wlSyncHint(){try{return (state?.share?.to||[]).length>0||+(localStorage.getItem(K('shn'))||0)>0}catch(e){return false}}
+function wlSyncStart(){if(wlSync||wlSyncTried||!TOK||sharedLoaded||!wlSyncHint())return;wlSync={phase:'run',k:0,n:0,fresh:true};clearTimeout(wlSyncStart._t);wlSyncStart._t=setTimeout(()=>{if(wlSync?.phase==='run')wlSyncEnd('err')},20000);wlSyncPaint()}
+function wlSyncProgress(k,n){if(!wlSync){if(!n||wlSyncTried||!TOK)return;wlSync={phase:'run',k:0,n:0,fresh:true};clearTimeout(wlSyncStart._t);wlSyncStart._t=setTimeout(()=>{if(wlSync?.phase==='run')wlSyncEnd('err')},20000)}
+  if(wlSync.phase!=='run')return;wlSync.k=k;wlSync.n=n;wlSyncPaint()}
+function wlSyncEnd(how){if(how!=='cancel')wlSyncTried=true;if(!wlSync||wlSync.phase!=='run')return;clearTimeout(wlSyncStart._t);
+  const el=document.getElementById('wl-sync'),offline=how==='err'&&!navigator.onLine;
+  if(!el||how==='cancel'||how==='none'||(how==='err'&&!offline)){wlSync=null;if(el){el.classList.add('fade');setTimeout(()=>{if(!wlSync)el.remove()},320)}return}
+  wlSync.phase=how==='ok'?'done':'err';wlSyncPaint();const id=wlSync;
+  setTimeout(()=>{if(wlSync!==id)return;document.getElementById('wl-sync')?.classList.add('fade');setTimeout(()=>{if(wlSync!==id)return;wlSync=null;document.getElementById('wl-sync')?.remove()},320)},how==='ok'?260:450)}
+function wlSyncPaint(){const page=document.querySelector('#main .wl-page'),list=page?.querySelector('.wl-list');let el=document.getElementById('wl-sync');
+  if(!wlSync||tab!=='wishlist'||!page||!list){if(el&&(!wlSync||el.parentNode!==page))el.remove();return}
+  const born=!el||el.parentNode!==page;if(born){el?.remove();el=document.createElement('div');el.id='wl-sync';el.className='explore-progress wl-sync';el.setAttribute('role','status');el.setAttribute('aria-live','polite');
+    el.innerHTML='<div class="ep-track"><div class="ep-fill"></div><img class="ep-cat" src="assets/icon-go-meow.png?v=ui20261015ef" alt="" aria-hidden="true"></div><span class="ep-text"></span>';
+    if(!wlSync.fresh)el.classList.add('still');page.insertBefore(el,list)}
+  wlSync.fresh=false;{const ch=page.querySelector('.wl-chips'),lt=list.offsetTop,cb=ch?ch.offsetTop+ch.offsetHeight:lt;el.style.top=Math.round((cb+lt)/2-(el.offsetHeight||22)/2)+'px'}
+  const w=wlSync.phase==='run'?(wlSync.n?30+60*wlSync.k/wlSync.n:16):100,txt=wlSync.phase==='done'?'✓ Synced':wlSync.phase==='err'?(navigator.onLine?'':'Offline'):(wlSync.n>1?`Syncing friends ${wlSync.k}/${wlSync.n}`:'Syncing friends…');
+  el.classList.toggle('wl-run',wlSync.phase==='run');el.classList.toggle('done',wlSync.phase==='done');el.classList.toggle('err',wlSync.phase==='err');
+  if(born)el.classList.add('instant');el.style.setProperty('--wl-p',w+'%');el.querySelector('.ep-text').textContent=txt;if(born){void el.offsetWidth;el.classList.remove('instant')}}
+
+// ui20261015ef: re-render in place — keeps the open card (wlExpanded), list scroll and chip scroll; deferred while a panel/sheet covers the list
 function sharedRefreshView(){sharedViewStale=false;
   if(tab==='wishlist'){if(!$('#panel').hidden||document.querySelector('#wl-tagsheet:not([hidden])')){sharedViewStale=true;return}
     const L=document.querySelector('#main .wl-list'),C=document.querySelector('#main .wl-chips'),st=L?L.scrollTop:0,sl=C?C.scrollLeft:0,ae=document.activeElement,fid=ae?.closest?.('.wl-card')?.querySelector('[data-wl-open]')?.dataset.wlOpen;
@@ -140,7 +172,7 @@ window.addEventListener('focus',()=>sharePoll(false));
 window.addEventListener('pageshow',()=>sharePoll(false));
 window.addEventListener('pagehide',()=>shareFlush());
 window.addEventListener('online',()=>{if(shareRetry&&TOK&&state?.share?.keys)queueShare(false);sharePollLast=0;sharePoll(false)});
-// ui20261015ee: share panel rows update at once — pending row while the username is checked, 'sharing…' until the PUT confirms, reverted on a bad name
+// ui20261015ef: share panel rows update at once — pending row while the username is checked, 'sharing…' until the PUT confirms, reverted on a bad name
 let shareRows={};
 function sharePanelOpen(){return !!document.querySelector('#panel:not([hidden]) .share-panel')}
 function shareToHtml(){const to=state.share?.to||[],pend=Object.keys(shareRows).filter(u=>shareRows[u]==='checking'&&!to.includes(u)),all=[...to,...pend];
@@ -298,7 +330,7 @@ function pagerHtml(pages,total,label){if(total<=PAGE_SIZE)return '';return `<div
 function card(r){const vv=visits(r.id);return `<article class="restaurant no-tile"><div class="info" role="button" tabindex="0" data-detail="${r.id}"><h3>${esc(r.name)}</h3>${rating(r)}<p class="visit-meta">♜ ${vv.length} visit${vv.length===1?'':'s'}${vv[0]?` · last ${fmt(vv[0].date)}`:''}</p><p class="address">♧ ${esc(r.address||'Location not added')}</p>${tags(r)}<p class="note">▤ ${esc(r.note||'Add a little note…')}</p></div><div class="right-meta"><button class="save" data-save="${r.id}" aria-label="${r.wish?'Remove from':'Add to'} wishlist">${r.wish?'▮':'♧'}</button></div><button class="chevron" data-detail="${r.id}" aria-label="Open ${esc(r.name)}">›</button></article>`}
 
 let wishKeep=new Set(),wishKeepTab=null;
-const HEART_ON='assets/icon-wish-meow.png?v=ui20261015ee',HEART_OFF='assets/icon-wish-meow-off.png?v=ui20261015ee';
+const HEART_ON='assets/icon-wish-meow.png?v=ui20261015ef',HEART_OFF='assets/icon-wish-meow-off.png?v=ui20261015ef';
 const CUISINE_LABEL={ramen:'Ramen',sushi:'Sushi',japanese:'Japanese',cafe:'Cafe',matcha:'Matcha',tea:'Tea',boba:'Boba',dessert:'Dessert',bakery:'Bakery',burger:'Burger',pasta:'Italian',pizza:'Pizza',steak:'Steak',chinese:'Chinese',korean:'Korean',thai:'Thai',indian:'Indian',hongkong:'Hong Kong',singaporean:'Singaporean',mideast:'Middle Eastern',shop:'Restaurant'};
 function cuisineOf(r){const k=foodKey(r);if(k.startsWith('icon/')){const d=k.split('/')[1]||'';return {key:k,label:d.split('-').map(w=>w[0]?.toUpperCase()+w.slice(1)).join(' ')||tlCat(r)}}return {key:k,label:CUISINE_LABEL[k]||tlCat(r)}}
 function areaOf(r){const parts=String(r.address||'').split(',').map(x=>x.trim()).filter(x=>x&&!/^[A-Z]\d[A-Z]\s?\d[A-Z]\d$/i.test(x)&&!/^(BC|British Columbia|Canada|ON|Ontario|AB|WA|USA)(\s+[A-Z]\d[A-Z].*)?$/i.test(x));if(!parts.length)return '';if(parts.length>=3)return parts[1];if(parts.length===2&&/^\d/.test(parts[0]))return parts[1];return parts[0]}
@@ -317,7 +349,7 @@ function renderWishlist(){wlMiniDestroy();
   if(wishKeepTab!=='wishlist'){wishKeep=new Set()}wishKeepTab='wishlist';
   const shv=sharedVisible(),pool=state.restaurants.filter(r=>r.wish||wishKeep.has(r.id)).concat(shv);
   const counts=new Map();pool.forEach(r=>{const s=wlSetOf(r);counts.set(s,(counts.get(s)||0)+1)});
-  // ui20261015ee: 'Shared' chip — kept while shares are still loading so it doesn't snap back to All
+  // ui20261015ef: 'Shared' chip — kept while shares are still loading so it doesn't snap back to All
   if(filter==='Shared'){if(sharedLoaded&&!shv.length)filter='All'}else if(filter!=='All'&&!counts.has(filter))filter='All';
   const allTags=wlAllTags(pool);wlTags=wlTags.filter(t=>allTags.includes(t));
   let rows=pool.filter(r=>(filter==='All'||(filter==='Shared'?!!r._shared:wlSetOf(r)===filter))&&(!wlTags.length||wlTags.some(t=>(r.tags||[]).includes(t))));
@@ -326,12 +358,12 @@ function renderWishlist(){wlMiniDestroy();
   const chips=WL_CUISINES.filter(([s])=>counts.has(s)).map(([s,l,f])=>[s,l,f]);
   const chipHtml=pool.length?`<div class="wl-chips" role="toolbar" aria-label="Filter wishlist"><button type="button" data-wl-tagsheet="1" class="wl-chip wl-tagchip${wlTags.length?' active':''}" aria-haspopup="dialog" aria-pressed="${!!wlTags.length}"><span>${wlTags.length?`Tags · ${wlTags.length}`:'Tags'}</span></button><button type="button" data-filter="All" class="wl-chip${filter==='All'?' active':''}" aria-pressed="${filter==='All'}">All</button>${shv.length||filter==='Shared'?`<button type="button" data-filter="Shared" class="wl-chip wl-chip-shared${filter==='Shared'?' active':''}" aria-pressed="${filter==='Shared'}" aria-label="Shared with you (${shv.length})"><span class="wl-chip-dot" aria-hidden="true"></span><span>Shared</span></button>`:''}${chips.map(([s,l,f])=>`<button type="button" data-filter="${s}" class="wl-chip${filter===s?' active':''}" aria-pressed="${filter===s}" aria-label="${esc(l)} (${counts.get(s)})"><img src="icon/${s}/${f}.png" alt="" loading="lazy"><span>${esc(l)}</span></button>`).join('')}</div>`:'';
   $('#main').innerHTML=`<div class="content wl-page">${chipHtml}<div class="wl-list" aria-label="Wishlist">${rows.length?rows.map(wishCard).join(''):`<p class="wl-empty">Nothing on your wishlist yet — tap the meow heart on a search result to save a place to try.</p>`}</div></div>`;
-  wlMount(false);
+  wlMount(false);if(!sharedLoaded&&!wlSync&&state?.share)wlSyncStart();else wlSyncPaint();
 }
-// ui20261015ee: tapping a Wishlist card toggles an inline mini map (one card at a time, Leaflet instance destroyed on collapse)
+// ui20261015ef: tapping a Wishlist card toggles an inline mini map (one card at a time, Leaflet instance destroyed on collapse)
 let wlExpanded=null,wlMini=null;
 function wlMiniDestroy(){if(wlMini){try{wlMini.remove()}catch(e){}wlMini=null}}
-function wlPinIcon(r){const been=!r._shared&&visits(r.id).length>0&&!r.wish;return window.L.icon({iconUrl:r._shared?'assets/meow-map-pin-shared.png?v=ui20261015ee':been?'assets/meow-map-pin.png?v=ui20261015x':'assets/meow-map-pin-wish.png?v=ui20261015dk',iconSize:[30,41],iconAnchor:[15,41],className:'meow-pin wl-mini-pin '+(r._shared?'meow-pin-shared':been?'meow-pin-visited':'meow-pin-wish')})}
+function wlPinIcon(r){const been=!r._shared&&visits(r.id).length>0&&!r.wish;return window.L.icon({iconUrl:r._shared?'assets/meow-map-pin-shared.png?v=ui20261015ef':been?'assets/meow-map-pin.png?v=ui20261015x':'assets/meow-map-pin-wish.png?v=ui20261015dk',iconSize:[30,41],iconAnchor:[15,41],className:'meow-pin wl-mini-pin '+(r._shared?'meow-pin-shared':been?'meow-pin-visited':'meow-pin-wish')})}
 function wlAddr(r){const a=String(r?.address||'').replace(/\s+/g,' ').trim();return a?`<p class="wl-addr" title="${esc(a)}">${esc(a)}</p>`:''}
 function wlHasLoc(r){return Number.isFinite(r?.lat)&&Number.isFinite(r?.lng)}
 function wlExpandHtml(r){const has=wlHasLoc(r);
@@ -386,11 +418,11 @@ let ICON_SETS=null;const iconSets=()=>ICON_SETS||(ICON_SETS=fetch('icon/index.js
 const SET_FOR={chinese:'chinese',hongkong:'hong-kong',japanese:'japanese',sushi:'japanese',ramen:'japanese',matcha:'japanese',korean:'korean',thai:'thai',indian:'indian',singaporean:'singaporean',mideast:'middle-eastern',tea:'drinks',boba:'drinks',cafe:'drinks',burger:'western',pasta:'western',pizza:'western',steak:'western'};
 function vibeIcon(t){t=t.toLowerCase();if(/sweet|cute|sparkle|vibe/.test(t))return icon('sparkle');if(/friend|solo|date|group|people/.test(t))return icon('users');if(/comfort|cozy|love|heart/.test(t))return icon('heart');return `<svg class="ui-icon leaf-ico" viewBox="0 0 24 24" aria-hidden="true"><path d="M5 19C5 10 11 5 20 4c0 9-5 15-14 15Z"/><path d="M5 19 13 11"/></svg>`}
 function vibeTags(list,max=3){list=(list||[]).filter(t=>t&&t!=='demo').slice(0,max);return list.length?`<div class="tl-tags">${list.map(t=>`<span class="tl-tag">${vibeIcon(t)}${esc(t)}</span>`).join('')}</div>`:''}
-// ui20261015ee: friendly kind label — icon/<cuisine>/<file> → 'Hong Kong' etc.; never show a path
+// ui20261015ef: friendly kind label — icon/<cuisine>/<file> → 'Hong Kong' etc.; never show a path
 function kindLabel(k){k=String(k||'').trim();if(!k||k==='shop')return '';if(k.includes('/')){const parts=k.split('/').filter(Boolean);if(parts[0].toLowerCase()==='icon')parts.shift();const d=(parts[0]||'');if(!d||/^[0-9a-f]{12,}$/i.test(d))return '';return d.split(/[-_ ]+/).filter(Boolean).map(w=>w[0].toUpperCase()+w.slice(1).toLowerCase()).join(' ')}return k[0].toUpperCase()+k.slice(1)}
 function tlCat(r){return (r?.tags||[]).find(t=>t!=='demo')||kindLabel(r?.kind)||'Restaurant'}
 function tlCardHtml(v,open,cls,attr){const x=rest(v.restaurantId);const vt=[...new Set([...(v.tags||[]),...(x?.tags||[]).slice(1)])];return `<div class="tl-card${cls?' '+cls:''}${open?' expanded':''}" ${attr} role="button" tabindex="0" aria-expanded="${open?'true':'false'}"><div class="tl-card-main">${foodImg(x)}<div class="tl-card-body"><h3>${esc(x?.name||'Restaurant')}</h3><p class="tl-meta">${v.rating?'<span class="star">★</span> ':''}${v.rating?v.rating+' · ':''}${esc(tlCat(x))} · ${esc(v.meal||'')}</p></div><span class="tl-chev" aria-hidden="true">${open?'⌄':'›'}</span></div>${open?vibeTags(vt)+visitExpandHtml(v):''}</div>`}
-// ui20261015ee: 'Did you go?' pending entries (state.pendingGo), recorded on every Go tap; never counted as visits
+// ui20261015ef: 'Did you go?' pending entries (state.pendingGo), recorded on every Go tap; never counted as visits
 function mealFromHour(h){return h<11?'Breakfast':h<15?'Lunch':h<17?'Snack':'Dinner'}
 function pendList(){return Array.isArray(state.pendingGo)?state.pendingGo:[]}
 function mixPending(all){const ps=pendList().map(p=>({...p,_pend:true}));if(!ps.length)return all;const k=x=>x.date+(x.time||'');return [...all,...ps].sort((a,b)=>sort==='oldest'?k(a).localeCompare(k(b)):k(b).localeCompare(k(a)))}
@@ -462,13 +494,13 @@ function createMapTiles(target,statusSelector='#map-status'){
   load();
   return {redraw:load};
 }
-// ui20261015ee: Explore is one-shot (no on/off mode); exploreSeq invalidates stale responses
+// ui20261015ef: Explore is one-shot (no on/off mode); exploreSeq invalidates stale responses
 let exploreLayer=null,exploreTimer,exploreAbort,exploreResults=[],exploreSeq=0;
 function exploreProxyURL(){return (DATA_ORIGIN||'')+'/api/overpass'}
 function overpassEndpoints(){return ['https://overpass.kumi.systems/api/interpreter','https://maps.mail.ru/osm/tools/overpass/api/interpreter','https://overpass.private.coffee/api/interpreter','https://lz4.overpass-api.de/api/interpreter','https://overpass-api.de/api/interpreter',exploreProxyURL()]}
 function parseOverpassElements(j){return (j?.elements||[]).map(e=>({name:e.tags?.name,lat:e.lat??e.center?.lat,lng:e.lon??e.center?.lon,amenity:e.tags?.amenity||e.tags?.shop||'',cuisine:e.tags?.cuisine||'',address:[e.tags?.['addr:housenumber'],e.tags?.['addr:street']].filter(Boolean).join(' ')})).filter(x=>x.name&&Number.isFinite(x.lat)&&Number.isFinite(x.lng)&&FOOD_OSM.test(x.amenity))}
 async function fetchExploreOverpass(bb,signal){const q=`[out:json][timeout:15];(nwr["amenity"~"^(restaurant|fast_food|cafe|food_court|ice_cream)$"]["name"](${bb});nwr["amenity"~"^(pub|bar|biergarten)$"]["food"="yes"]["name"](${bb});nwr["amenity"="pub"]["kitchen_hours"]["name"](${bb});nwr["shop"~"^(bakery|pastry|confectionery|ice_cream|bubble_tea)$"]["name"](${bb}););out center 80;`;const body='data='+encodeURIComponent(q);const t0=Date.now();for(const ep of overpassEndpoints()){if(Date.now()-t0>24000)break;const local=new AbortController();const onAbort=()=>local.abort();signal?.addEventListener('abort',onAbort,{once:true});const timer=setTimeout(()=>local.abort(),9000);try{const res=await fetch(ep,{method:'POST',body,headers:{'Content-Type':'application/x-www-form-urlencoded'},signal:local.signal});if(!res.ok)continue;const j=await res.json();if(j&&Array.isArray(j.elements)){const list=parseOverpassElements(j);if(list.length)return list}}catch(e){if(signal?.aborted)throw e;/* try next mirror */}finally{clearTimeout(timer);signal?.removeEventListener('abort',onAbort)}}return null}
-// ui20261015ee: Mapbox Search Box /category fallback (limit max 25 per call; comma-joined ids accepted). 3 parallel calls merged by mapbox_id.
+// ui20261015ef: Mapbox Search Box /category fallback (limit max 25 per call; comma-joined ids accepted). 3 parallel calls merged by mapbox_id.
 const MB_CAT_SETS=['restaurant,cafe,coffee,fast_food,food_court,bakery,ice_cream,dessert_shop,bubble_tea,teahouse','restaurant','cafe,coffee,bakery,dessert_shop,bubble_tea,teahouse,ice_cream'];
 function mapboxCategoryURL(cats,b,c){const p=new URLSearchParams({access_token:MAPBOX_TOKEN,language:'en',limit:'25',proximity:`${c.lng.toFixed(5)},${c.lat.toFixed(5)}`,bbox:[b.getWest(),b.getSouth(),b.getEast(),b.getNorth()].map(x=>x.toFixed(5)).join(',')});return 'https://api.mapbox.com/search/searchbox/v1/category/'+cats+'?'+p.toString()}
 async function fetchExploreMapboxCategory(signal,sets=MB_CAT_SETS){if(!map)return null;const b=map.getBounds(),c=map.getCenter();window.__exploreMbCalls=(window.__exploreMbCalls||0)+sets.length;
@@ -486,18 +518,18 @@ function exploreResultIcon(x){
   }
   return window.L.divIcon({className:'restaurant-pin explore-pin pin-'+t,html:`<div class="map-chip chip-search explore-chip"><b>${esc(x.name)}</b></div>`,iconSize:null,iconAnchor:[0,0]});
 }
-// ui20261015ee: Explore = ONE Mapbox /category call (restaurant, limit 25) + Overpass in parallel. Mapbox shows at once; a paw progress bar
+// ui20261015ef: Explore = ONE Mapbox /category call (restaurant, limit 25) + Overpass in parallel. Mapbox shows at once; a paw progress bar
 // ("Fetching more…") runs until Overpass merges. Only if Overpass fails/empty → the other two category calls. Photon only if everything fails.
 function exploreBar(state){
   let el=$('#explore-progress');const wrap=$('.map-wrap');
-  if(state==='start'){if(!wrap)return;if(!el){el=document.createElement('div');el.id='explore-progress';el.className='explore-progress';el.setAttribute('role','status');el.innerHTML='<div class="ep-track"><div class="ep-fill"></div><img class="ep-cat" src="assets/icon-go-meow.png?v=ui20261015ee" alt="" aria-hidden="true"></div><span class="ep-text">Fetching more…</span>';wrap.appendChild(el)}
+  if(state==='start'){if(!wrap)return;if(!el){el=document.createElement('div');el.id='explore-progress';el.className='explore-progress';el.setAttribute('role','status');el.innerHTML='<div class="ep-track"><div class="ep-fill"></div><img class="ep-cat" src="assets/icon-go-meow.png?v=ui20261015ef" alt="" aria-hidden="true"></div><span class="ep-text">Fetching more…</span>';wrap.appendChild(el)}
     el.classList.remove('done','fade');el.style.setProperty('--ep',0);void el.offsetWidth;el.classList.add('run');
     const pos=()=>{const e=$('#explore-progress');if(!e)return;const s=$('#sheet .search-sheet'),w=wrap.getBoundingClientRect();const top=s?s.getBoundingClientRect().top:w.bottom-40;e.style.top=Math.max(0,top-w.top-30)+'px';if(!e.classList.contains('fade'))e._raf=requestAnimationFrame(pos)};cancelAnimationFrame(el._raf);pos();return}
   if(!el)return;
   if(state==='done'){const f=el.querySelector('.ep-fill'),c=el.querySelector('.ep-cat');const fw=getComputedStyle(f).width,cl=getComputedStyle(c).left;el.classList.remove('run');f.style.width=fw;c.style.left=cl;void el.offsetWidth;el.classList.add('done');f.style.width='';c.style.left='';setTimeout(()=>{el.classList.add('fade');setTimeout(()=>{cancelAnimationFrame(el._raf);el.remove()},350)},450);return}
   if(state==='cancel'){cancelAnimationFrame(el._raf);el.remove()}
 }
-// ui20261015ee: one entry for Explore and Near me (one-shot; new tap cancels older)
+// ui20261015ef: one entry for Explore and Near me (one-shot; new tap cancels older)
 function startExplore(){searchResults=[];searchFocusIdx=null;clearSearchMarkers();if(selected){selected=null;updateMarkerIcons();renderSheet();enhanceIcons()}loadExplore();}
 function loadExplore(){
   clearTimeout(exploreTimer);exploreAbort?.abort();exploreBar('cancel');
@@ -546,7 +578,7 @@ function mergeExplore(list){
   const st=out.scrollTop;renderPlaceHits(out,feats,{noFit:true,keepMarkers:true});out.scrollTop=st;
   drawSearchMarkers();
 }
-// ui20261015ee: hex "conquered area" layer — axial pointy-top hex grid in Web Mercator metres (pure JS), drawn in a pane under the pins.
+// ui20261015ef: hex "conquered area" layer — axial pointy-top hex grid in Web Mercator metres (pure JS), drawn in a pane under the pins.
 // On/off kept per device in localStorage 'meowsto-hex' (default ON).
 let hexOn=(()=>{try{return localStorage.getItem('meowsto-hex')!=='0'}catch{return true}})(),hexLayer=null,hexTierDrawn=null;
 function hexAcrossM(z){return z<=9?8000:z<=12?2000:500}
@@ -582,12 +614,12 @@ function setHexOn(on){hexOn=!!on;try{localStorage.setItem('meowsto-hex',hexOn?'1
 function pinTier(){const z=map?map.getZoom():mapZoom;return z>=14?'full':z>=12?'mini':'meow'}
 function searchPinTier(){const z=map?map.getZoom():mapZoom;return z>=16?'full':'meow'}
 // ui20261015cy: three meow marker styles (visited · wishlist · search/explore), all switching pin↔label with searchPinTier() (label at zoom ≥ 16)
-// ui20261015ee: visited/wishlist markers are always meow pins (selected = enlarged); details live in the sheet
+// ui20261015ef: visited/wishlist markers are always meow pins (selected = enlarged); details live in the sheet
 function markerIcon(r){const isSel=r.id===selected||(r.id===searchLinkId&&searchFocusIdx!=null&&searchResults.length>0);const wishy=!!r.wish&&!visits(r.id)[0];const sz=isSel?[30,41]:[24,33];
-  if(r._shared)return window.L.icon({iconUrl:'assets/meow-map-pin-shared.png?v=ui20261015ee',iconSize:sz,iconAnchor:[sz[0]/2,sz[1]],className:'meow-pin meow-pin-shared'+(isSel?' selected':'')});
+  if(r._shared)return window.L.icon({iconUrl:'assets/meow-map-pin-shared.png?v=ui20261015ef',iconSize:sz,iconAnchor:[sz[0]/2,sz[1]],className:'meow-pin meow-pin-shared'+(isSel?' selected':'')});
   return window.L.icon({iconUrl:wishy?'assets/meow-map-pin-wish.png?v=ui20261015dk':'assets/meow-map-pin.png?v=ui20261015x',iconSize:sz,iconAnchor:[sz[0]/2,sz[1]],className:'meow-pin '+(wishy?'meow-pin-wish':'meow-pin-visited')+(isSel?' selected':'')})}
 function updateMarkerIcons(){markers.forEach(m=>m.setIcon(markerIcon(m._r)));searchMarkers.forEach((m,i)=>{if(m&&searchResults[i])m.setIcon(searchResultIcon(searchResults[i],i))});if(exploreLayer)exploreLayer.eachLayer(m=>{if(m&&m._explore)m.setIcon(exploreResultIcon(m._explore))})}
-// ui20261015ee: Wishlist card → Map tab, pin drawn (clear hide-visited/explore that could hide it), centred above sheet, place sheet open
+// ui20261015ef: Wishlist card → Map tab, pin drawn (clear hide-visited/explore that could hide it), centred above sheet, place sheet open
 function openOnMap(id){const r=rest(id);if(!r)return;if(!Number.isFinite(r.lat)||!Number.isFinite(r.lng)){toast('No location saved for this place');return}
   if(hideVisited&&visits(id).length)hideVisited=false;exploreSeq++;clearTimeout(exploreTimer);exploreAbort?.abort();
   searchResults=[];searchFocusIdx=null;closePanel();wlSheetClose?.();tab='map';selected=null;render();
@@ -649,7 +681,7 @@ function searchHitHidden(f){
   return true;
 }
 function searchResultIcon(f,i){
-  const sel=searchFocusIdx!=null&&Number(i)===Number(searchFocusIdx),t=sel?'full':'meow'; // ui20261015ee: result pins stay pins; only the selected one shows its label
+  const sel=searchFocusIdx!=null&&Number(i)===Number(searchFocusIdx),t=sel?'full':'meow'; // ui20261015ef: result pins stay pins; only the selected one shows its label
   if(t==='meow'){
     return window.L.icon({iconUrl:'assets/meow-map-pin-search.png?v=ui20261015cb',iconSize:[24,33],iconAnchor:[12,33],className:'meow-pin meow-pin-search'+(sel?' search-pin-active':'')});
   }
@@ -989,7 +1021,7 @@ function dismissSearchSheet(){
   const sheet=$('#sheet');if(sheet)renderSheet();
   syncHideVisitedChip();
 }
-// ui20261015ee: one shared animated sheet close (translateY + 220ms), used by drag, handle tap and Cancel
+// ui20261015ef: one shared animated sheet close (translateY + 220ms), used by drag, handle tap and Cancel
 function sheetCloseAnim(root,cb){if(!root){cb&&cb();return}if(root.dataset.closing)return;root.dataset.closing='1';root.style.transition='transform .22s ease,opacity .22s ease';requestAnimationFrame(()=>{root.style.transform=`translateY(${root.offsetHeight+40}px)`;root.style.opacity='0'});setTimeout(()=>{root.style.transition='';root.style.transform='';root.style.opacity='';delete root.dataset.closing;cb&&cb()},230)}
 function closePanelAnimated(){const inner=document.querySelector('#panel:not([hidden]) .panel-inner');if(!inner)return closePanel();sheetCloseAnim(inner,()=>{pendingVisit=false;closePanel()})}
 function sheetViewH(){const de=document.documentElement;if(de.classList.contains('shell-fit')){const v=parseFloat(getComputedStyle(de).getPropertyValue('--shell-h'));if(v>0)return v}return Math.round(window.visualViewport?.height||innerHeight)}
@@ -999,7 +1031,7 @@ function bindSheetDismiss(root,onDismiss){
   root.dataset.dismissBound='1';
   const grips=[root.querySelector('.handle'),root.querySelector('.search-sheet-head,.sheet-head,.panel-head,.wl-ts-head')].filter(Boolean);
   if(!grips.length)return;
-  // ui20261015ee: 1:1 drag. Up (if natural < 50% of visible height) grows the sheet to ≤50%, snaps natural|50% on release.
+  // ui20261015ef: 1:1 drag. Up (if natural < 50% of visible height) grows the sheet to ≤50%, snaps natural|50% on release.
   // Down from expanded → natural; further down translates; close if translate >60px or flick >0.4px/ms; no tap-to-close.
   let startY=0,dy=0,dragging=false,pid=null,lastY=0,lastT=0,vel=0,nat=0,maxH=0,base=0,curH=0;
   const setH=h=>{if(h>nat+0.5){root.style.setProperty('--sx-h',h+'px');root.classList.add('sheet-expanded')}else{root.style.removeProperty('--sx-h');root.classList.remove('sheet-expanded')}curH=Math.max(h,nat)};
@@ -1072,7 +1104,7 @@ function placeHitHtml(f,i){
   const p=f.properties,dist=hitDistanceLabel(f),addr=placeAddress(p);
   const meta=`${dist?`<span class="hit-dist">${esc(dist)}</span>${addr?' · ':''}`:''}${esc(addr)}`;
   const wished=!!matchRestaurantByDraft(draftFromSearchFeature(f))?.wish;
-  return `<article class="place-hit" data-hit="${i}" data-hit-focus="${i}" role="button" tabindex="0"><div class="place-hit-info"><div class="place-hit-title"><button type="button" class="hit-icon hit-wish-lead${wished?' wish-on':''}" data-result-wish="${i}" aria-label="${wished?'Saved to wishlist':'Save to wishlist'}" title="${wished?'Saved':'Wishlist'}"><img src="${wished?HEART_ON:HEART_OFF}" alt="" width="26" height="26" decoding="async"></button><b>${esc(p.name||p.street||'Place')}</b><div class="place-hit-actions"><a class="hit-go" href="${esc(navURL(draftFromSearchFeature(f)))}" target="_blank" rel="noopener" aria-label="Directions to ${esc(p.name||'place')} in Google Maps"><img src="assets/icon-go-meow.png?v=ui20261015dn" alt="" width="26" height="26" decoding="async"></a><button type="button" class="hit-icon" data-result-add="${i}" aria-label="Add restaurant" title="Add"><img src="assets/icon-add-meow.png?v=ui20261015ee" alt="" width="26" height="26" decoding="async"></button></div></div><small>${meta}</small></div></article>`;
+  return `<article class="place-hit" data-hit="${i}" data-hit-focus="${i}" role="button" tabindex="0"><div class="place-hit-info"><div class="place-hit-title"><button type="button" class="hit-icon hit-wish-lead${wished?' wish-on':''}" data-result-wish="${i}" aria-label="${wished?'Saved to wishlist':'Save to wishlist'}" title="${wished?'Saved':'Wishlist'}"><img src="${wished?HEART_ON:HEART_OFF}" alt="" width="26" height="26" decoding="async"></button><b>${esc(p.name||p.street||'Place')}</b><div class="place-hit-actions"><a class="hit-go" href="${esc(navURL(draftFromSearchFeature(f)))}" target="_blank" rel="noopener" aria-label="Directions to ${esc(p.name||'place')} in Google Maps"><img src="assets/icon-go-meow.png?v=ui20261015dn" alt="" width="26" height="26" decoding="async"></a><button type="button" class="hit-icon" data-result-add="${i}" aria-label="Add restaurant" title="Add"><img src="assets/icon-add-meow.png?v=ui20261015ef" alt="" width="26" height="26" decoding="async"></button></div></div><small>${meta}</small></div></article>`;
 }
 function renderPlaceHits(output,features,opts={}){
   searchResults=(features||[]).filter(validPlace);
@@ -1098,7 +1130,7 @@ function renderPlaceHits(output,features,opts={}){
     if(row){
       const rh=row.getBoundingClientRect().height||48;
       hits.style.setProperty('--place-hit-h',rh+'px');
-      hits.style.maxHeight='';output.style.maxHeight=Math.round(rh*3.5)+'px'; // ui20261015ee: rows + Can't find it scroll together
+      hits.style.maxHeight='';output.style.maxHeight=Math.round(rh*3.5)+'px'; // ui20261015ef: rows + Can't find it scroll together
     }
     output.classList.toggle('can-scroll',output.scrollHeight>output.clientHeight+4);
   });
@@ -1161,9 +1193,10 @@ async function fetchPlaceFeaturesLive(q,center,signal){
     return data.features.filter(validPlace).filter(isFoodFeature);
   }
 }
-// ui20261015ee: partial-name rescue. Only when Mapbox /forward has no name match: Mapbox /suggest (+/retrieve for matching names) and Photon,
+// ui20261015ef: partial-name rescue. Only when Mapbox /forward has no name match: Mapbox /suggest (+/retrieve for matching names) and Photon,
 // 3s timeout each, appended after first results (never blocks them). Overpass name-regex skipped: mirrors too slow/unreliable for 3s.
-function normName(x){return String(x||'').toLowerCase().normalize('NFKD').replace(/[\u0300-\u036f]/g,'').replace(/[^\p{L}\p{N}]+/gu,' ').trim()}
+// ui20261015ef: memoized — dedupe/'also @friend' checks call this for every pair of places
+const _normNameC=new Map();function normName(x){const s=String(x||'');let v=_normNameC.get(s);if(v===undefined){v=s.toLowerCase().normalize('NFKD').replace(/[\u0300-\u036f]/g,'').replace(/[^\p{L}\p{N}]+/gu,' ').trim();if(_normNameC.size>8000)_normNameC.clear();_normNameC.set(s,v)}return v}
 function nameMatchRank(name,q){const n=normName(name),t=normName(q);if(!n||!t)return 3;if(n===t)return 0;if(n.startsWith(t))return 1;if(n.includes(t))return 2;return 3}
 async function fetchT(url,ms,signal){const c=new AbortController();const on=()=>c.abort();signal?.addEventListener('abort',on,{once:true});const t=setTimeout(()=>c.abort(),ms);try{const r=await fetch(url,{signal:c.signal});if(!r.ok)throw Error(String(r.status));return await r.json()}finally{clearTimeout(t);signal?.removeEventListener('abort',on)}}
 async function fetchSuggestMatches(q,center,signal){
@@ -1400,7 +1433,7 @@ async function importBackup(e){const file=e.target.files[0];if(!file)return;try{
 function confirmSheet(title,message,okLabel,onOk){openPanel(title,`<p class="cf-msg">${message}</p><div class="cf-row"><button type="button" class="secondary" data-action="close-panel">Cancel</button><button type="button" class="danger cf-ok" id="confirm-action">${esc(okLabel||'Confirm')}</button></div>`,{cls:'confirm-sheet'});$('#confirm-action').onclick=onOk}
 function confirmAction(title,message,fn,okLabel='Delete'){confirmSheet(title,message,okLabel,()=>{if(!commit(fn))return;closePanel();render();toast('Done')})}
 function locateGeoError(err){const c=err&&err.code;if(c===1)return toast('Location permission denied. Allow location for this site in browser settings.');if(c===2)return toast('Location unavailable. Check GPS/network and try again.');if(c===3)return toast('Location timed out. Try again.');toast('Location unavailable or denied.')}
-// ui20261015ee: Near me → centre on user (z15) then the same one-shot Explore pipeline around that view
+// ui20261015ef: Near me → centre on user (z15) then the same one-shot Explore pipeline around that view
 function applyUserLocation(lat,lng){userLocation=[lat,lng];mapCenter=userLocation;mapZoom=15;if(tab!=='map'){tab='map';render()}if(map){map.setView(userLocation,15,{animate:false});mapZoom=15;if(selected){selected=null;updateMarkerIcons();renderSheet()}startExplore()}}
 let locateSeq=0;
 function locate(){if(typeof window!=='undefined'&&window.isSecureContext===false)return toast('Location needs HTTPS — open the live Meowsto site.');if(!navigator.geolocation)return toast('Location unavailable on this browser.');const seq=++locateSeq;toast('Finding your location…');const onOk=p=>{if(seq!==locateSeq)return;const lat=p.coords.latitude,lng=p.coords.longitude;if(!Number.isFinite(lat)||!Number.isFinite(lng))return toast('Location unavailable.');applyUserLocation(lat,lng)};const hi={enableHighAccuracy:true,timeout:12000,maximumAge:60000};const lo={enableHighAccuracy:false,timeout:20000,maximumAge:300000};navigator.geolocation.getCurrentPosition(onOk,err=>{if(err&&(err.code===2||err.code===3))navigator.geolocation.getCurrentPosition(onOk,locateGeoError,lo);else locateGeoError(err)},hi)}
@@ -1420,7 +1453,7 @@ document.addEventListener('change',e=>{
 let wlTagScrollAt=0;document.addEventListener('scroll',e=>{if(e.target.classList?.contains('wl-tags')||e.target.classList?.contains('tl-tags'))wlTagScrollAt=Date.now()},true);
 document.addEventListener('click',e=>{
   if(Date.now()-wlTagScrollAt<350&&e.target.closest?.('.wl-tags,.tl-tags')){e.preventDefault();e.stopPropagation();return}
-  if(e.target.closest('a.hit-go,a.sheet-nav,a.wl-go'))return; // ui20261015ee: directions links open externally, never select the row
+  if(e.target.closest('a.hit-go,a.sheet-nav,a.wl-go'))return; // ui20261015ef: directions links open externally, never select the row
   {const wc=e.target.closest('#main .wl-card');if(wc&&!e.target.closest('.wl-x,button,a,input')){const m=wc.querySelector('[data-wl-open]');if(m){wlToggle(m.dataset.wlOpen);return}}}
   const b=e.target.closest('button,[data-detail],[data-visit-toggle],[data-latest-toggle],[data-hit-focus],[data-wl-open]');if(!b)return;const d=b.dataset;
   if(d.page==='prev'){listPage=Math.max(0,listPage-1);if(tab==='wishlist'){renderWishlist();enhanceIcons()}return}
@@ -1556,8 +1589,8 @@ fit();addEventListener('resize',fit);addEventListener('orientationchange',()=>se
 // ui20261015ck: compact Wishlist cards, single scrollable tag row.
 // ui20261015cj: removed zoom-in gate from runMapPlaceSearch; search works at any zoom.
 
-// ui20261015ee: temporary tap debug overlay, only with ?debugtap=1
+// ui20261015ef: temporary tap debug overlay, only with ?debugtap=1
 (function(){if(!/[?&]debugtap=1\b/.test(location.search))return;const box=document.createElement('div');box.id='debugtap';box.style.cssText='position:fixed;left:6px;right:6px;bottom:calc(6px + env(safe-area-inset-bottom,0px));z-index:2147483646;background:rgba(20,20,20,.82);color:#fff;font:11px/1.35 ui-monospace,Menlo,monospace;padding:6px 8px;border-radius:8px;pointer-events:none;white-space:pre-wrap;word-break:break-all';const pr=document.createElement('div');pr.style.cssText='position:fixed;top:env(safe-area-inset-top,0px);height:1px;width:1px;visibility:hidden';document.documentElement.appendChild(pr);const dot=document.createElement('div');dot.style.cssText='position:fixed;width:14px;height:14px;margin:-7px 0 0 -7px;border-radius:50%;background:#f00a;z-index:2147483646;pointer-events:none;display:none';const d=e=>e?e.tagName.toLowerCase()+(e.id?'#'+e.id:'')+(typeof e.className==='string'&&e.className.trim()?'.'+e.className.trim().split(/\s+/).slice(0,3).join('.'):''):'-';let last='(tap anywhere)';function info(){const vv=window.visualViewport,de=document.documentElement,app=document.querySelector('.app');return 'tap: '+last+'\ninnerH '+innerHeight+' vvH '+(vv?Math.round(vv.height)+' vvTop '+Math.round(vv.offsetTop):'-')+' screenH '+screen.height+'\n--shell-h '+(getComputedStyle(de).getPropertyValue('--shell-h').trim()||'-')+' shell-fit '+de.classList.contains('shell-fit')+' safeTop '+Math.round(pr.getBoundingClientRect().top)+'\napp '+(app?Math.round(app.getBoundingClientRect().top)+'..'+Math.round(app.getBoundingClientRect().bottom)+' scrollTop '+app.scrollTop:'-')+' bodyScroll '+document.body.scrollTop+' winY '+scrollY}function up(){box.textContent=info()}addEventListener('pointerdown',e=>{const t=document.elementFromPoint(e.clientX,e.clientY);const btn=t&&t.closest('button,a,[data-tab]');last=Math.round(e.clientX)+','+Math.round(e.clientY)+' '+d(t)+(btn&&btn!==t?' < '+d(btn):'');dot.style.left=e.clientX+'px';dot.style.top=e.clientY+'px';dot.style.display='block';up()},true);addEventListener('resize',up);if(window.visualViewport)visualViewport.addEventListener('resize',up);function mount(){document.body.appendChild(box);document.body.appendChild(dot);up()}document.body?mount():addEventListener('DOMContentLoaded',mount)})();
 
-// ui20261015ee: panel sheet drag/handle close
+// ui20261015ef: panel sheet drag/handle close
 (function(){const go=()=>{const i=document.querySelector('#panel .panel-inner');if(i)bindSheetDismiss(i,()=>{pendingVisit=false;closePanel()})};document.readyState==='loading'?addEventListener('DOMContentLoaded',go):go()})();
