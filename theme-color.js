@@ -1,0 +1,1 @@
+(function(){var m=document.querySelector("meta[name=theme-color]");function s(){m.content=document.body.classList.contains("locked")?"#e3eedf":"#ebf4e9";}s();new MutationObserver(s).observe(document.body,{attributes:true,attributeFilter:["class"]});})();
