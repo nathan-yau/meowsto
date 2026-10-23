@@ -648,3 +648,5 @@ html body .sheet-expanded>.handle,html body .sheet-expanded>.search-sheet-head,h
 .wl-card:focus{outline:none}.wl-card:focus-visible{outline:2.5px solid #5b8a63;outline-offset:2px}
 /* ui20261015ec: address line on wishlist cards */
 .wl-addr{margin:1px 0 0;font:600 11.5px/1.25 Nunito,sans-serif;color:#9a9186;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;min-width:0;max-width:100%}
+/* ui20261015ee */ .sh-inbox{display:contents}.sh-list li.sh-checking,.sh-list li.sh-sharing{border-style:dashed;color:#81796e}.sh-list li.sh-retry small{color:#b2523f}
+/* ui20261015ee: the card list is its own scroller (it was clipped by .content{overflow:hidden} — cards below the fold were unreachable); chips stay on top */ .view-wishlist .wl-page{padding-bottom:0}.view-wishlist .wl-page>.wl-list{flex:1 1 auto;min-height:0;overflow-y:auto;overflow-x:hidden;overscroll-behavior:contain;-webkit-overflow-scrolling:touch;scrollbar-width:none;margin:0 -14px;padding:2px 14px 24px}.view-wishlist .wl-page>.wl-list::-webkit-scrollbar{display:none}.view-wishlist .wl-list>*,.view-wishlist .wl-page>.wl-chips{flex-shrink:0}
