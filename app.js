@@ -1712,24 +1712,24 @@ const gmNewKey=()=>inboxApi('inbox/key','POST').then(j=>{if(j._s!==200||!j.token
 function gmCopyNow(t){try{const w=navigator.clipboard&&navigator.clipboard.writeText(t);return w?w.then(()=>true,()=>false):Promise.resolve(false)}catch{return Promise.resolve(false)}}
 function gmInstall(e){
   const link=SHORTCUT_ICLOUD_URL,k=gmKeyGet();
-  if(k){gmCopyNow(k.t);toast('Key copied — paste it when asked');return} // anchor opens the link in the same tap
+  if(k){gmCopyNow(k.t);toast('Meow Key copied — paste it when asked');return} // anchor opens the link in the same tap
   e.preventDefault();
   const tokP=gmNewKey();let cp=Promise.resolve(false);
   try{if(window.ClipboardItem&&navigator.clipboard&&navigator.clipboard.write)cp=navigator.clipboard.write([new ClipboardItem({'text/plain':tokP.then(t=>new Blob([t],{type:'text/plain'}))})]).then(()=>true,()=>false)}catch{}
   tokP.then(async t=>{let copied=await cp;if(!copied)copied=await gmCopyNow(t);gmKeyShown=t;
-    toast(copied?'Key copied — paste it when asked':'Copy the key, then paste it when asked');gmRefresh();if(copied)location.href=link},
-    ()=>gmMsg('Couldn’t make a key — try again',true));
+    toast(copied?'Meow Key copied — paste it when asked':'Copy your Meow Key, then paste it when asked');gmRefresh();if(copied)location.href=link},
+    ()=>gmMsg('Couldn’t make a Meow Key — try again',true));
 }
 async function gmCopyKey(reset){
   const k=!reset&&gmKeyGet();
-  if(k){const ok=await gmCopyNow(k.t);gmKeyShown=k.t;return gmRefresh(ok?'Copied ✓':'Copy the key below')}
+  if(k){const ok=await gmCopyNow(k.t);gmKeyShown=k.t;return gmRefresh(ok?'Meow Key copied ✓':'Copy your Meow Key below')}
   const tokP=gmNewKey();
   let copied=false;
   // Safari only lets us write after a fetch if the write starts inside the tap: hand it a promise.
   try{if(window.ClipboardItem&&navigator.clipboard&&navigator.clipboard.write){await navigator.clipboard.write([new ClipboardItem({'text/plain':tokP.then(t=>new Blob([t],{type:'text/plain'}))})]);copied=true}}catch{}
-  let tok;try{tok=await tokP}catch{gmMsg('Couldn’t make a key — try again',true);gmRefresh();return}
+  let tok;try{tok=await tokP}catch{gmMsg('Couldn’t make a Meow Key — try again',true);gmRefresh();return}
   if(!copied){try{await navigator.clipboard.writeText(tok);copied=true}catch{}}
-  gmKeyShown=tok;gmRefresh(copied?'Copied ✓ Paste it when you install the Shortcut':'Copy the key below');
+  gmKeyShown=tok;gmRefresh(copied?'Meow Key copied ✓ Paste it when you install the Shortcut':'Copy your Meow Key below');
 }
 function gmMsg(m,bad){const x=document.querySelector('#panel .gm-panel .sh-msg');if(!x)return;x.textContent=m||'';x.classList.toggle('bad',!!bad)}
 async function gmRefresh(msg){
@@ -1744,20 +1744,20 @@ async function gmRefresh(msg){
   const has=st._s===200&&st.has;
   if(st._s===200){const k=gmKeyGet();if(k&&(!has||k.c!==st.c))gmKeySet(null)}
   const local=!!gmKeyGet();
-  kr.querySelector('.gm-r').innerHTML=st._s!==200?'<small>Offline</small>':has?`${local?'<button type="button" class="gm-pill" data-gm-act="copy" aria-label="Copy shortcut key">Copy</button>':'<small class="gm-ok">Set</small>'}<button type="button" class="gm-pill ghost" data-gm-act="reset" aria-label="Reset shortcut key">Reset</button>`:'<button type="button" class="gm-pill" data-gm-act="copy" aria-label="Copy shortcut key">Copy key</button>';
+  kr.querySelector('.gm-r').innerHTML=st._s!==200?'<small>Offline</small>':has?`${local?'<button type="button" class="gm-pill" data-gm-act="copy" aria-label="Copy Meow Key">Copy</button>':'<small class="gm-ok">Set</small>'}<button type="button" class="gm-pill ghost" data-gm-act="reset" aria-label="Reset Meow Key">${local?'Reset':'Reset Meow Key'}</button>`:'<button type="button" class="gm-pill" data-gm-act="copy" aria-label="Copy Meow Key">Copy Meow Key</button>';
   const kb=p.querySelector('.gm-keybox');kb.hidden=!gmKeyShown;if(gmKeyShown)kb.querySelector('input').value=gmKeyShown;
   if(msg!==undefined)gmMsg(msg);
 }
 function gmShortcutPanel(){
   const has=!!SHORTCUT_ICLOUD_URL;gmKeyShown=null;gmResetArm=0;
-  openPanel('Add from Google Maps',`<div class="share-panel gm-panel"><p class="sh-note">📲 Share from Google Maps — Meowsto pings you, tap to open it here.</p><ol class="gm-steps"><li>Turn on <b>notifications</b></li><li>Tap <b>Install Shortcut</b> — your key is copied</li><li>Paste the key when asked</li><li>Google Maps → <b>Share</b> → <b>加入 Meowsto</b> 🐾</li></ol><ul class="sh-list gm-list"><li data-gm="push"><span>🔔 Notifications</span><span class="gm-r"><small>…</small></span></li><li data-gm="key"><span>🔑 Shortcut key</span><span class="gm-r"><small>…</small></span></li></ul><p class="gm-hint"></p><p class="gm-safe">🔒 This key can only add places. Don’t share it.</p><div class="gm-keybox" hidden><input type="text" readonly aria-label="Shortcut key" spellcheck="false" autocapitalize="off" autocorrect="off"><small>Paste this into the Shortcut</small></div><p class="sh-msg" role="status"></p>${has?`<a class="gm-install primary" href="${esc(SHORTCUT_ICLOUD_URL)}" target="_blank" rel="noopener">Install Shortcut</a>`:'<button type="button" class="gm-install primary" disabled>Install Shortcut · Coming soon</button>'}</div>`,{cls:'entry-panel profile-sheet share-sheet gm-sheet'});
+  openPanel('Add from Google Maps',`<div class="share-panel gm-panel"><p class="sh-note">📲 Share from Google Maps — Meowsto pings you, tap to open it here.</p><ol class="gm-steps"><li>Turn on <b>notifications</b></li><li>Tap <b>Install Shortcut</b> — your Meow Key is copied</li><li>Paste your Meow Key when asked</li><li>Google Maps → <b>Share</b> → <b>加入 Meowsto</b> 🐾</li></ol><ul class="sh-list gm-list"><li data-gm="push"><span>🔔 Notifications</span><span class="gm-r"><small>…</small></span></li><li data-gm="key"><span>🔑 Meow Key</span><span class="gm-r"><small>…</small></span></li></ul><p class="gm-hint"></p><p class="gm-safe">🔒 Your Meow Key can only add places. Don’t share it.</p><div class="gm-keybox" hidden><input type="text" readonly aria-label="Meow Key" spellcheck="false" autocapitalize="off" autocorrect="off"><small>Paste this into the Shortcut</small></div><p class="sh-msg" role="status"></p>${has?`<a class="gm-install primary" href="${esc(SHORTCUT_ICLOUD_URL)}" target="_blank" rel="noopener">Install Shortcut</a>`:'<button type="button" class="gm-install primary" disabled>Install Shortcut · Coming soon</button>'}</div>`,{cls:'entry-panel profile-sheet share-sheet gm-sheet'});
   const p=document.querySelector('#panel .gm-panel');
   const ins=p.querySelector('a.gm-install');if(ins)ins.addEventListener('click',gmInstall);
   p.addEventListener('click',e=>{const b=e.target.closest('[data-gm-act]');if(b){const a=b.dataset.gmAct;
       if(a==='push'){if(!pushOK())return;gmPushOn();return}
       if(a==='copy'){b.disabled=true;gmCopyKey(false);return}
-      if(a==='reset'){if(Date.now()-gmResetArm>4000){gmResetArm=Date.now();b.textContent='Tap again';gmMsg('Old key stops working');return}gmResetArm=0;b.disabled=true;gmCopyKey(true);return}}
-    const inp=e.target.closest('.gm-keybox input');if(inp){inp.select();try{navigator.clipboard.writeText(inp.value).then(()=>gmMsg('Copied ✓'),()=>{})}catch{}}});
+      if(a==='reset'){if(Date.now()-gmResetArm>4000){gmResetArm=Date.now();b.textContent='Tap again';gmMsg('Old Meow Key stops working');return}gmResetArm=0;b.disabled=true;gmCopyKey(true);return}}
+    const inp=e.target.closest('.gm-keybox input');if(inp){inp.select();try{navigator.clipboard.writeText(inp.value).then(()=>gmMsg('Meow Key copied ✓'),()=>{})}catch{}}});
   gmRefresh();
 }
 
