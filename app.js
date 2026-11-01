@@ -1599,7 +1599,7 @@ async function gmAddRun(text,pre){
     if(!Number.isFinite(j.lat)||!Number.isFinite(j.lng)){if(name.length>=2){exploreBar('done');runMapPlaceSearch(name);return}throw Error('no place')}
     {const tx=$('#explore-progress .ep-text');if(tx)tx.textContent='Matching '+(name||'place')+'…'}
     const f=await gmMatch(name||'Place',j.lat,j.lng,j.address||'');
-    exploreBar('done');gmShow(f);
+    exploreBar('done');gmShow(f,{name,lat:j.lat,lng:j.lng});
   }catch(e){console.warn('gmaps add',e);exploreBar('cancel');toast('Couldn’t read that link')}
 }
 async function gmMatch(name,lat,lng,address){
@@ -1615,8 +1615,23 @@ async function gmMatch(name,lat,lng,address){
   }catch{}
   return own;
 }
-function gmShow(f){
-  const c=f.geometry.coordinates,saved=savedForHit(f);
+// ui20261015ei: Maps shares never duplicate a saved place — same source id, similar name ≤150 m, or any place ≤30 m.
+const gmNorm=x=>String(x||'').toLowerCase().normalize('NFKD').replace(/[\u0300-\u036f]/g,'').replace(/[^a-z0-9\u3040-\u30ff\u3400-\u9fff\uac00-\ud7af]+/g,'');
+const GM_GENERIC=new Set('restaurant restaurants cafe coffee kitchen ramen sushi pizza pizzeria noodle noodles bistro grill house bakery bar pub the and dining eatery express shop izakaya diner taco tacos burger burgers thai pho vancouver'.split(' '));
+const gmWords=s=>String(s||'').toLowerCase().normalize('NFKD').replace(/[\u0300-\u036f]/g,'').split(/[^a-z0-9]+/).filter(w=>w.length>=4&&!GM_GENERIC.has(w));
+function gmSimilar(a,b){const x=gmNorm(a),y=gmNorm(b);if(!x||!y)return false;if(x===y)return true;const [m,l]=x.length<=y.length?[x,y]:[y,x];if(m.length>=3&&l.includes(m))return true;const wa=new Set(gmWords(a));return gmWords(b).some(w=>wa.has(w))}
+function gmSame(a,b){if(!a||!b)return false;if(a.url&&a.url===b.url)return true;const ok=p=>Number.isFinite(p.lat)&&Number.isFinite(p.lng);
+  if(ok(a)&&ok(b)){const d=metersBetween(a.lat,a.lng,b.lat,b.lng);return d<=30||(d<=150&&gmSimilar(a.name,b.name))}return !!a.name&&gmNorm(a.name)===gmNorm(b.name)}
+function gmSavedMatch(probes,sourceId){
+  const rs=state.restaurants.filter(r=>!r._shared&&!r.demo),score=r=>(onMap(r)?0:2)+(visits(r.id).length||r.wish?0:1);
+  const hit=(sourceId&&rs.find(r=>r.sourceId===sourceId))||rs.filter(r=>Number.isFinite(r.lat)&&Number.isFinite(r.lng)&&probes.some(q=>q&&gmSame({name:q.name,lat:q.lat,lng:q.lng},r))).sort((a,b)=>score(a)-score(b)||metersBetween(probes[0].lat,probes[0].lng,a.lat,a.lng)-metersBetween(probes[0].lat,probes[0].lng,b.lat,b.lng))[0];
+  return hit||null}
+function gmShow(f,raw){
+  const c0=f.geometry.coordinates,d0=draftFromSearchFeature(f);
+  const saved=savedForHit(f)||gmSavedMatch([{name:d0.name,lat:c0[1],lng:c0[0]},raw],d0.sourceId);
+  if(saved&&!onMap(saved)&&Number.isFinite(saved.lat)){ // hidden entry (e.g. un-hearted wish): show it as the hit so heart/Add reuse that record
+    f={type:'Feature',geometry:{type:'Point',coordinates:[saved.lng,saved.lat]},properties:{...f.properties,name:saved.name,full_address:saved.address||f.properties.full_address||'',sourceId:saved.sourceId||undefined}}}
+  const c=f.geometry.coordinates;
   if(saved&&onMap(saved)){clearSearchMarkers();searchResults=[];searchFocusIdx=null;selected=null;selectPin(saved.id);return}
   const sheet=$('#sheet');if(!sheet||!map)return;
   selected=null;updateMarkerIcons();cancelSearch();searchFocusIdx=null;
@@ -1638,9 +1653,11 @@ async function inboxCheck(force){
   inboxBusy=true;inboxLast=Date.now();const want=inboxWant;inboxWant=null;inboxStrip();
   try{
     const j=await inboxApi('inbox','GET');if(j._s!==200||!Array.isArray(j.items)||!j.items.length)return;
-    const it=(want&&j.items.find(x=>x.id===want))||j.items[0],more=j.items.length-1;
+    const it=(want&&j.items.find(x=>x.id===want))||j.items[0];
+    const dupIds=j.items.filter(x=>x===it||gmSame(x,it)).map(x=>x.id),left=j.items.filter(x=>!dupIds.includes(x.id));
+    const more=left.filter((x,i)=>!left.slice(0,i).some(y=>gmSame(x,y))).length;
     await gmAddRun((it.name?it.name+'\n':'')+it.url,it);
-    await inboxApi('inbox?id='+encodeURIComponent(it.id),'DELETE');
+    await inboxApi('inbox?id='+dupIds.map(encodeURIComponent).join(','),'DELETE');
     if(more>0)setTimeout(()=>toast(more+' more from Maps'),400);
   }catch(e){console.warn('inbox',e)}finally{inboxBusy=false}
 }
