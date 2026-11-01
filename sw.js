@@ -1,4 +1,4 @@
-/* Meowsto service worker (ui20261015el) — Web Push only.
+/* Meowsto service worker (ui20261015em) — Web Push only.
    No fetch handler on purpose: every request goes to the network exactly as before (no caching, ?v= busting unchanged). */
 self.addEventListener('install',()=>self.skipWaiting());
 self.addEventListener('activate',e=>e.waitUntil(self.clients.claim()));
@@ -16,6 +16,7 @@ self.addEventListener('notificationclick',e=>{
   e.notification.close();
   const {url,id}=e.notification.data||{};
   e.waitUntil((async()=>{
+    try{const c=await caches.open('meowsto-tap');await c.put('tap',new Response(JSON.stringify({id:id||null,t:Date.now()}),{headers:{'content-type':'application/json'}}))}catch{}
     const list=await self.clients.matchAll({type:'window',includeUncontrolled:true});
     const c=list.find(w=>w.url.startsWith(SCOPE()));
     if(c){try{await c.focus()}catch{}c.postMessage({type:'meowsto-inbox',id});return}

@@ -1659,8 +1659,10 @@ const inboxParam=()=>{try{const v=new URLSearchParams(location.search).get('inbo
 let inboxWant=inboxParam(),inboxBusy=false,inboxLast=0,gmKeyShown=null,gmResetArm=0;
 function inboxStrip(){try{const u=new URL(location.href);if(!u.searchParams.has('inbox'))return;u.searchParams.delete('inbox');history.replaceState(history.state,'',u.pathname+(u.searchParams.toString()?'?'+u.searchParams.toString():'')+u.hash)}catch{}}
 async function inboxApi(path,method,body){let j=await api(path,method,body);if(j._s===401&&await tryRefresh()===true)j=await api(path,method,body);return j}
-function inboxKick(){if(TOK&&USER)inboxCheck(!!inboxWant)}
+function inboxKick(){if(TOK&&USER){if(inboxWant)inboxTapTake();inboxCheck(!!inboxWant)}}
+let inboxAgain=false;
 async function inboxCheck(force){
+  if(force&&inboxBusy){inboxAgain=true;return} // ui20261015em: a notification tap during a background check still opens its place
   if(!TOK||!USER||inboxBusy||gmAddPending)return;
   if(!force&&(Date.now()-inboxLast<20000||!$('#panel').hidden))return; // never clobber an open form on a plain foreground
   inboxBusy=true;inboxLast=Date.now();const want=inboxWant;inboxWant=null;inboxStrip();
@@ -1672,15 +1674,20 @@ async function inboxCheck(force){
     await gmAddRun((it.name?it.name+'\n':'')+it.url,it);
     await inboxApi('inbox?id='+dupIds.map(encodeURIComponent).join(','),'DELETE');
     if(more>0)setTimeout(()=>toast(more+' more from Maps'),400);
-  }catch(e){console.warn('inbox',e)}finally{inboxBusy=false}
+  }catch(e){console.warn('inbox',e)}finally{inboxBusy=false;if(inboxAgain){inboxAgain=false;setTimeout(()=>inboxCheck(true),0)}}
 }
-document.addEventListener('visibilitychange',()=>{if(document.visibilityState==='visible')inboxCheck(false)});
+// ui20261015em: iOS can drop the SW→page message when a backgrounded app is resumed by a notification tap, so the SW also
+// parks the tapped id in Cache Storage; on resume we pick it up and force-open it (on any page / over Settings).
+async function inboxTapTake(){try{if(!('caches' in window))return null;const c=await caches.open('meowsto-tap'),r=await c.match('tap');if(!r)return null;await c.delete('tap');const d=await r.json().catch(()=>null);return d&&Date.now()-(d.t||0)<600000?d:null}catch{return null}}
+async function inboxResume(){const d=await inboxTapTake();if(d){inboxWant=d.id&&/^[\w-]{4,40}$/.test(d.id)?d.id:null;inboxCheck(true)}else inboxCheck(false)}
+document.addEventListener('visibilitychange',()=>{if(document.visibilityState==='visible')inboxResume()});
+window.addEventListener('pageshow',e=>{if(e.persisted)inboxResume()});
 const isIOS=()=>/iP(hone|ad|od)/.test(navigator.userAgent)||(navigator.platform==='MacIntel'&&navigator.maxTouchPoints>1);
 const isStandalone=()=>navigator.standalone===true||matchMedia('(display-mode: standalone)').matches||matchMedia('(display-mode: fullscreen)').matches;
 const pushOK=()=>'serviceWorker' in navigator&&'PushManager' in window&&'Notification' in window&&window.isSecureContext!==false;
 let swRegP=null;
 function swInit(){if(swRegP||!('serviceWorker' in navigator)||window.isSecureContext===false)return swRegP;
-  navigator.serviceWorker.addEventListener('message',e=>{const d=e.data||{};if(d.type==='meowsto-inbox'){inboxWant=d.id&&/^[\w-]{4,40}$/.test(d.id)?d.id:null;inboxCheck(true)}});
+  navigator.serviceWorker.addEventListener('message',e=>{const d=e.data||{};if(d.type==='meowsto-inbox'){inboxTapTake();inboxWant=d.id&&/^[\w-]{4,40}$/.test(d.id)?d.id:null;inboxCheck(true)}});
   swRegP=navigator.serviceWorker.register('sw.js',{scope:'./'}).catch(e=>{console.warn('sw',e);swRegP=null;return null});return swRegP}
 const b64uBytes=s=>{const b=atob(s.replace(/-/g,'+').replace(/_/g,'/')+'==='.slice((s.length+3)%4));return Uint8Array.from(b,c=>c.charCodeAt(0))};
 async function gmPushState(st){
