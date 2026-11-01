@@ -661,3 +661,10 @@ html body .sheet-expanded>.handle,html body .sheet-expanded>.search-sheet-head,h
 .wl-sync .ep-text:empty{display:none}
 @keyframes wlSyncIn{from{opacity:0;transform:translate(-50%,-6px)}to{opacity:1;transform:translate(-50%,0)}}
 @media (prefers-reduced-motion:reduce){.wl-sync,.wl-sync .ep-cat{animation:none!important}}
+/* ui20261015eh: Add from Google Maps (Shortcut) */
+.pf-gm-ic{width:22px;text-align:center;font-size:16px;line-height:1}
+.gm-steps{margin:0;padding:0 0 0 22px;display:flex;flex-direction:column;gap:6px;font:600 15px/1.35 Nunito,sans-serif;color:#38271f}
+.gm-steps li::marker{color:#8a6fdc;font-weight:800}
+.gm-steps b{font-weight:800}
+.gm-install{display:flex!important;align-items:center;justify-content:center;width:100%;height:44px!important;min-height:44px!important;border-radius:999px!important;border:0!important;background:#8a6fdc!important;color:#fff!important;font:800 16px/1 Nunito,sans-serif!important;text-decoration:none;box-shadow:none!important}
+.gm-install:disabled{background:#e9e3f8!important;color:#8f84ad!important;cursor:default}

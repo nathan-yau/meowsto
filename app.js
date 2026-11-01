@@ -520,9 +520,10 @@ function exploreResultIcon(x){
 }
 // ui20261015ef: Explore = ONE Mapbox /category call (restaurant, limit 25) + Overpass in parallel. Mapbox shows at once; a paw progress bar
 // ("Fetching more…") runs until Overpass merges. Only if Overpass fails/empty → the other two category calls. Photon only if everything fails.
-function exploreBar(state){
+function exploreBar(state,text){
   let el=$('#explore-progress');const wrap=$('.map-wrap');
   if(state==='start'){if(!wrap)return;if(!el){el=document.createElement('div');el.id='explore-progress';el.className='explore-progress';el.setAttribute('role','status');el.innerHTML='<div class="ep-track"><div class="ep-fill"></div><img class="ep-cat" src="assets/icon-go-meow.png?v=ui20261015ef" alt="" aria-hidden="true"></div><span class="ep-text">Fetching more…</span>';wrap.appendChild(el)}
+    {const tx=el.querySelector('.ep-text');if(tx)tx.textContent=text||'Fetching more…'}
     el.classList.remove('done','fade');el.style.setProperty('--ep',0);void el.offsetWidth;el.classList.add('run');
     const pos=()=>{const e=$('#explore-progress');if(!e)return;const s=$('#sheet .search-sheet'),w=wrap.getBoundingClientRect();const top=s?s.getBoundingClientRect().top:w.bottom-40;e.style.top=Math.max(0,top-w.top-30)+'px';if(!e.classList.contains('fade'))e._raf=requestAnimationFrame(pos)};cancelAnimationFrame(el._raf);pos();return}
   if(!el)return;
@@ -1443,7 +1444,7 @@ function avatarHtml(){const p=state.avatar;return (typeof p==='string'&&/^data:i
 function renderAvatar(){const b=document.querySelector('header .avatar');if(b)b.innerHTML=avatarHtml()}
 async function avatarImage(file){if(!/^image\/(jpeg|png|webp)$/.test(file.type)||file.size>15000000)throw Error('Choose a JPG, PNG, or WebP under 15 MB.');const bmp=await createImageBitmap(file),s=Math.min(bmp.width,bmp.height),c=document.createElement('canvas');c.width=c.height=192;c.getContext('2d').drawImage(bmp,(bmp.width-s)/2,(bmp.height-s)/2,s,s,0,0,192,192);bmp.close();return c.toDataURL('image/jpeg',.8)}
 function profile(){
-  openPanel('Your profile',`<div class="profile-panel pf-lite"><div class="pf-head"><button type="button" class="pf-av" data-action="avatar-upload" aria-label="Change photo">${avatarHtml()}<span class="pf-cam">✎</span></button><div class="pf-id"><b>${esc(String(USER||state.profile||'You'))}</b><small>🐾 ${hexAreaCount()} area${hexAreaCount()===1?'':'s'} conquered</small></div><button type="button" class="hex-switch${hexOn?' on':''}" role="switch" aria-checked="${hexOn}" aria-label="Show conquered areas on map" data-action="hex-toggle"><svg class="hex-ic" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 2.8 20 7.4v9.2L12 21.2 4 16.6V7.4z" fill="currentColor" fill-opacity=".25" stroke="currentColor" stroke-width="2" stroke-linejoin="round"/></svg><span class="hex-track"><span class="hex-knob"></span></span></button></div><input type="file" id="avatar-file" accept="image/jpeg,image/png,image/webp" hidden><p class="pf-lock">🔒 Your journal is encrypted on this device. Keep your password safe; we can’t recover it.</p><button type="button" class="pf-share" data-action="share-panel"><span class="sh-dot" aria-hidden="true"></span><span>Share wishlist</span><small>${(state.share?.to||[]).length?`${(state.share.to.length)} ${state.share.to.length===1?'person':'people'}`:''}</small><b aria-hidden="true">›</b></button><div class="pf-actions"><button data-action="export">↓ Export</button><button data-action="import">↑ Import</button><button data-action="logout" class="danger">Log out</button></div><input type="file" id="import-file" accept="application/json,.json" hidden><details class="pf-more"><summary>More</summary><p class="pf-stats">${state.restaurants.length} places · ${state.visits.length} visits · ${state.restaurants.filter(r=>r.wish).length} to try</p>${state.avatar?'<button data-action="avatar-letter">Use initial instead of photo</button>':''}</details></div>`,{cls:'entry-panel profile-sheet'});
+  openPanel('Your profile',`<div class="profile-panel pf-lite"><div class="pf-head"><button type="button" class="pf-av" data-action="avatar-upload" aria-label="Change photo">${avatarHtml()}<span class="pf-cam">✎</span></button><div class="pf-id"><b>${esc(String(USER||state.profile||'You'))}</b><small>🐾 ${hexAreaCount()} area${hexAreaCount()===1?'':'s'} conquered</small></div><button type="button" class="hex-switch${hexOn?' on':''}" role="switch" aria-checked="${hexOn}" aria-label="Show conquered areas on map" data-action="hex-toggle"><svg class="hex-ic" viewBox="0 0 24 24" aria-hidden="true"><path d="M12 2.8 20 7.4v9.2L12 21.2 4 16.6V7.4z" fill="currentColor" fill-opacity=".25" stroke="currentColor" stroke-width="2" stroke-linejoin="round"/></svg><span class="hex-track"><span class="hex-knob"></span></span></button></div><input type="file" id="avatar-file" accept="image/jpeg,image/png,image/webp" hidden><p class="pf-lock">🔒 Your journal is encrypted on this device. Keep your password safe; we can’t recover it.</p><button type="button" class="pf-share" data-action="share-panel"><span class="sh-dot" aria-hidden="true"></span><span>Share wishlist</span><small>${(state.share?.to||[]).length?`${(state.share.to.length)} ${state.share.to.length===1?'person':'people'}`:''}</small><b aria-hidden="true">›</b></button><button type="button" class="pf-share pf-gmaps" data-action="gmaps-shortcut"><span class="pf-gm-ic" aria-hidden="true">📲</span><span>Add from Google Maps</span><small>Shortcut</small><b aria-hidden="true">›</b></button><div class="pf-actions"><button data-action="export">↓ Export</button><button data-action="import">↑ Import</button><button data-action="logout" class="danger">Log out</button></div><input type="file" id="import-file" accept="application/json,.json" hidden><details class="pf-more"><summary>More</summary><p class="pf-stats">${state.restaurants.length} places · ${state.visits.length} visits · ${state.restaurants.filter(r=>r.wish).length} to try</p>${state.avatar?'<button data-action="avatar-letter">Use initial instead of photo</button>':''}</details></div>`,{cls:'entry-panel profile-sheet'});
   $('#import-file').onchange=importBackup;
   $('#avatar-file').onchange=async e=>{const f=e.target.files[0];if(!f)return;try{const url=await avatarImage(f);if(commit(()=>{state.avatar=url})){renderAvatar();profile();toast('Profile photo updated')}}catch(err){toast(err.message||'Could not use that image')}};
 }
@@ -1519,6 +1520,7 @@ document.addEventListener('click',e=>{
     case'profile':profile();break;
     case'hex-toggle':setHexOn(!hexOn);break;
     case'share-panel':sharePanel();break;
+    case'gmaps-shortcut':gmShortcutPanel();break;
     case'export':exportBackup();break;
     case'avatar-upload':$('#avatar-file')?.click();break;
     case'avatar-letter':if(commit(()=>{delete state.avatar}))profile(),renderAvatar();break;
@@ -1574,6 +1576,58 @@ function bootApp(){
   if(pinned){mapCenter=[pinned.lat,pinned.lng];mapZoom=14}
   renderAvatar();
   render();
+  gmAddKick();
+}
+
+// ui20261015eh: iPhone Shortcut "加入 Meowsto" → /?add=<shared Google Maps text>. Resolve via Netlify function, match on Mapbox, open the place sheet.
+const SHORTCUT_ICLOUD_URL='';
+const GMAPS_FN=(location.hostname.endsWith('.netlify.app')||/^(localhost|127\.0\.0\.1)$/.test(location.hostname)?'':'https://wonderful-parfait-18a140.netlify.app')+'/.netlify/functions/resolve-gmaps';
+let gmAddPending=(()=>{try{const v=new URLSearchParams(location.search).get('add');return v&&v.trim()?v.trim().slice(0,4000):null}catch{return null}})();
+function gmStripAdd(){try{const u=new URL(location.href);if(!u.searchParams.has('add'))return;u.searchParams.delete('add');history.replaceState(history.state,'',u.pathname+(u.searchParams.toString()?'?'+u.searchParams.toString():'')+u.hash)}catch{}}
+function gmExtract(text){const s=String(text||'').trim(),m=s.match(/https?:\/\/[^\s<>"']+/i);if(!m)return {url:null,hint:s.slice(0,120)};return {url:m[0].replace(/[),.;!?\]]+$/,''),hint:s.slice(0,m.index).replace(/\s+/g,' ').trim().replace(/[:\-–—]+$/,'').trim().slice(0,120)}}
+function gmAddKick(){if(!gmAddPending||!USER)return;const text=gmAddPending;gmAddPending=null;gmStripAdd();setTimeout(()=>gmAddRun(text),60)}
+async function gmAddRun(text){
+  const {url,hint}=gmExtract(text);
+  closePanel();if(tab!=='map'){tab='map';render()}else if(!$('.map-wrap'))render();
+  if(!url){if(hint&&hint.length>=2&&hint.length<=80){runMapPlaceSearch(hint);return}toast('Couldn’t read that link');return}
+  exploreBar('start','Finding place…');
+  try{
+    const ctrl=new AbortController(),t=setTimeout(()=>ctrl.abort(),12000);let j;
+    try{const r=await fetch(GMAPS_FN+'?url='+encodeURIComponent(url),{signal:ctrl.signal});j=await r.json().catch(()=>({}));if(!r.ok)throw Error(j.error||'resolve '+r.status)}finally{clearTimeout(t)}
+    const name=String(j.name||hint||'').trim();
+    if(!Number.isFinite(j.lat)||!Number.isFinite(j.lng)){if(name.length>=2){exploreBar('done');runMapPlaceSearch(name);return}throw Error('no place')}
+    {const tx=$('#explore-progress .ep-text');if(tx)tx.textContent='Matching '+(name||'place')+'…'}
+    const f=await gmMatch(name||'Place',j.lat,j.lng,j.address||'');
+    exploreBar('done');gmShow(f);
+  }catch(e){console.warn('gmaps add',e);exploreBar('cancel');toast('Couldn’t read that link')}
+}
+async function gmMatch(name,lat,lng,address){
+  const own={type:'Feature',geometry:{type:'Point',coordinates:[lng,lat]},properties:{_provider:'gmaps',name,full_address:address||'',osm_key:'amenity',osm_value:'restaurant',poi_category:[]}};
+  if(!name||name==='Place')return own;
+  try{
+    const c=new AbortController(),t=setTimeout(()=>c.abort(),5000);let feats=[];
+    try{const r=await fetch(mapboxForwardURL(name,[lat,lng],true),{signal:c.signal});if(r.ok){const jj=await r.json();feats=mapboxForwardFeatures(jj.features||[])}}finally{clearTimeout(t)}
+    let best=null,bd=Infinity;
+    for(const f of feats){const p=f.properties||{},cc=f.geometry.coordinates;const d=metersBetween(lat,lng,cc[1],cc[0]);if(d>150)continue;
+      if(Math.min(nameMatchRank(p.name,name),nameMatchRank(name,p.name))>=3)continue;if(d<bd){bd=d;best=f}}
+    if(best){if(!best.properties.full_address&&address)best.properties.full_address=address;return best}
+  }catch{}
+  return own;
+}
+function gmShow(f){
+  const c=f.geometry.coordinates,saved=savedForHit(f);
+  if(saved&&onMap(saved)){clearSearchMarkers();searchResults=[];searchFocusIdx=null;selected=null;selectPin(saved.id);return}
+  const sheet=$('#sheet');if(!sheet||!map)return;
+  selected=null;updateMarkerIcons();cancelSearch();searchFocusIdx=null;
+  lastSearchQuery=f.properties.name||'';const input=$('#map-search-query');if(input)input.value=lastSearchQuery;
+  map.setView([c[1],c[0]],Math.max(map.getZoom(),16),{animate:false});
+  showSearchSheetResults(sheet,[f],{noFit:true});
+  const h=sheet.querySelector('.search-sheet-head h2');if(h)h.textContent='From Google Maps';
+  afterSheetLayout(()=>{focusSearchHit(0);const h2=sheet.querySelector('.search-sheet-head h2');if(h2)h2.textContent='From Google Maps'});
+}
+function gmShortcutPanel(){
+  const has=!!SHORTCUT_ICLOUD_URL;
+  openPanel('Add from Google Maps',`<div class="share-panel gm-panel"><p class="sh-note">📲 Share a place from Google Maps straight into Meowsto — one tap, no copy-paste.</p><ol class="gm-steps"><li>Tap <b>Install Shortcut</b>, then <b>Add Shortcut</b></li><li>In Google Maps, open a place → <b>Share</b></li><li>Pick <b>加入 Meowsto</b> 🐾 — we’ll find it for you</li></ol>${has?`<a class="gm-install primary" href="${esc(SHORTCUT_ICLOUD_URL)}" target="_blank" rel="noopener">Install Shortcut</a>`:'<button type="button" class="gm-install primary" disabled>Install Shortcut · Coming soon</button>'}</div>`,{cls:'entry-panel profile-sheet share-sheet gm-sheet'});
 }
 
 /* lock screen wiring */
