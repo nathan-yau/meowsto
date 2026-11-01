@@ -1594,7 +1594,7 @@ async function gmAddRun(text,pre){
   exploreBar('start','Finding place…');
   try{
     const ctrl=new AbortController(),t=setTimeout(()=>ctrl.abort(),12000);let j;
-    try{if(pre&&Number.isFinite(pre.lat)&&Number.isFinite(pre.lng))j=pre;/* ui20261015ei: inbox items arrive resolved server-side */else{const r=await fetch(GMAPS_FN+'?url='+encodeURIComponent(url),{signal:ctrl.signal});j=await r.json().catch(()=>({}));if(!r.ok)throw Error(j.error||'resolve '+r.status)}}finally{clearTimeout(t)}
+    try{if(pre&&Number.isFinite(pre.lat)&&Number.isFinite(pre.lng))j=pre;/* ui20261015ej: inbox items arrive resolved server-side */else{const r=await fetch(GMAPS_FN+'?url='+encodeURIComponent(url),{signal:ctrl.signal});j=await r.json().catch(()=>({}));if(!r.ok)throw Error(j.error||'resolve '+r.status)}}finally{clearTimeout(t)}
     const name=String(j.name||hint||'').trim();
     if(!Number.isFinite(j.lat)||!Number.isFinite(j.lng)){if(name.length>=2){exploreBar('done');runMapPlaceSearch(name);return}throw Error('no place')}
     {const tx=$('#explore-progress .ep-text');if(tx)tx.textContent='Matching '+(name||'place')+'…'}
@@ -1608,20 +1608,27 @@ async function gmMatch(name,lat,lng,address){
   try{
     const c=new AbortController(),t=setTimeout(()=>c.abort(),5000);let feats=[];
     try{const r=await fetch(mapboxForwardURL(name,[lat,lng],true),{signal:c.signal});if(r.ok){const jj=await r.json();feats=mapboxForwardFeatures(jj.features||[])}}finally{clearTimeout(t)}
+    // ui20261015ej: Google's resolved name + coords are ground truth. A Mapbox POI is only borrowed (id, categories, address)
+    // when its name STRONGLY matches within 100 m — never just the nearest place or one sharing a word (A&W 26 m from Tim Hortons).
     let best=null,bd=Infinity;
-    for(const f of feats){const p=f.properties||{},cc=f.geometry.coordinates;const d=metersBetween(lat,lng,cc[1],cc[0]);if(d>150)continue;
-      if(Math.min(nameMatchRank(p.name,name),nameMatchRank(name,p.name))>=3)continue;if(d<bd){bd=d;best=f}}
-    if(best){if(!best.properties.full_address&&address)best.properties.full_address=address;return best}
+    for(const f of feats){const p=f.properties||{},cc=f.geometry.coordinates;const d=metersBetween(lat,lng,cc[1],cc[0]);if(d>100||!gmStrong(p.name,name))continue;if(d<bd){bd=d;best=f}}
+    if(best){const bp={...best.properties,name,full_address:best.properties.full_address||address||''};return {type:'Feature',geometry:{type:'Point',coordinates:[lng,lat]},properties:bp}}
   }catch{}
   return own;
 }
-// ui20261015ei: Maps shares never duplicate a saved place — same source id, similar name ≤150 m, or any place ≤30 m.
+// ui20261015ej: Maps shares never duplicate a saved place — same source id, or a STRONG name match ≤150 m (≤30 m only when one side is unnamed).
+// Proximity alone never matches: in malls/plazas a saved neighbour (A&W) must not hijack the shared place (Tim Hortons).
 const gmNorm=x=>String(x||'').toLowerCase().normalize('NFKD').replace(/[\u0300-\u036f]/g,'').replace(/[^a-z0-9\u3040-\u30ff\u3400-\u9fff\uac00-\ud7af]+/g,'');
-const GM_GENERIC=new Set('restaurant restaurants cafe coffee kitchen ramen sushi pizza pizzeria noodle noodles bistro grill house bakery bar pub the and dining eatery express shop izakaya diner taco tacos burger burgers thai pho vancouver'.split(' '));
-const gmWords=s=>String(s||'').toLowerCase().normalize('NFKD').replace(/[\u0300-\u036f]/g,'').split(/[^a-z0-9]+/).filter(w=>w.length>=4&&!GM_GENERIC.has(w));
-function gmSimilar(a,b){const x=gmNorm(a),y=gmNorm(b);if(!x||!y)return false;if(x===y)return true;const [m,l]=x.length<=y.length?[x,y]:[y,x];if(m.length>=3&&l.includes(m))return true;const wa=new Set(gmWords(a));return gmWords(b).some(w=>wa.has(w))}
+const GM_GENERIC=new Set('restaurant restaurants cafe coffee kitchen ramen sushi pizza pizzeria noodle noodles bistro grill house bakery bar pub the and dining eatery express shop izakaya diner taco tacos burger burgers thai pho vancouver burnaby richmond canada co ltd inc'.split(' '));
+const gmSpaced=x=>String(x||'').toLowerCase().normalize('NFKD').replace(/[\u0300-\u036f]/g,'').replace(/[^\p{L}\p{N}]+/gu,' ').trim();
+const GM_CJK=/[\u3040-\u30ff\u3400-\u9fff\uac00-\ud7af]+/g,gmLat=x=>String(x||'').replace(GM_CJK,' '),gmCjk=x=>(String(x||'').match(GM_CJK)||[]).join(' ');
+function gmStrong0(a,b){const x=gmNorm(a),y=gmNorm(b);if(!x||!y)return false;if(x===y)return true;
+  const sa=gmSpaced(a),sb=gmSpaced(b),[m,l]=sa.length<=sb.length?[sa,sb]:[sb,sa];if(!m||!m.split(' ').some(w=>!GM_GENERIC.has(w)))return false;
+  if((' '+l+' ').includes(' '+m+' '))return true;const [cs,cl]=x.length<=y.length?[x,y]:[y,x];return /[\u3040-\u30ff\u3400-\u9fff\uac00-\ud7af]/.test(cs)&&cs.length>=2&&cl.includes(cs)}
+function gmStrong(a,b){return gmStrong0(a,b)||(/[\u3040-\u30ff\u3400-\u9fff\uac00-\ud7af]/.test(String(a||'')+String(b||''))&&(gmStrong0(gmLat(a),gmLat(b))||gmStrong0(gmCjk(a),gmCjk(b))))}
+const gmSimilar=gmStrong;
 function gmSame(a,b){if(!a||!b)return false;if(a.url&&a.url===b.url)return true;const ok=p=>Number.isFinite(p.lat)&&Number.isFinite(p.lng);
-  if(ok(a)&&ok(b)){const d=metersBetween(a.lat,a.lng,b.lat,b.lng);return d<=30||(d<=150&&gmSimilar(a.name,b.name))}return !!a.name&&gmNorm(a.name)===gmNorm(b.name)}
+  if(ok(a)&&ok(b)){const d=metersBetween(a.lat,a.lng,b.lat,b.lng);return (d<=150&&gmStrong(a.name,b.name))||(d<=30&&(!gmNorm(a.name)||!gmNorm(b.name)))}return !!a.name&&gmNorm(a.name)===gmNorm(b.name)}
 function gmSavedMatch(probes,sourceId){
   const rs=state.restaurants.filter(r=>!r._shared&&!r.demo),score=r=>(onMap(r)?0:2)+(visits(r.id).length||r.wish?0:1);
   const hit=(sourceId&&rs.find(r=>r.sourceId===sourceId))||rs.filter(r=>Number.isFinite(r.lat)&&Number.isFinite(r.lng)&&probes.some(q=>q&&gmSame({name:q.name,lat:q.lat,lng:q.lng},r))).sort((a,b)=>score(a)-score(b)||metersBetween(probes[0].lat,probes[0].lng,a.lat,a.lng)-metersBetween(probes[0].lat,probes[0].lng,b.lat,b.lng))[0];
@@ -1641,7 +1648,7 @@ function gmShow(f,raw){
   const h=sheet.querySelector('.search-sheet-head h2');if(h)h.textContent='From Google Maps';
   afterSheetLayout(()=>{focusSearchHit(0);const h2=sheet.querySelector('.search-sheet-head h2');if(h2)h2.textContent='From Google Maps'});
 }
-// ui20261015ei: Shortcut → POST /api/inbox (share key) → Web Push → tap opens ?inbox=<id> here (home-screen app storage, not Safari's).
+// ui20261015ej: Shortcut → POST /api/inbox (share key) → Web Push → tap opens ?inbox=<id> here (home-screen app storage, not Safari's).
 const inboxParam=()=>{try{const v=new URLSearchParams(location.search).get('inbox');return v&&/^[\w-]{4,40}$/.test(v)?v:null}catch{return null}};
 let inboxWant=inboxParam(),inboxBusy=false,inboxLast=0,gmKeyShown=null,gmResetArm=0;
 function inboxStrip(){try{const u=new URL(location.href);if(!u.searchParams.has('inbox'))return;u.searchParams.delete('inbox');history.replaceState(history.state,'',u.pathname+(u.searchParams.toString()?'?'+u.searchParams.toString():'')+u.hash)}catch{}}
@@ -1653,7 +1660,7 @@ async function inboxCheck(force){
   inboxBusy=true;inboxLast=Date.now();const want=inboxWant;inboxWant=null;inboxStrip();
   try{
     const j=await inboxApi('inbox','GET');if(j._s!==200||!Array.isArray(j.items)||!j.items.length)return;
-    const it=(want&&j.items.find(x=>x.id===want))||j.items[0];
+    const it=want?j.items.find(x=>x.id===want):j.items[0];if(!it)return; // ui20261015ej: a tapped id that is gone never opens some other pending place
     const dupIds=j.items.filter(x=>x===it||gmSame(x,it)).map(x=>x.id),left=j.items.filter(x=>!dupIds.includes(x.id));
     const more=left.filter((x,i)=>!left.slice(0,i).some(y=>gmSame(x,y))).length;
     await gmAddRun((it.name?it.name+'\n':'')+it.url,it);
@@ -1692,7 +1699,7 @@ async function gmPushOn(){
     gmMsg('Notifications on ✓');gmRefresh();
   }catch(e){console.warn('push',e);gmMsg('Couldn’t turn on — try again',true)}
 }
-// ui20261015ei: the plaintext key is kept on this device only (per user) so Install/Copy can reuse it; server stores a hash.
+// ui20261015ej: the plaintext key is kept on this device only (per user) so Install/Copy can reuse it; server stores a hash.
 const gmKeyGet=()=>{try{const o=JSON.parse(localStorage.getItem(K('ikey'))||'null');return o&&typeof o.t==='string'&&/^mst_[\w-]{43}$/.test(o.t)?o:null}catch{return null}};
 const gmKeySet=(t,c)=>{try{t?localStorage.setItem(K('ikey'),JSON.stringify({t,c})):localStorage.removeItem(K('ikey'))}catch{}};
 const gmNewKey=()=>inboxApi('inbox/key','POST').then(j=>{if(j._s!==200||!j.token)throw Error(j.error||'key');gmKeySet(j.token,j.c);return j.token});

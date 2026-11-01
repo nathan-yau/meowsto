@@ -1,4 +1,4 @@
-/* Meowsto service worker (ui20261015ei) — Web Push only.
+/* Meowsto service worker (ui20261015ej) — Web Push only.
    No fetch handler on purpose: every request goes to the network exactly as before (no caching, ?v= busting unchanged). */
 self.addEventListener('install',()=>self.skipWaiting());
 self.addEventListener('activate',e=>e.waitUntil(self.clients.claim()));
