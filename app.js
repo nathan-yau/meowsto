@@ -1581,7 +1581,7 @@ function bootApp(){
 }
 
 // ui20261015eh: iPhone Shortcut "加入 Meowsto" → /?add=<shared Google Maps text>. Resolve via Netlify function, match on Mapbox, open the place sheet.
-const SHORTCUT_ICLOUD_URL='';
+const SHORTCUT_ICLOUD_URL='https://www.icloud.com/shortcuts/eec903f4b6324fa2928340afae9bc127';
 const GMAPS_FN=(location.hostname.endsWith('.netlify.app')||/^(localhost|127\.0\.0\.1)$/.test(location.hostname)?'':'https://wonderful-parfait-18a140.netlify.app')+'/.netlify/functions/resolve-gmaps';
 let gmAddPending=(()=>{try{const v=new URLSearchParams(location.search).get('add');return v&&v.trim()?v.trim().slice(0,4000):null}catch{return null}})();
 function gmStripAdd(){try{const u=new URL(location.href);if(!u.searchParams.has('add'))return;u.searchParams.delete('add');history.replaceState(history.state,'',u.pathname+(u.searchParams.toString()?'?'+u.searchParams.toString():'')+u.hash)}catch{}}
@@ -1594,7 +1594,7 @@ async function gmAddRun(text,pre){
   exploreBar('start','Finding place…');
   try{
     const ctrl=new AbortController(),t=setTimeout(()=>ctrl.abort(),12000);let j;
-    try{if(pre&&Number.isFinite(pre.lat)&&Number.isFinite(pre.lng))j=pre;/* ui20261015ej: inbox items arrive resolved server-side */else{const r=await fetch(GMAPS_FN+'?url='+encodeURIComponent(url),{signal:ctrl.signal});j=await r.json().catch(()=>({}));if(!r.ok)throw Error(j.error||'resolve '+r.status)}}finally{clearTimeout(t)}
+    try{if(pre&&Number.isFinite(pre.lat)&&Number.isFinite(pre.lng))j=pre;/* ui20261015ek: inbox items arrive resolved server-side */else{const r=await fetch(GMAPS_FN+'?url='+encodeURIComponent(url),{signal:ctrl.signal});j=await r.json().catch(()=>({}));if(!r.ok)throw Error(j.error||'resolve '+r.status)}}finally{clearTimeout(t)}
     const name=String(j.name||hint||'').trim();
     if(!Number.isFinite(j.lat)||!Number.isFinite(j.lng)){if(name.length>=2){exploreBar('done');runMapPlaceSearch(name);return}throw Error('no place')}
     {const tx=$('#explore-progress .ep-text');if(tx)tx.textContent='Matching '+(name||'place')+'…'}
@@ -1608,15 +1608,15 @@ async function gmMatch(name,lat,lng,address){
   try{
     const c=new AbortController(),t=setTimeout(()=>c.abort(),5000);let feats=[];
     try{const r=await fetch(mapboxForwardURL(name,[lat,lng],true),{signal:c.signal});if(r.ok){const jj=await r.json();feats=mapboxForwardFeatures(jj.features||[])}}finally{clearTimeout(t)}
-    // ui20261015ej: Google's resolved name + coords are ground truth. A Mapbox POI is only borrowed (id, categories, address)
+    // ui20261015ek: Google's resolved name + coords are ground truth. A Mapbox POI is only borrowed (id, categories, address)
     // when its name STRONGLY matches within 100 m — never just the nearest place or one sharing a word (A&W 26 m from Tim Hortons).
     let best=null,bd=Infinity;
-    for(const f of feats){const p=f.properties||{},cc=f.geometry.coordinates;const d=metersBetween(lat,lng,cc[1],cc[0]);if(d>100||!gmStrong(p.name,name))continue;if(d<bd){bd=d;best=f}}
+    for(const f of feats){const p=f.properties||{},cc=f.geometry.coordinates;const d=metersBetween(lat,lng,cc[1],cc[0]);if(!((d<=100&&gmStrong(p.name,name))||(d<=20&&gmNear(p.name,name))))continue;if(d<bd){bd=d;best=f}}
     if(best){const bp={...best.properties,name,full_address:best.properties.full_address||address||''};return {type:'Feature',geometry:{type:'Point',coordinates:[lng,lat]},properties:bp}}
   }catch{}
   return own;
 }
-// ui20261015ej: Maps shares never duplicate a saved place — same source id, or a STRONG name match ≤150 m (≤30 m only when one side is unnamed).
+// ui20261015ek: Maps shares never duplicate a saved place — same source id, or a STRONG name match ≤150 m (≤30 m only when one side is unnamed).
 // Proximity alone never matches: in malls/plazas a saved neighbour (A&W) must not hijack the shared place (Tim Hortons).
 const gmNorm=x=>String(x||'').toLowerCase().normalize('NFKD').replace(/[\u0300-\u036f]/g,'').replace(/[^a-z0-9\u3040-\u30ff\u3400-\u9fff\uac00-\ud7af]+/g,'');
 const GM_GENERIC=new Set('restaurant restaurants cafe coffee kitchen ramen sushi pizza pizzeria noodle noodles bistro grill house bakery bar pub the and dining eatery express shop izakaya diner taco tacos burger burgers thai pho vancouver burnaby richmond canada co ltd inc'.split(' '));
@@ -1627,8 +1627,14 @@ function gmStrong0(a,b){const x=gmNorm(a),y=gmNorm(b);if(!x||!y)return false;if(
   if((' '+l+' ').includes(' '+m+' '))return true;const [cs,cl]=x.length<=y.length?[x,y]:[y,x];return /[\u3040-\u30ff\u3400-\u9fff\uac00-\ud7af]/.test(cs)&&cs.length>=2&&cl.includes(cs)}
 function gmStrong(a,b){return gmStrong0(a,b)||(/[\u3040-\u30ff\u3400-\u9fff\uac00-\ud7af]/.test(String(a||'')+String(b||''))&&(gmStrong0(gmLat(a),gmLat(b))||gmStrong0(gmCjk(a),gmCjk(b))))}
 const gmSimilar=gmStrong;
+// ui20261015ek: near-identical names (typos) ≤20 m — same rule as server nearName(): whole name lev ≤2 (≥6 chars)/≤1 with ratio ≥0.7, or ratio ≥0.85, AND distinctive part (generic words and their typos removed) passes too.
+function gmLev(a,b){if(a===b)return 0;if(!a.length)return b.length;if(!b.length)return a.length;let p=Array.from({length:b.length+1},(_,j)=>j);for(let i=1;i<=a.length;i++){const c=[i];for(let j=1;j<=b.length;j++)c[j]=Math.min(p[j]+1,c[j-1]+1,p[j-1]+(a[i-1]===b[j-1]?0:1));p=c}return p[b.length]}
+function gmNearStr(x,y){if(!x||!y)return false;const d=gmLev(x,y),r=1-d/Math.max(x.length,y.length);return (d<=(Math.min(x.length,y.length)>=6?2:1)&&r>=0.7)||r>=0.85}
+const gmCoreOf=s=>gmSpaced(s).split(' ').filter(w=>w&&!GM_GENERIC.has(w)&&![...GM_GENERIC].some(g=>g.length>=4&&gmLev(w,g)<=1)).join('');
+function gmNear0(a,b){const x=gmNorm(a),y=gmNorm(b);if(!x||!y)return false;if(x===y)return true;const ca=gmCoreOf(a),cb=gmCoreOf(b);if(!ca||!cb)return false;return gmNearStr(x,y)&&gmNearStr(ca,cb)}
+function gmNear(a,b){return gmNear0(a,b)||(/[\u3040-\u30ff\u3400-\u9fff\uac00-\ud7af]/.test(String(a||'')+String(b||''))&&(gmNear0(gmLat(a),gmLat(b))||gmNear0(gmCjk(a),gmCjk(b))))}
 function gmSame(a,b){if(!a||!b)return false;if(a.url&&a.url===b.url)return true;const ok=p=>Number.isFinite(p.lat)&&Number.isFinite(p.lng);
-  if(ok(a)&&ok(b)){const d=metersBetween(a.lat,a.lng,b.lat,b.lng);return (d<=150&&gmStrong(a.name,b.name))||(d<=30&&(!gmNorm(a.name)||!gmNorm(b.name)))}return !!a.name&&gmNorm(a.name)===gmNorm(b.name)}
+  if(ok(a)&&ok(b)){const d=metersBetween(a.lat,a.lng,b.lat,b.lng);return (d<=150&&gmStrong(a.name,b.name))||(d<=20&&gmNear(a.name,b.name))||(d<=30&&(!gmNorm(a.name)||!gmNorm(b.name)))}return !!a.name&&gmNorm(a.name)===gmNorm(b.name)}
 function gmSavedMatch(probes,sourceId){
   const rs=state.restaurants.filter(r=>!r._shared&&!r.demo),score=r=>(onMap(r)?0:2)+(visits(r.id).length||r.wish?0:1);
   const hit=(sourceId&&rs.find(r=>r.sourceId===sourceId))||rs.filter(r=>Number.isFinite(r.lat)&&Number.isFinite(r.lng)&&probes.some(q=>q&&gmSame({name:q.name,lat:q.lat,lng:q.lng},r))).sort((a,b)=>score(a)-score(b)||metersBetween(probes[0].lat,probes[0].lng,a.lat,a.lng)-metersBetween(probes[0].lat,probes[0].lng,b.lat,b.lng))[0];
@@ -1648,7 +1654,7 @@ function gmShow(f,raw){
   const h=sheet.querySelector('.search-sheet-head h2');if(h)h.textContent='From Google Maps';
   afterSheetLayout(()=>{focusSearchHit(0);const h2=sheet.querySelector('.search-sheet-head h2');if(h2)h2.textContent='From Google Maps'});
 }
-// ui20261015ej: Shortcut → POST /api/inbox (share key) → Web Push → tap opens ?inbox=<id> here (home-screen app storage, not Safari's).
+// ui20261015ek: Shortcut → POST /api/inbox (share key) → Web Push → tap opens ?inbox=<id> here (home-screen app storage, not Safari's).
 const inboxParam=()=>{try{const v=new URLSearchParams(location.search).get('inbox');return v&&/^[\w-]{4,40}$/.test(v)?v:null}catch{return null}};
 let inboxWant=inboxParam(),inboxBusy=false,inboxLast=0,gmKeyShown=null,gmResetArm=0;
 function inboxStrip(){try{const u=new URL(location.href);if(!u.searchParams.has('inbox'))return;u.searchParams.delete('inbox');history.replaceState(history.state,'',u.pathname+(u.searchParams.toString()?'?'+u.searchParams.toString():'')+u.hash)}catch{}}
@@ -1660,7 +1666,7 @@ async function inboxCheck(force){
   inboxBusy=true;inboxLast=Date.now();const want=inboxWant;inboxWant=null;inboxStrip();
   try{
     const j=await inboxApi('inbox','GET');if(j._s!==200||!Array.isArray(j.items)||!j.items.length)return;
-    const it=want?j.items.find(x=>x.id===want):j.items[0];if(!it)return; // ui20261015ej: a tapped id that is gone never opens some other pending place
+    const it=want?j.items.find(x=>x.id===want):j.items[0];if(!it)return; // ui20261015ek: a tapped id that is gone never opens some other pending place
     const dupIds=j.items.filter(x=>x===it||gmSame(x,it)).map(x=>x.id),left=j.items.filter(x=>!dupIds.includes(x.id));
     const more=left.filter((x,i)=>!left.slice(0,i).some(y=>gmSame(x,y))).length;
     await gmAddRun((it.name?it.name+'\n':'')+it.url,it);
@@ -1699,7 +1705,7 @@ async function gmPushOn(){
     gmMsg('Notifications on ✓');gmRefresh();
   }catch(e){console.warn('push',e);gmMsg('Couldn’t turn on — try again',true)}
 }
-// ui20261015ej: the plaintext key is kept on this device only (per user) so Install/Copy can reuse it; server stores a hash.
+// ui20261015ek: the plaintext key is kept on this device only (per user) so Install/Copy can reuse it; server stores a hash.
 const gmKeyGet=()=>{try{const o=JSON.parse(localStorage.getItem(K('ikey'))||'null');return o&&typeof o.t==='string'&&/^mst_[\w-]{43}$/.test(o.t)?o:null}catch{return null}};
 const gmKeySet=(t,c)=>{try{t?localStorage.setItem(K('ikey'),JSON.stringify({t,c})):localStorage.removeItem(K('ikey'))}catch{}};
 const gmNewKey=()=>inboxApi('inbox/key','POST').then(j=>{if(j._s!==200||!j.token)throw Error(j.error||'key');gmKeySet(j.token,j.c);return j.token});

@@ -668,7 +668,7 @@ html body .sheet-expanded>.handle,html body .sheet-expanded>.search-sheet-head,h
 .gm-steps b{font-weight:800}
 .gm-install{display:flex!important;align-items:center;justify-content:center;width:100%;height:44px!important;min-height:44px!important;border-radius:999px!important;border:0!important;background:#8a6fdc!important;color:#fff!important;font:800 16px/1 Nunito,sans-serif!important;text-decoration:none;box-shadow:none!important}
 .gm-install:disabled{background:#e9e3f8!important;color:#8f84ad!important;cursor:default}
-/* ui20261015ej: Add from Google Maps — notifications + shortcut key rows */
+/* ui20261015ek: Add from Google Maps — notifications + shortcut key rows */
 .gm-steps{gap:4px;font-size:14.5px}
 .gm-list li{padding-right:5px}
 .gm-r{flex:none;display:flex;align-items:center;gap:6px}
@@ -681,7 +681,7 @@ html body .sheet-expanded>.handle,html body .sheet-expanded>.search-sheet-head,h
 .gm-keybox input{width:100%;height:40px;padding:0 12px;border:1.5px dashed #c9b8f4;border-radius:12px;background:#fbf9ff;font:700 13px/1 Nunito,sans-serif;color:#38271f;letter-spacing:.01em}
 .gm-keybox small{margin-left:4px;font:600 11.5px Nunito,sans-serif;color:#81796e}
 .gm-safe{margin:-2px 4px 0;font:600 12px/1.3 Nunito,sans-serif;color:#81796e}
-/* ui20261015ej: Wishlist bottom matched to Timeline — main, page and list each added bottom padding (8px+inset twice, then 24px); now only the list scroller keeps 8px + safe area */
+/* ui20261015ek: Wishlist bottom matched to Timeline — main, page and list each added bottom padding (8px+inset twice, then 24px); now only the list scroller keeps 8px + safe area */
 #main.view-wishlist,.view-wishlist main{padding-bottom:0!important;margin-bottom:0!important}
 #main.view-wishlist>.content,#main.view-wishlist>.content.wl-page{padding-bottom:0!important;margin-bottom:0!important}
 #main.view-wishlist .wl-page>.wl-list{padding-bottom:calc(8px + env(safe-area-inset-bottom,0px))!important;margin-bottom:0!important}
