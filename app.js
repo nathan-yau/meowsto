@@ -61,9 +61,9 @@ async function loadData(){let cached=localStorage.getItem(K('env')),local=null;
   if(j.empty){
     // First login: migrate legacy localStorage if present
     if(!local){let db=RL.defaults();try{const raw=localStorage.getItem(LEGACY_KEY);if(raw){const legacy=JSON.parse(raw);if(RL.validDb(legacy)){db=RL.migrate(legacy);localStorage.setItem(LEGACY_KEY+'-migrated-at',String(Date.now()))}}}catch{}state=db;bootApp()}
-    dirty=true;save();shareInit();return}
+    dirty=true;save();shareInit();inboxKick();return}
   if(j.etag!==ETAG||!local){const remote=await RL.decrypt(j.env,PASS);state=(local&&dirty)?RL.merge(local,remote):RL.migrate(remote);ETAG=j.etag;if(!dirty)cacheEnv(j.env,j.etag);if(!local)bootApp();else refreshAfterSync()}
-  sync(dirty?'Unsynced changes…':'Synced ✓');if(dirty)save();shareInit()}
+  sync(dirty?'Unsynced changes…':'Synced ✓');if(dirty)save();shareInit();inboxKick()}
 async function save(){if(!TOK)return false;if(saving){clearTimeout(tmr);tmr=setTimeout(save,800);return}saving=true;
   try{const u0=state.u,env=await RL.encrypt(state,PASS,SALT);cacheEnv(env);
     for(let i=0;i<4;i++){const j=await api('data','PUT',{env,etag:ETAG});
@@ -1577,6 +1577,7 @@ function bootApp(){
   renderAvatar();
   render();
   gmAddKick();
+  swInit();
 }
 
 // ui20261015eh: iPhone Shortcut "加入 Meowsto" → /?add=<shared Google Maps text>. Resolve via Netlify function, match on Mapbox, open the place sheet.
@@ -1586,14 +1587,14 @@ let gmAddPending=(()=>{try{const v=new URLSearchParams(location.search).get('add
 function gmStripAdd(){try{const u=new URL(location.href);if(!u.searchParams.has('add'))return;u.searchParams.delete('add');history.replaceState(history.state,'',u.pathname+(u.searchParams.toString()?'?'+u.searchParams.toString():'')+u.hash)}catch{}}
 function gmExtract(text){const s=String(text||'').trim(),m=s.match(/https?:\/\/[^\s<>"']+/i);if(!m)return {url:null,hint:s.slice(0,120)};return {url:m[0].replace(/[),.;!?\]]+$/,''),hint:s.slice(0,m.index).replace(/\s+/g,' ').trim().replace(/[:\-–—]+$/,'').trim().slice(0,120)}}
 function gmAddKick(){if(!gmAddPending||!USER)return;const text=gmAddPending;gmAddPending=null;gmStripAdd();setTimeout(()=>gmAddRun(text),60)}
-async function gmAddRun(text){
+async function gmAddRun(text,pre){
   const {url,hint}=gmExtract(text);
   closePanel();if(tab!=='map'){tab='map';render()}else if(!$('.map-wrap'))render();
   if(!url){if(hint&&hint.length>=2&&hint.length<=80){runMapPlaceSearch(hint);return}toast('Couldn’t read that link');return}
   exploreBar('start','Finding place…');
   try{
     const ctrl=new AbortController(),t=setTimeout(()=>ctrl.abort(),12000);let j;
-    try{const r=await fetch(GMAPS_FN+'?url='+encodeURIComponent(url),{signal:ctrl.signal});j=await r.json().catch(()=>({}));if(!r.ok)throw Error(j.error||'resolve '+r.status)}finally{clearTimeout(t)}
+    try{if(pre&&Number.isFinite(pre.lat)&&Number.isFinite(pre.lng))j=pre;/* ui20261015ei: inbox items arrive resolved server-side */else{const r=await fetch(GMAPS_FN+'?url='+encodeURIComponent(url),{signal:ctrl.signal});j=await r.json().catch(()=>({}));if(!r.ok)throw Error(j.error||'resolve '+r.status)}}finally{clearTimeout(t)}
     const name=String(j.name||hint||'').trim();
     if(!Number.isFinite(j.lat)||!Number.isFinite(j.lng)){if(name.length>=2){exploreBar('done');runMapPlaceSearch(name);return}throw Error('no place')}
     {const tx=$('#explore-progress .ep-text');if(tx)tx.textContent='Matching '+(name||'place')+'…'}
@@ -1625,9 +1626,109 @@ function gmShow(f){
   const h=sheet.querySelector('.search-sheet-head h2');if(h)h.textContent='From Google Maps';
   afterSheetLayout(()=>{focusSearchHit(0);const h2=sheet.querySelector('.search-sheet-head h2');if(h2)h2.textContent='From Google Maps'});
 }
+// ui20261015ei: Shortcut → POST /api/inbox (share key) → Web Push → tap opens ?inbox=<id> here (home-screen app storage, not Safari's).
+const inboxParam=()=>{try{const v=new URLSearchParams(location.search).get('inbox');return v&&/^[\w-]{4,40}$/.test(v)?v:null}catch{return null}};
+let inboxWant=inboxParam(),inboxBusy=false,inboxLast=0,gmKeyShown=null,gmResetArm=0;
+function inboxStrip(){try{const u=new URL(location.href);if(!u.searchParams.has('inbox'))return;u.searchParams.delete('inbox');history.replaceState(history.state,'',u.pathname+(u.searchParams.toString()?'?'+u.searchParams.toString():'')+u.hash)}catch{}}
+async function inboxApi(path,method,body){let j=await api(path,method,body);if(j._s===401&&await tryRefresh()===true)j=await api(path,method,body);return j}
+function inboxKick(){if(TOK&&USER)inboxCheck(!!inboxWant)}
+async function inboxCheck(force){
+  if(!TOK||!USER||inboxBusy||gmAddPending)return;
+  if(!force&&(Date.now()-inboxLast<20000||!$('#panel').hidden))return; // never clobber an open form on a plain foreground
+  inboxBusy=true;inboxLast=Date.now();const want=inboxWant;inboxWant=null;inboxStrip();
+  try{
+    const j=await inboxApi('inbox','GET');if(j._s!==200||!Array.isArray(j.items)||!j.items.length)return;
+    const it=(want&&j.items.find(x=>x.id===want))||j.items[0],more=j.items.length-1;
+    await gmAddRun((it.name?it.name+'\n':'')+it.url,it);
+    await inboxApi('inbox?id='+encodeURIComponent(it.id),'DELETE');
+    if(more>0)setTimeout(()=>toast(more+' more from Maps'),400);
+  }catch(e){console.warn('inbox',e)}finally{inboxBusy=false}
+}
+document.addEventListener('visibilitychange',()=>{if(document.visibilityState==='visible')inboxCheck(false)});
+const isIOS=()=>/iP(hone|ad|od)/.test(navigator.userAgent)||(navigator.platform==='MacIntel'&&navigator.maxTouchPoints>1);
+const isStandalone=()=>navigator.standalone===true||matchMedia('(display-mode: standalone)').matches||matchMedia('(display-mode: fullscreen)').matches;
+const pushOK=()=>'serviceWorker' in navigator&&'PushManager' in window&&'Notification' in window&&window.isSecureContext!==false;
+let swRegP=null;
+function swInit(){if(swRegP||!('serviceWorker' in navigator)||window.isSecureContext===false)return swRegP;
+  navigator.serviceWorker.addEventListener('message',e=>{const d=e.data||{};if(d.type==='meowsto-inbox'){inboxWant=d.id&&/^[\w-]{4,40}$/.test(d.id)?d.id:null;inboxCheck(true)}});
+  swRegP=navigator.serviceWorker.register('sw.js',{scope:'./'}).catch(e=>{console.warn('sw',e);swRegP=null;return null});return swRegP}
+const b64uBytes=s=>{const b=atob(s.replace(/-/g,'+').replace(/_/g,'/')+'==='.slice((s.length+3)%4));return Uint8Array.from(b,c=>c.charCodeAt(0))};
+async function gmPushState(st){
+  if(!pushOK()||(isIOS()&&!isStandalone()))return {s:'na',hint:isIOS()?'Open from Home Screen app to turn on':'Not supported in this browser'};
+  if(Notification.permission==='denied')return {s:'na',hint:'Notifications are blocked — allow them in Settings'};
+  if(Notification.permission!=='granted')return {s:'off'};
+  try{const reg=await swInit();const sub=reg&&await reg.pushManager.getSubscription();if(!sub)return {s:'off'};
+    if(st&&st.mine===false){const j=await inboxApi('inbox/push','POST',{sub:sub.toJSON(),scope:reg.scope});if(j._s!==200)return {s:'off'}}
+    return {s:'on'}}catch{return {s:'off'}}
+}
+async function gmPushOn(){
+  const permP=Notification.requestPermission(); // first thing in the tap (iOS needs the gesture)
+  gmMsg('Turning on…');
+  const perm=await permP;if(perm!=='granted')return gmMsg(perm==='denied'?'Notifications are blocked — allow them in Settings':'Notifications not allowed',true);
+  try{
+    const reg=await swInit();if(!reg)throw Error('sw');await navigator.serviceWorker.ready;
+    const st=await inboxApi('inbox/key','GET');if(st._s!==200||!st.vapid)throw Error('status');
+    const key=b64uBytes(st.vapid);let sub=await reg.pushManager.getSubscription();
+    if(sub){const k=sub.options&&sub.options.applicationServerKey;if(k&&new Uint8Array(k).join()!==key.join()){await sub.unsubscribe();sub=null}}
+    if(!sub)sub=await reg.pushManager.subscribe({userVisibleOnly:true,applicationServerKey:key});
+    const j=await inboxApi('inbox/push','POST',{sub:sub.toJSON(),scope:reg.scope});if(j._s!==200)throw Error(j.error||'save');
+    gmMsg('Notifications on ✓');gmRefresh();
+  }catch(e){console.warn('push',e);gmMsg('Couldn’t turn on — try again',true)}
+}
+// ui20261015ei: the plaintext key is kept on this device only (per user) so Install/Copy can reuse it; server stores a hash.
+const gmKeyGet=()=>{try{const o=JSON.parse(localStorage.getItem(K('ikey'))||'null');return o&&typeof o.t==='string'&&/^mst_[\w-]{43}$/.test(o.t)?o:null}catch{return null}};
+const gmKeySet=(t,c)=>{try{t?localStorage.setItem(K('ikey'),JSON.stringify({t,c})):localStorage.removeItem(K('ikey'))}catch{}};
+const gmNewKey=()=>inboxApi('inbox/key','POST').then(j=>{if(j._s!==200||!j.token)throw Error(j.error||'key');gmKeySet(j.token,j.c);return j.token});
+function gmCopyNow(t){try{const w=navigator.clipboard&&navigator.clipboard.writeText(t);return w?w.then(()=>true,()=>false):Promise.resolve(false)}catch{return Promise.resolve(false)}}
+function gmInstall(e){
+  const link=SHORTCUT_ICLOUD_URL,k=gmKeyGet();
+  if(k){gmCopyNow(k.t);toast('Key copied — paste it when asked');return} // anchor opens the link in the same tap
+  e.preventDefault();
+  const tokP=gmNewKey();let cp=Promise.resolve(false);
+  try{if(window.ClipboardItem&&navigator.clipboard&&navigator.clipboard.write)cp=navigator.clipboard.write([new ClipboardItem({'text/plain':tokP.then(t=>new Blob([t],{type:'text/plain'}))})]).then(()=>true,()=>false)}catch{}
+  tokP.then(async t=>{let copied=await cp;if(!copied)copied=await gmCopyNow(t);gmKeyShown=t;
+    toast(copied?'Key copied — paste it when asked':'Copy the key, then paste it when asked');gmRefresh();if(copied)location.href=link},
+    ()=>gmMsg('Couldn’t make a key — try again',true));
+}
+async function gmCopyKey(reset){
+  const k=!reset&&gmKeyGet();
+  if(k){const ok=await gmCopyNow(k.t);gmKeyShown=k.t;return gmRefresh(ok?'Copied ✓':'Copy the key below')}
+  const tokP=gmNewKey();
+  let copied=false;
+  // Safari only lets us write after a fetch if the write starts inside the tap: hand it a promise.
+  try{if(window.ClipboardItem&&navigator.clipboard&&navigator.clipboard.write){await navigator.clipboard.write([new ClipboardItem({'text/plain':tokP.then(t=>new Blob([t],{type:'text/plain'}))})]);copied=true}}catch{}
+  let tok;try{tok=await tokP}catch{gmMsg('Couldn’t make a key — try again',true);gmRefresh();return}
+  if(!copied){try{await navigator.clipboard.writeText(tok);copied=true}catch{}}
+  gmKeyShown=tok;gmRefresh(copied?'Copied ✓ Paste it when you install the Shortcut':'Copy the key below');
+}
+function gmMsg(m,bad){const x=document.querySelector('#panel .gm-panel .sh-msg');if(!x)return;x.textContent=m||'';x.classList.toggle('bad',!!bad)}
+async function gmRefresh(msg){
+  const p=document.querySelector('#panel:not([hidden]) .gm-panel');if(!p)return;
+  let ep=null;try{if(pushOK()&&Notification.permission==='granted'){const reg=await swInit();const sub=reg&&await reg.pushManager.getSubscription();ep=sub&&sub.endpoint}}catch{}
+  const st=await inboxApi('inbox/key'+(ep?'?ep='+encodeURIComponent(ep):''),'GET');
+  const p2=document.querySelector('#panel:not([hidden]) .gm-panel');if(p2!==p)return;
+  const ps=await gmPushState(st._s===200?st:null);
+  const nr=p.querySelector('[data-gm=push]'),kr=p.querySelector('[data-gm=key]');
+  nr.querySelector('.gm-r').innerHTML=ps.s==='on'?'<small class="gm-ok">On ✓</small>':ps.s==='off'?'<button type="button" class="gm-pill" data-gm-act="push" aria-label="Turn on notifications">Turn on</button>':'<small>Off</small>';
+  p.querySelector('.gm-hint').textContent=ps.hint||'';
+  const has=st._s===200&&st.has;
+  if(st._s===200){const k=gmKeyGet();if(k&&(!has||k.c!==st.c))gmKeySet(null)}
+  const local=!!gmKeyGet();
+  kr.querySelector('.gm-r').innerHTML=st._s!==200?'<small>Offline</small>':has?`${local?'<button type="button" class="gm-pill" data-gm-act="copy" aria-label="Copy shortcut key">Copy</button>':'<small class="gm-ok">Set</small>'}<button type="button" class="gm-pill ghost" data-gm-act="reset" aria-label="Reset shortcut key">Reset</button>`:'<button type="button" class="gm-pill" data-gm-act="copy" aria-label="Copy shortcut key">Copy key</button>';
+  const kb=p.querySelector('.gm-keybox');kb.hidden=!gmKeyShown;if(gmKeyShown)kb.querySelector('input').value=gmKeyShown;
+  if(msg!==undefined)gmMsg(msg);
+}
 function gmShortcutPanel(){
-  const has=!!SHORTCUT_ICLOUD_URL;
-  openPanel('Add from Google Maps',`<div class="share-panel gm-panel"><p class="sh-note">📲 Share a place from Google Maps straight into Meowsto — one tap, no copy-paste.</p><ol class="gm-steps"><li>Tap <b>Install Shortcut</b>, then <b>Add Shortcut</b></li><li>In Google Maps, open a place → <b>Share</b></li><li>Pick <b>加入 Meowsto</b> 🐾 — we’ll find it for you</li></ol>${has?`<a class="gm-install primary" href="${esc(SHORTCUT_ICLOUD_URL)}" target="_blank" rel="noopener">Install Shortcut</a>`:'<button type="button" class="gm-install primary" disabled>Install Shortcut · Coming soon</button>'}</div>`,{cls:'entry-panel profile-sheet share-sheet gm-sheet'});
+  const has=!!SHORTCUT_ICLOUD_URL;gmKeyShown=null;gmResetArm=0;
+  openPanel('Add from Google Maps',`<div class="share-panel gm-panel"><p class="sh-note">📲 Share from Google Maps — Meowsto pings you, tap to open it here.</p><ol class="gm-steps"><li>Turn on <b>notifications</b></li><li>Tap <b>Install Shortcut</b> — your key is copied</li><li>Paste the key when asked</li><li>Google Maps → <b>Share</b> → <b>加入 Meowsto</b> 🐾</li></ol><ul class="sh-list gm-list"><li data-gm="push"><span>🔔 Notifications</span><span class="gm-r"><small>…</small></span></li><li data-gm="key"><span>🔑 Shortcut key</span><span class="gm-r"><small>…</small></span></li></ul><p class="gm-hint"></p><p class="gm-safe">🔒 This key can only add places. Don’t share it.</p><div class="gm-keybox" hidden><input type="text" readonly aria-label="Shortcut key" spellcheck="false" autocapitalize="off" autocorrect="off"><small>Paste this into the Shortcut</small></div><p class="sh-msg" role="status"></p>${has?`<a class="gm-install primary" href="${esc(SHORTCUT_ICLOUD_URL)}" target="_blank" rel="noopener">Install Shortcut</a>`:'<button type="button" class="gm-install primary" disabled>Install Shortcut · Coming soon</button>'}</div>`,{cls:'entry-panel profile-sheet share-sheet gm-sheet'});
+  const p=document.querySelector('#panel .gm-panel');
+  const ins=p.querySelector('a.gm-install');if(ins)ins.addEventListener('click',gmInstall);
+  p.addEventListener('click',e=>{const b=e.target.closest('[data-gm-act]');if(b){const a=b.dataset.gmAct;
+      if(a==='push'){if(!pushOK())return;gmPushOn();return}
+      if(a==='copy'){b.disabled=true;gmCopyKey(false);return}
+      if(a==='reset'){if(Date.now()-gmResetArm>4000){gmResetArm=Date.now();b.textContent='Tap again';gmMsg('Old key stops working');return}gmResetArm=0;b.disabled=true;gmCopyKey(true);return}}
+    const inp=e.target.closest('.gm-keybox input');if(inp){inp.select();try{navigator.clipboard.writeText(inp.value).then(()=>gmMsg('Copied ✓'),()=>{})}catch{}}});
+  gmRefresh();
 }
 
 /* lock screen wiring */
